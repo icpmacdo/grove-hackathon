@@ -18,3 +18,12 @@ node_modules/
 
 # OS
 .DS_Store
+
+# Analysis outputs: derived data and excerpts of agent text stay local
+analysis/**/*.csv
+analysis/**/*.json
+analysis/**/*.parquet
+analysis/**/*.out.txt
+analysis/**/out/
+# Restrictions analysis was dropped; never commit it
+analysis/boundaries/
