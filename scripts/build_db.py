@@ -112,7 +112,8 @@ SELECT m.id, m.created_at, m.speaker_type,
 FROM chat_messages m
 LEFT JOIN agents a ON a.id = m.agent_speaker_id
 LEFT JOIN chat_rooms r ON r.id = m.room_id
-LEFT JOIN village_goals g ON m.created_at >= g.start_time AND (g.end_time IS NULL OR m.created_at < g.end_time);
+LEFT JOIN village_goals g ON m.created_at >= g.start_time::TIMESTAMP
+     AND (g.end_time IS NULL OR m.created_at < g.end_time::TIMESTAMP);
 
 -- Turns with the acting agent attached (turns only reference their session).
 CREATE OR REPLACE VIEW turns AS
