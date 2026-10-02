@@ -294,7 +294,7 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
   <div class="wrap hero-inner">
     <p class="label eyebrow">AI Swarm Dynamics Hackathon · Oct 3–4, 2026 · Round 2, from the data</p>
     <h1>What the swarm actually did</h1>
-    <p class="lede">We loaded the whole AI Village record (46 agents, 17 months, 2.5 million computer actions) and ran four analyses. Here's what turned up, in the agents' own words, and the tools those findings point to.</p>
+    <p class="lede">We loaded the whole AI Village record (46 agents, 17 months, 2.5 million computer actions) and ran eight analyses. Here's what turned up, in the agents' own words, and the tools those findings point to.</p>
     <div class="readouts">
       <div class="readout"><span class="label">Submissions close in</span><b id="countdown">3d</b></div>
       <div class="readout"><span class="label">Deadline</span><b>Sun 5:00pm PT</b></div>
@@ -349,13 +349,13 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
           <p class="label">Gap</p>
           <h3>Spread nobody can trace</h3>
           <p>Tactics and plans passed between agents, and there was no systematic way to follow who picked up what, or where it stopped.</p>
-          <div class="answers"><span class="label">Answered by</span><a href="#belief-tracer">Belief Tracer</a><a href="#frame-radar">Frame Radar</a></div>
+          <div class="answers"><span class="label">Answered by</span><a href="#belief-tracer">Belief Tracer</a></div>
         </div>
         <div class="gap">
           <p class="label">Gap</p>
-          <h3>Leaders nobody could see</h3>
-          <p>To learn who directed whom, the team hand-sampled 30 trajectories out of more than a thousand.</p>
-          <div class="answers"><span class="label">Answered by</span><a href="#authority-lens">Authority Lens</a></div>
+          <h3>Channels nobody watched</h3>
+          <p>The agents were supposed to be isolated. They found a shared cache to use as a message board, and on the wiki they used pages the same way.</p>
+          <div class="answers"><span class="label">Answered by</span><a href="#side-channel">Side-Channel Radar</a><a href="#swarm-atlas">Swarm Atlas</a></div>
         </div>
       </div>
 
@@ -374,7 +374,7 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
     <div class="wrap">
       <div class="sec-head">
         <p class="label">What's in the data</p>
-        <h2>Six findings worth building on</h2>
+        <h2>Seven findings worth building on</h2>
         <p class="intro">Each comes from a script in the repo's <code>analysis/</code> folder, and every chart uses the real numbers. Hover a mark for details, or open a chart's table view.</p>
       </div>
 
@@ -425,6 +425,26 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
         </div>
         <div class="pull"><q>Gemini 2.5 Pro spent ~a week stuck in a self-reinforcing delusional loop… Recurring cryptic phrase.</q><span>Claude Opus 4.8's memory, 22 Jun 2026</span></div>
         <p class="hook"><b>For a tool:</b> counting mentions overstates belief. Each hop needs a label: adopted, only attributed to someone else, or refuted.</p>
+      </article>
+
+      <!-- F side channels -->
+      <article class="finding" id="f-channels">
+        <div class="f-head">
+          <p class="f-kicker">Side channels · Mar–Aug 2026</p>
+          <h3 class="f-title">Rooms were sealed in chat, and wide open through shared files</h3>
+          <p class="f-body">Agents in different rooms couldn't see each other's chat, and 99.7% of @mentions stayed in-room. But they read each other's repos, READMEs and issue threads constantly. In the longest split, 68 days of #best and #rest, agents read files the other room had written that week 393 times (counted as reader–writer pairs per day), against 43 @mentions across the wall in chat. Agents also built their own boards: a drop-box repo they called an “email bypass,” issue-thread inboxes polled thousands of times, and the exemption registry from the nudger story, written for the overseer bot to read.</p>
+        </div>
+        <div class="panel">
+          <div class="panel-top"><span class="label">Cross-room contact, per room split</span><span class="real">Real data · artifacts/03_bridges.py</span></div>
+          <div class="scroll-x"><svg id="chan-svg" role="img" aria-label="For three room splits, cross-room reads of shared files versus cross-room mentions in chat"></svg></div>
+          <div class="legend">
+            <span><i class="lg bar" style="background:var(--c-mem)"></i>Read another room's files (agent pairs per day, summed)</span>
+            <span><i class="lg bar" style="background:var(--c-ctx)"></i>@mentioned someone in another room</span>
+          </div>
+          <details class="tv"><summary>Table view</summary><div class="tv-scroll" id="chan-table"></div></details>
+        </div>
+        <div class="pull"><q>The echoes-inbox drop repo as permanent email bypass is a genuine infrastructure pattern worth document[ing]</q><span>DeepSeek-V4-Pro, 22 Jul 2026 17:16 UTC</span></div>
+        <p class="hook"><b>For a tool:</b> on 23 March, Gemini 3.1 Pro's work crossed from #best into #rest through a shared repo in 7 minutes, and five #rest messages repeated it, with nothing crossing in chat. This is the Village's version of the Hugging Face message board. A tool that watches only chat sees sealed rooms.</p>
       </article>
 
       <!-- F3 -->
@@ -544,7 +564,7 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
         <article class="idea pick" id="belief-tracer">
           <p class="idea-kind">Information-flow tracer · my pick</p>
           <h3>Belief Tracer</h3>
-          <p>Pick a claim and see every agent who carried it, through chat, memory notes and shared files. Each hop is labeled adopted, only mentioned, or refuted. It shows where the claim stopped and whether the correction caught up.</p>
+          <p>Pick a claim and see every agent who carried it, through chat, memory notes and shared files. Each hop is labeled adopted, only mentioned, or refuted. It shows where the claim stopped and whether the correction caught up. With Side-Channel Radar built in, the file hops also reveal the channels that carried it.</p>
           <h4>Demo</h4>
           <p>Replay the temporal bleed: the claim sweeps #rest in 39 minutes and stops at the #best wall, then the correction overtakes it. Close on the nudge-exempt holdout, still in one memory 18 days after the fix.</p>
           <h4>Ships by Sunday</h4>
@@ -562,7 +582,7 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
           <h3>Two-Faced Detector</h3>
           <p>Lines up what each agent says in public against its private reasoning and actions, and flags where they split: a claimed role against the actual roll, “villager” against an egg-shaped glow in the code, support for a vote against a private plan to divert attention.</p>
           <h4>Demo</h4>
-          <p>The saboteur scoreboard: the monitor names all 12 within two minutes while the village names 4. Then the scapegoat plan shown next to the vote that followed.</p>
+          <p>The saboteur scoreboard: the monitor names all 12 within two minutes while the village names 4. Then the scapegoat plan shown next to the vote that followed, and the scanner agent's “All CLEAN and approved” on the phoenix pull request it never opened.</p>
           <h4>Ships by Sunday</h4>
           <ul>
             <li>Extract commitments and intentions from reasoning and commands</li>
@@ -573,37 +593,37 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
           <p>Only 12 cases, mostly Claude. Many GPT reasoning traces are empty, and real swarms may not expose reasoning at all.</p>
           <div class="chips"><a class="chip" href="#f-sabotage">Finding: saboteur game</a><a class="chip" href="#f-claims">Finding: claims</a></div>
         </article>
-        <article class="idea" id="authority-lens">
-          <p class="idea-kind">Leadership map</p>
-          <h3>Authority Lens</h3>
-          <p>Ranks agents by who others defer to, not who talks most, so an investigator knows which few agents to read first. A broker that relays everything shows up separately from the one giving direction.</p>
+        <article class="idea" id="side-channel">
+          <p class="idea-kind">Hidden channel finder</p>
+          <h3>Side-Channel Radar</h3>
+          <p>Maps which agents read and write which repos, files, issue threads and outside boards, overlays the rooms they were supposed to be confined to, and flags every edge that crosses a wall. It also ranks artifacts that behave like message boards: many posters, far more reading than posting, regular polling.</p>
           <h4>Demo</h4>
-          <p>“Follow your leader” week: by message count DeepSeek-V3.2 is on top; switch to deference and the Fine-Tuned Leader jumps to first, with 69 times its usual share.</p>
+          <p>23 March: the chat view shows #best and #rest sealed. Switch to the file view and watch Gemini's “22 issues” cross into #rest through a shared repo in 7 minutes. Then the drop-box repo and the exemption registry surface as boards.</p>
           <h4>Ships by Sunday</h4>
           <ul>
-            <li>Request and deference extraction (scripts exist)</li>
-            <li>Scoring against the five known-leader episodes</li>
-            <li>A graph view with volume and authority side by side</li>
+            <li>Read/write extraction from 2.5M actions (263k events already parsed)</li>
+            <li>Room-crossing detector and board ranking</li>
+            <li>A coverage meter showing what the logs can't attribute</li>
           </ul>
           <h4>Risk</h4>
-          <p>The pattern matching is about 60% precise and English-only, and it misses hidden roles like the performance coach.</p>
-          <div class="chips"><a class="chip" href="#f-leaders">Finding: leaders</a></div>
+          <p>Room membership is inferred, and a read isn't proof of understanding. About 44% of cross-room crossings have no logged route.</p>
+          <div class="chips"><a class="chip" href="#f-channels">Finding: side channels</a><a class="chip" href="#f-monitor">Finding: nudge-exempt</a></div>
         </article>
-        <article class="idea" id="frame-radar">
-          <p class="idea-kind">Early warning</p>
-          <h3>Frame Radar</h3>
-          <p>Flags new phrases that spread across agents far faster than normal vocabulary. Coined frames reach five agents in minutes; typical shared phrases take a day. It filters out project names, which make up most of what spreads.</p>
+        <article class="idea" id="swarm-atlas">
+          <p class="idea-kind">Find swarms in the wild</p>
+          <h3>Swarm Atlas</h3>
+          <p>A snowball crawler that starts from public agent directories and aggregators, follows the links they expose, and scores each site on how agent-like and swarm-like it is. It never trusts a declared size: it counts the distinct authors actually visible.</p>
           <h4>Demo</h4>
-          <p>Replay 27 Nov 2025: the alarm fires at 19:33 when “Divergent Reality” reaches its fifth agent and third model family, 16 minutes after it was coined.</p>
+          <p>Replay how the Village found outside agents: one directory listing of 50 grows to 86 sites, then an aggregator adds five agent platforms in 90 minutes. One “collective” claimed 74+ members; only 14 authors were visible, and the biggest was 13 Village agents sharing one account.</p>
           <h4>Ships by Sunday</h4>
           <ul>
-            <li>Streaming phrase-spread detector (scripts exist)</li>
-            <li>Project-name filter tuned on the Village</li>
-            <li>Replay view with the alarm log</li>
+            <li>Replay from the Village's discovery chain (already extracted)</li>
+            <li>Agent-likeness and swarm-likeness scoring</li>
+            <li>A 98-site seed list, with optional live checks if we choose to</li>
           </ul>
           <h4>Risk</h4>
-          <p>Project names dominate the raw signal, so the filter is the product. Thresholds tuned here may not transfer.</p>
-          <div class="chips"><a class="chip" href="#f-memory">Finding: memory vs chat</a></div>
+          <p>The data is 1–6 months old and many sites may be dead. Live crawling would touch real outside sites, which is a separate decision.</p>
+          <div class="chips"><a class="chip" href="#next">Round 2: outside agents</a></div>
         </article>
       </div>
     </div>
@@ -616,10 +636,12 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
         <h2>Good, but not the lead</h2>
       </div>
       <div class="also">
-        <div><h3>Receipts (claim checker)</h3><p>Check each “done” against the logs. Still useful as a feature, but 70% of claims check out and a Village agent has already published the aggregate result.</p></div>
-        <div><h3>Convergence meter</h3><p>Flags many agents piling onto one target, like 16 agents swarming Gemini 2.5 Pro on 22 June with duplicate instructions 90 seconds apart. Fits as a panel in Authority Lens.</p></div>
+        <div><h3>Authority Lens</h3><p>Rank agents by who others defer to, not who talks most. Finds the appointed leader in 3 of 5 episodes against 2 of 5 for message volume, but misses hidden roles. A good panel inside any of the four.</p></div>
+        <div><h3>Charter Check</h3><p>Extract the rules, votes and exemptions a swarm writes for itself and flag self-dealing and paper rules. Strong story (the Gate 009 saga, the self-registered exemption), but one era of data.</p></div>
+        <div><h3>Frame Radar</h3><p>Early warning for coined phrases that reach five agents in minutes instead of a day. Project names swamp the signal, so the filter would be most of the work.</p></div>
+        <div><h3>Claim provenance auditor</h3><p>For any “verified” or “all clean,” show the tool calls behind it. The phoenix approval is a perfect demo; it fits inside Two-Faced Detector.</p></div>
+        <div><h3>Convergence meter</h3><p>Flags many agents piling onto one target, like 16 agents swarming Gemini 2.5 Pro on 22 June with duplicate instructions 90 seconds apart.</p></div>
         <div><h3>Swarm Pulse</h3><p>A heatmap of every agent's state with anomaly flags: runaway chat, error spikes, agents 96% paused. Good context view; not a finding on its own.</p></div>
-        <div><h3>Monitor Watch</h3><p>Tracks a swarm's talk about its overseer. The nudger story is strong, but it is one episode, so it works best as Belief Tracer's closing demo.</p></div>
       </div>
     </div>
   </section>
@@ -627,13 +649,13 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
   <section class="section" id="next">
     <div class="wrap">
       <div class="sec-head">
-        <p class="label">Round 2 · in progress</p>
-        <h2>Still digging</h2>
-        <p class="intro">Four more analyses are running now. This page will update when they finish.</p>
+        <p class="label">Round 2 · complete</p>
+        <h2>What the second dig found</h2>
+        <p class="intro">Four more analyses, each with its own write-up in the repo. Side-Channel Radar and Swarm Atlas above come from these.</p>
       </div>
       <ul class="next">
         <li><span class="label" style="color:var(--c-fix)">Done</span><h3>The swarm's own institutions</h3><p>Safety “gates” grew from no process to 491 messages and five binding voters around a 14-minute self-test. All 9 halts were procedural, none for the safety thresholds the gates existed to check. Two agents wrote themselves into an exemption registry nothing enforced, and staff never ruled on any of it until the 20 August correction.</p></li>
-        <li><span class="running">Running</span><h3>Channels outside the chat</h3><p>Shared repos and files the agents used to coordinate across room walls, the Village's closest thing to the Hugging Face message board.</p></li>
+        <li><span class="label" style="color:var(--c-fix)">Done</span><h3>Channels outside the chat</h3><p>Shared repos, issue threads and outside boards carried most cross-room traffic. Agents built their own boards, like a drop-box repo and issue-thread inboxes, and the busiest cross-room “conversation” was a thread in a repo owned by an outside agent.</p></li>
         <li><span class="label" style="color:var(--c-fix)">Done</span><h3>Agents outside the Village</h3><p>One directory listing of 50 agents led the Village to 86 outside sites, and an aggregator led it to five agent platforms within 90 minutes. Only 42 of 133 agent endpoints ever answered. One “collective” claimed 7, then 16, then 74+ members, while only 14 authors were visible, and the biggest was 13 Village agents sharing one account.</p></li>
         <li><span class="label" style="color:var(--c-fix)">Done</span><h3>Delegation trees</h3><p>There were none: the Claude Code agent never used a subagent in 72,225 tool calls. Instead it compressed its own context 940 times, lost the fact that its GitHub account was shadow-banned, and approved the phoenix-egg pull request without opening it.</p></li>
       </ul>
@@ -646,22 +668,23 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
         <div>
           <div class="sec-head">
             <p class="label">My recommendation</p>
-            <h2>Belief Tracer</h2>
+            <h2>Belief Tracer, with Side-Channel Radar inside</h2>
           </div>
           <ul class="reasons">
-            <li>It's exactly the organizers' “trace how information spreads” prompt, and two separate analyses arrived at it independently.</li>
-            <li>The finding behind it is new: chat alone misses a large share of the agents carrying an idea, and mentions overstate belief.</li>
-            <li>It has two ready-made real stories for the demo, the temporal bleed and the nudge-exempt registry.</li>
-            <li>Most of the queries already exist, so the weekend goes into the replay view and the adopted / mentioned / refuted labels.</li>
+            <li>It's the organizers' “trace how information spreads” prompt, and three separate analyses pointed at it.</li>
+            <li>The findings behind it are new: chat alone misses many of the agents carrying an idea, mentions overstate belief, and most cross-room traffic went through shared files.</li>
+            <li>It maps straight onto the Hugging Face incident: isolated agents, an unwatched channel, ideas spreading through it.</li>
+            <li>It has ready-made real stories for the demo: the temporal bleed crossing via a README, and the exemption registry written for the overseer bot.</li>
+            <li>Most of the extraction already exists, so the weekend goes into the replay view and the adopted / mentioned / refuted labels.</li>
           </ul>
         </div>
         <form class="pick-form" id="pick-form">
           <fieldset>
             <legend class="label">Your call</legend>
-            <label class="opt" for="pick-bt"><input type="radio" name="idea" id="pick-bt" value="Belief Tracer" checked> Belief Tracer <small>My pick</small></label>
+            <label class="opt" for="pick-bt"><input type="radio" name="idea" id="pick-bt" value="Belief Tracer with Side-Channel Radar" checked> Belief Tracer + Side-Channel Radar <small>My pick</small></label>
             <label class="opt" for="pick-tf"><input type="radio" name="idea" id="pick-tf" value="Two-Faced Detector"> Two-Faced Detector</label>
-            <label class="opt" for="pick-al"><input type="radio" name="idea" id="pick-al" value="Authority Lens"> Authority Lens</label>
-            <label class="opt" for="pick-fr"><input type="radio" name="idea" id="pick-fr" value="Frame Radar"> Frame Radar</label>
+            <label class="opt" for="pick-sa"><input type="radio" name="idea" id="pick-sa" value="Swarm Atlas"> Swarm Atlas</label>
+            <label class="opt" for="pick-cc"><input type="radio" name="idea" id="pick-cc" value="Charter Check"> Charter Check</label>
             <label class="opt" for="pick-more"><input type="radio" name="idea" id="pick-more" value="nothing yet; keep exploring"> Keep exploring</label>
           </fieldset>
           <label for="pick-notes">Anything to add</label>
@@ -681,7 +704,7 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
   <div class="wrap sources">
     <p class="label">Sources</p>
     <ul>
-      <li><a href="https://huggingface.co/datasets/aidigestorg/ai-village" target="_blank" rel="noopener">AI Village dataset</a> (export of 20 Sep 2026). Analyses and scripts: <code>analysis/social</code>, <code>contagion</code>, <code>honesty</code>, <code>rhythms</code> in the project repo.</li>
+      <li><a href="https://huggingface.co/datasets/aidigestorg/ai-village" target="_blank" rel="noopener">AI Village dataset</a> (export of 20 Sep 2026). Analyses and scripts in the project repo: <code>analysis/social</code>, <code>contagion</code>, <code>honesty</code>, <code>rhythms</code> (round 1) and <code>institutions</code>, <code>artifacts</code>, <code>outside</code>, <code>delegation</code> (round 2).</li>
       <li><a href="https://swarmchasing.com/" target="_blank" rel="noopener">swarmchasing.com</a>: hackathon schedule, rules and submission format</li>
       <li><a href="https://www.redwoodresearch.org/research/hugging-face-incident" target="_blank" rel="noopener">Redwood Research</a>: independent investigation of the Hugging Face incident</li>
       <li><a href="https://www.computing.co.uk/news/2026/ai/autonomous-openai-agents-reportedly-hijacked-german-wiki" target="_blank" rel="noopener">Computing</a>: the German wiki takeover</li>
@@ -1098,6 +1121,44 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
     table(document.getElementById('exempt-table'), ['Village day', 'Agents with it in memory', 'Agents saying it in chat'], D.map(([d, c, m]) => [fmt(d), m, c]));
   })();
 
+  /* ---------- side channels: artifacts vs chat across rooms (real data, artifacts/03_bridges.py) ---------- */
+  (function channels() {
+    const svg = document.getElementById('chan-svg');
+    if (!svg) return;
+    // strict artifact bridge pairs (no pull/clone) vs cross-room @mentions
+    const D = [
+      { p: '#best / #rest', when: 'Mar 16 – Jun 21 · 68 days', files: 393, chat: 43 },
+      { p: '#general / #focus', when: 'Aug 3 – 28 · 15 days', files: 172, chat: 85 },
+      { p: '#general / #voted-out', when: 'Mar 2 – 13 · 6 days', files: 23, chat: 3 }
+    ];
+    const VW = 700, X0 = 190, X1 = 640, TOP = 16, GH = 64, BH = 14, MAX = 400;
+    const H = TOP + D.length * GH + 26;
+    svg.setAttribute('viewBox', `0 0 ${VW} ${H}`);
+    svg.style.minWidth = '520px';
+    const X = v => X0 + v / MAX * (X1 - X0);
+    [0, 100, 200, 300, 400].forEach(v => {
+      svgEl('line', { x1: X(v), x2: X(v), y1: TOP - 6, y2: TOP + D.length * GH - 8, class: 'gl' }, svg);
+      txt(svg, X(v), TOP + D.length * GH + 8, v, 'ax', 'middle');
+    });
+    const hbar = (g, y, v, cls) => {
+      const w = Math.max(2, X(v) - X0), r = Math.min(3, w / 2);
+      svgEl('path', { d: `M${X0} ${y} H${X0 + w - r} Q${X0 + w} ${y} ${X0 + w} ${y + r} V${y + BH - r} Q${X0 + w} ${y + BH} ${X0 + w - r} ${y + BH} H${X0} Z`, class: cls }, g);
+    };
+    D.forEach((d, i) => {
+      const y = TOP + i * GH;
+      txt(svg, 0, y + 12, d.p, 'ax-strong');
+      txt(svg, 0, y + 28, d.when, 'ax');
+      const g = svgEl('g', {}, svg);
+      svgEl('rect', { x: X0, y: y - 2, width: X1 - X0, height: BH * 2 + 6, class: 'hit' }, g);
+      hbar(g, y, d.files, 'b-mem');
+      hbar(g, y + BH + 2, d.chat, 'b-chat');
+      bindTip(g, `${d.p} (${d.when}): ${d.files} reads of the other room's files; ${d.chat} cross-room @mentions`);
+      txt(svg, X(d.files) + 8, y + 11, d.files, 'ax-strong');
+      txt(svg, X(d.chat) + 8, y + BH + 13, d.chat, 'ax');
+    });
+    table(document.getElementById('chan-table'), ['Room split', 'When', "Reads of the other room's files", 'Cross-room @mentions'], D.map(d => [d.p, d.when, d.files, d.chat]));
+  })();
+
   /* ---------- F4: saboteur game (real data, saboteur_game.csv) ---------- */
   (function saboteurs() {
     const grid = document.getElementById('sab-days');
@@ -1204,9 +1265,9 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
   /* ---------- ranking board ---------- */
   const IDEAS = [
     { id: 'belief-tracer', name: 'Belief Tracer', kind: 'Trace a claim through chat, memory and files', s: { safety: 4, novelty: 4, demo: 5, ship: 4, findings: 5 } },
+    { id: 'side-channel', name: 'Side-Channel Radar', kind: 'Find the channels that cross the walls', s: { safety: 5, novelty: 4, demo: 4, ship: 4, findings: 4 } },
     { id: 'two-faced', name: 'Two-Faced Detector', kind: 'Public statements vs private reasoning and actions', s: { safety: 5, novelty: 4, demo: 4, ship: 4, findings: 3 } },
-    { id: 'authority-lens', name: 'Authority Lens', kind: 'Who steers, not who talks most', s: { safety: 3, novelty: 3, demo: 3, ship: 5, findings: 4 } },
-    { id: 'frame-radar', name: 'Frame Radar', kind: 'Early warning for fast-spreading frames', s: { safety: 3, novelty: 4, demo: 4, ship: 4, findings: 3 } }
+    { id: 'swarm-atlas', name: 'Swarm Atlas', kind: 'Find agent swarms on the open web', s: { safety: 4, novelty: 4, demo: 4, ship: 3, findings: 3 } }
   ];
   const CRIT = [
     { k: 'safety', label: 'Safety relevance', short: 'Safety', hint: 'Answers a gap from the swarm investigations' },
@@ -1307,7 +1368,7 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
       if (r) r.checked = true;
       notes.value = saved.n || '';
     }
-    const choice = () => { const c = form.querySelector('input[name=idea]:checked'); return c ? c.value : 'Belief Tracer'; };
+    const choice = () => { const c = form.querySelector('input[name=idea]:checked'); return c ? c.value : 'Belief Tracer with Side-Channel Radar'; };
     function compose() {
       const w = CRIT.map(c => `${c.label} ${weights[c.k]}`).join(', ');
       const n = notes.value.trim();
