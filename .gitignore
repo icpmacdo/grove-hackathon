@@ -1,0 +1,20 @@
+# Dataset and derived data (gated, large; never commit)
+data/
+*.jsonl.gz
+*.parquet
+*.duckdb
+*.duckdb.wal
+*.tar
+
+# Secrets
+.env*
+!.env.example
+
+# Python / Node
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+
+# OS
+.DS_Store
