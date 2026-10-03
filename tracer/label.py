@@ -1,19 +1,22 @@
 """Stance labeller: does each mention of the claim adopt it, attribute it to someone, or refute it?
 
-Usage: uv run python -m tracer.label <slug> [--model haiku] [--check sonnet] [--limit N] [--workers 4]
+Usage: uv run python -m tracer.label <slug> [--model haiku] [--check sonnet [--check-sample N]]
+                                            [--limit N] [--workers 4]
 
 Reads tracer/episodes/<slug>.json and data/village.duckdb. Items are every chat message in the
 spec's panels that matches claim.chat (only in claim.rooms, if given), and every memory snapshot
 from memory_lookback to the last panel's end that matches claim.memory. Batches of about 25 go to
 the local claude CLI (no API key needed). tracer/labels/<slug>.json is rewritten after each batch,
 so a rerun only labels what is missing. --check labels every item again with a second model and
-records agreement and a confusion matrix.
+records agreement and a confusion matrix; with --check-sample N it labels a fixed sample of N items
+(see check_sample()), and agreement is over those.
 
 Labels are committed, so reasons are short paraphrases: clean_reason() cuts any run of more than
 12 words copied from the source text. tracer/serve.py uses label_items() for live traces.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -33,7 +36,7 @@ LABELS = ROOT / "tracer" / "labels"
 STANCES = ("adopts", "attributes", "refutes", "unclear")
 BATCH = 25
 TIMEOUT = 180  # seconds per CLI call
-CHAT_CHARS = 900
+CHAT_CHARS, CHAT_HEAD = 900, 350  # chat text sent to the model (see chat_excerpt)
 MEM_SIDE, MEM_CAP = 400, 1200  # memory excerpt: chars each side of a match, total cap
 
 # The pattern of redact() in build_temporal_bleed.py, extended with three token shapes it misses
@@ -97,6 +100,7 @@ class LabelError(Exception):
 
 class LimitError(LabelError):
     """The account's usage limit: retrying is pointless until it resets, so the run stops."""
+    labels = {}  # set by label_batch: what the batch got before the limit
 
 
 LIMIT = re.compile(r"session limit|usage limit|rate limit|limit reached|hit your .{0,20}limit", re.I)
@@ -122,12 +126,70 @@ def clip(text, n):
     return text if len(text) <= n else text[:n].rstrip() + "…"
 
 
-def excerpt(text, pattern):
-    """MEM_SIDE chars each side of every match, merged, skipping windows whose matches all repeat
-    earlier ones (notes often hold the same section twice). Over MEM_CAP the windows shrink,
+def chat_excerpt(text, span):
+    """The message clipped to CHAT_CHARS, or, when the first claim match ends past the clip, its
+    opening and the passage from just before the match, so the model always sees the match."""
+    if len(text.strip()) <= CHAT_CHARS or span[1] <= CHAT_CHARS - 10:
+        return clip(text, CHAT_CHARS)
+    lo = max(CHAT_HEAD, span[0] - 250)
+    return text[:CHAT_HEAD].strip() + " … " + clip(text[lo:], CHAT_CHARS - CHAT_HEAD)
+
+
+def rx(pattern):
+    """As rx() in trace.py: spec regexes run on lowercased text, with re.I only when the pattern
+    has a capital letter outside an escape like \\S. Copied so label.py imports without the engine."""
+    return re.compile(pattern, re.I if re.search(r"[A-Z]", re.sub(r"\\.", "", pattern)) else 0)
+
+
+# As sql_re() in trace.py: a spec regex for an RE2 prefilter that matches wherever Python's re would,
+# so the SQL prefilter drops nothing the engine keeps. \w, \d and \s become Python's Unicode sets
+# (RE2's are ASCII); \b and \B are dropped. Python's re still makes every decision.
+_WS = r"[\t\n\x{0b}\f\r \x{1c}-\x{1f}\x{85}\x{a0}\x{1680}\x{2000}-\x{200a}\x{2028}\x{2029}\x{202f}\x{205f}\x{3000}]"
+_PY_SETS = {"w": r"\pL\pN_", "d": r"\p{Nd}", "s": _WS[1:-1]}
+
+
+def sql_re(pattern):
+    out, i, in_set = [], 0, False
+    while i < len(pattern):
+        c = pattern[i]
+        if c == "\\" and i + 1 < len(pattern):
+            e = pattern[i + 1]
+            if e in _PY_SETS:
+                out.append(_PY_SETS[e] if in_set else f"[{_PY_SETS[e]}]")
+            elif not (e in "bB" and not in_set):
+                out.append(c + e)
+            i += 2
+            continue
+        if c == "[" and not in_set:
+            # a ] first in the set (after an optional ^) is a literal
+            j = i + 1 + (pattern[i + 1 : i + 2] == "^")
+            j += pattern[j : j + 1] == "]"
+            out.append(pattern[i:j])
+            in_set, i = True, j
+            continue
+        if c == "]" and in_set:
+            in_set = False
+        out.append(c)
+        i += 1
+    return "".join(out)
+
+
+def match_spans(r, text):
+    """Spans of r in text, matched on the lowercased text as the engine matches. Offsets carry over
+    unless lowercasing changed the length (a few non-ASCII letters do); then re.I finds them."""
+    lc = text.lower()
+    if len(lc) == len(text):
+        return [m.span() for m in r.finditer(lc)]
+    if not r.search(lc):
+        return []
+    return [m.span() for m in re.compile(r.pattern, r.flags | re.I).finditer(text)] or [(0, 0)]
+
+
+def excerpt(text, spans):
+    """MEM_SIDE chars each side of every match span, merged, skipping windows whose matches all
+    repeat earlier ones (notes often hold the same section twice). Over MEM_CAP the windows shrink,
     keeping more text after a match than before (a heading comes before its lines); at the
     smallest size only the first windows that fit are kept."""
-    spans = [(m.start(), m.end()) for m in pattern.finditer(text)]
     if not spans:
         return ""
     core = lambda a: " ".join(text[a : a + 120].split())  # what identifies a repeated match
@@ -168,46 +230,54 @@ def connect():
 
 
 def collect_items(spec, con):
-    """Chat and memory items for one episode spec, redacted, in time order."""
+    """Chat and memory items for one episode spec, redacted, in time order. The same items the
+    engine counts as claim matches (its label_ids): chat in the panels and the shown rooms (only
+    claim.rooms, if given) whose redacted, lowercased text matches claim.chat, and memory snapshots
+    from memory_lookback to the last panel's end that match claim.memory."""
     claim = spec["claim"]
     aliases = spec.get("aliases", {})
-    human_rows = [(h["name"], re.compile(h["pattern"], re.I)) for h in spec.get("human_rows", [])]
-    rooms = claim.get("rooms") or (spec["rooms"] if isinstance(spec.get("rooms"), list) else None)
+    human_rows = [(h["name"], rx(h["pattern"])) for h in spec.get("human_rows", [])]
+    shown = spec["rooms"] if isinstance(spec.get("rooms"), list) else None  # "auto" shows every room
+    rooms = claim.get("rooms") or shown  # None: every room
+    if rooms and shown:
+        rooms = [r for r in rooms if r in shown]
     win = " OR ".join(f"(created_at BETWEEN '{p['start']}' AND '{p['end']}')" for p in spec["panels"])
-    room_sql = f" AND room IN ({','.join('?' for _ in rooms)})" if rooms else ""
+    room_sql = f" AND coalesce(room, 'general') IN ({','.join('?' for _ in rooms)})" if rooms else ""
     items = []
 
     # Chat in the panels is small: filter in Python so the spec's regex keeps Python semantics.
-    chat_re = re.compile(claim["chat"], re.I)
+    chat_re = rx(claim["chat"])
     for t, stype, speaker, room, mid, content in con.execute(
-        f"""SELECT created_at, speaker_type, speaker, room, id, content FROM chat
-        WHERE ({win}){room_sql} AND content IS NOT NULL ORDER BY created_at""", rooms or []
-    ).fetchall():
+        f"""SELECT created_at, speaker_type, speaker, coalesce(room, 'general'), id::VARCHAR, content FROM chat
+        WHERE ({win}){room_sql} AND content IS NOT NULL ORDER BY created_at, id""", rooms or []
+    ).fetchall() if rooms != [] else []:
         content = redact(content)
-        if not chat_re.search(content):
+        lc = content.lower()
+        m = chat_re.search(lc)
+        if not m:
             continue
         if stype == "user":
-            a = next((n for n, p in human_rows if p.search(content)), "Staff (human)")
+            a = next((n for n, p in human_rows if p.search(lc)), f"Staff (human) · #{room}")
         else:
             a = aliases.get(speaker, speaker)
         items.append({"id": mid, "type": "chat", "t": ms(t), "a": a, "room": room,
-                      "text": clip(content, CHAT_CHARS)})
+                      "text": chat_excerpt(content, m.span()) if len(lc) == len(content) else clip(content, CHAT_CHARS)})
 
     # Memory is big: let DuckDB (RE2) prefilter when it can parse the regex, then confirm in Python.
-    mem_re = re.compile(claim["memory"], re.I)
-    start = spec.get("memory_lookback") or min(p["start"] for p in spec["panels"])
-    end = max(p["end"] for p in spec["panels"])
-    sql = """SELECT m.created_at, a.name, m.id, m.content FROM agent_memories m
+    mem_re = rx(claim["memory"])
+    start = spec.get("memory_lookback") or spec["panels"][0]["start"]
+    end = spec["panels"][-1]["end"]
+    sql = """SELECT m.created_at, a.name, m.id::VARCHAR, m.content FROM agent_memories m
         JOIN agents a ON a.id = m.agent_id
-        WHERE m.created_at BETWEEN ? AND ? {} ORDER BY m.created_at"""
+        WHERE m.created_at BETWEEN ? AND ? {} ORDER BY m.created_at, m.id"""
     try:
-        cur = con.execute(sql.format("AND regexp_matches(lower(m.content), ?)"), [start, end, claim["memory"]])
+        cur = con.execute(sql.format("AND regexp_matches(m.content, ?, 'i')"), [start, end, sql_re(claim["memory"])])
     except Exception:
         cur = con.execute(sql.format(""), [start, end])
     while rows := cur.fetchmany(200):
         for t, name, mid, content in rows:
             content = redact(content or "")
-            text = excerpt(content, mem_re)
+            text = excerpt(content, match_spans(mem_re, content))
             if text:
                 items.append({"id": mid, "type": "mem", "t": ms(t), "a": aliases.get(name, name), "text": text})
 
@@ -256,7 +326,8 @@ def call_claude(prompt, model):
     try:
         out = json.loads(p.stdout)
     except json.JSONDecodeError:
-        raise LabelError(f"exit {p.returncode}: {(p.stderr or p.stdout)[:200]}")
+        msg = (p.stderr or p.stdout)[:200]
+        raise (LimitError if LIMIT.search(p.stderr + p.stdout) else LabelError)(f"exit {p.returncode}: {msg}")
     cost = out.get("total_cost_usd") or 0.0
     if out.get("is_error") or p.returncode:
         msg = str(out.get("result"))[:200]
@@ -293,17 +364,22 @@ def clean_reason(reason, text):
 
 def label_batch(batch, model, ctx, stats):
     """Label one batch of items. Retries what is missing once, then splits it in halves.
-    Returns {id: {"stance", "reason"}} for the items the model labelled."""
+    Returns {id: {"stance", "reason"}} for the items the model labelled. A LimitError carries the
+    labels got before it in its .labels, so the caller can still save them."""
     labels, pending = {}, list(batch)
     for attempt in range(2):
-        if _STOP.is_set():
-            raise LimitError("stopped after a usage-limit error")
-        sids = [(f"{'c' if item_type(x) == 'chat' else 'm'}{i + 1}", x) for i, x in enumerate(pending)]
-        by_sid = dict(sids)
         try:
+            if _STOP.is_set():
+                raise LimitError("stopped after a usage-limit error")
+            sids = [(f"{'c' if item_type(x) == 'chat' else 'm'}{i + 1}", x) for i, x in enumerate(pending)]
+            by_sid = dict(sids)
             out, cost = call_claude(build_prompt(sids, ctx), model)
-        except LimitError:
+        except LimitError as e:
             _STOP.set()
+            with _STATS:
+                stats["calls"] += bool(e.cost)
+                stats["cost_usd"] += e.cost
+            e.labels = labels
             raise
         except LabelError as e:
             with _STATS:
@@ -329,7 +405,11 @@ def label_batch(batch, model, ctx, stats):
         return labels
     half = len(pending) // 2
     for part in (pending[:half], pending[half:]):
-        labels.update(label_batch(part, model, ctx, stats))
+        try:
+            labels.update(label_batch(part, model, ctx, stats))
+        except LimitError as e:
+            e.labels = {**labels, **e.labels}
+            raise
     return labels
 
 
@@ -355,27 +435,62 @@ def dedupe(items, correction_ms):
     return list(reps.values()), same
 
 
+def check_sample(items, n, correction_ms):
+    """A deterministic sample of n items for the check pass. Items fall into strata (chat or
+    memory, before or after the correction); every stratum present gets at least one item while n
+    allows, and the rest is shared in proportion to stratum size. Within a stratum the items whose
+    ids hash lowest are taken, so a rerun picks the same items and a larger n keeps them."""
+    strata = {}
+    for x in items:
+        strata.setdefault((item_type(x), bool(correction_ms and t_ms(x) >= correction_ms)), []).append(x)
+    for group in strata.values():
+        group.sort(key=lambda x: hashlib.sha1(str(x["id"]).encode()).hexdigest())
+    n = max(0, min(n, len(items)))
+    keys = sorted(strata, key=lambda k: (-len(strata[k]), k))
+    take = {k: int(i < n) for i, k in enumerate(keys)}
+    rest = n - sum(take.values())
+    if rest:
+        room = {k: len(strata[k]) - take[k] for k in keys}
+        share = {k: rest * room[k] / sum(room.values()) for k in keys}
+        for k in keys:
+            take[k] += int(share[k])
+        # Largest remainders first; a stratum with no remainder is full or got its exact share.
+        for k in sorted(keys, key=lambda k: (int(share[k]) - share[k], k))[: n - sum(take.values())]:
+            take[k] += 1
+    return [x for k in keys for x in strata[k][: take[k]]]
+
+
 def run_jobs(jobs, ctx, workers, on_batch, stats):
     """jobs: [(field, model, batch of representative items)]. Calls on_batch(field, model, labels)
-    after each batch, from one thread at a time. A LimitError cancels the batches not yet started
-    and propagates once the running ones finish."""
+    after each batch, from one thread at a time. A LimitError cancels the batches not yet started;
+    the running ones finish and their labels (and any the failed batches got) are still passed to
+    on_batch before the error propagates."""
     lock = threading.Lock()
     _STOP.clear()
+    stop = None
     with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
         futs = {pool.submit(label_batch, batch, model, ctx, stats[field]): (field, model, batch)
                 for field, model, batch in jobs}
         for n, f in enumerate(as_completed(futs), 1):
             field, model, batch = futs[f]
+            if f.cancelled():
+                continue
             try:
                 labels = f.result()
-            except LimitError:
-                for g in futs:
-                    g.cancel()
-                raise
+            except LimitError as e:
+                labels = e.labels
+                if not stop:
+                    stop = e
+                    for g in futs:
+                        g.cancel()
+                if not labels:
+                    continue
             with lock:
                 on_batch(field, model, labels)
             print(f"  [{model}] batch {n}/{len(jobs)}: {len(labels)}/{len(batch)} labelled, "
                   f"${stats[field]['cost_usd']:.3f} so far", file=sys.stderr)
+    if stop:
+        raise stop
 
 
 def new_stats():
@@ -456,17 +571,22 @@ def load_store(path, slug, claim_label, correction_label, model, check):
         for x in items.values():
             x.update(check=None, checkReason=None)
     return {"slug": slug, "claim": claim_label, "correction": correction_label, "model": model,
-            "checkModel": check or store.get("checkModel"), "items": items, "costUsd": cost}
+            "checkModel": check or store.get("checkModel"), "checkSample": store.get("checkSample"),
+            "items": items, "costUsd": cost}
 
 
 def main():
     ap = argparse.ArgumentParser(description="Label the stance of each claim mention in an episode.")
     ap.add_argument("slug")
     ap.add_argument("--model", default="haiku")
-    ap.add_argument("--check", help="second model that labels every item again")
+    ap.add_argument("--check", help="second model that labels every item again (or a sample, see --check-sample)")
+    ap.add_argument("--check-sample", type=int, metavar="N",
+                    help="with --check: the second model labels only a fixed sample of N items")
     ap.add_argument("--limit", type=int, help="only consider the first N items (in time order)")
     ap.add_argument("--workers", type=int, default=4)
     args = ap.parse_args()
+    if args.check_sample is not None and (not args.check or args.check_sample < 1):
+        ap.error("--check-sample needs --check MODEL and N of at least 1")
 
     spec = json.loads((EPISODES / f"{args.slug}.json").read_text())
     claim_label = spec["claim"]["label"]
@@ -494,13 +614,18 @@ def main():
     cms = t_ms({"t": corr["at"]}) if corr.get("at") else None
     ctx = {"claim_label": claim_label, "correction_label": corr.get("label"), "correction_ms": cms}
     passes = [("stance", args.model)] + ([("check", args.check)] if args.check else [])
+    # The check pass covers every item, or with --check-sample a fixed sample. Duplicates share a
+    # label only inside the pool they were deduplicated in, so the sample stays the sample.
+    pools = {"stance": pool, "check": check_sample(pool, args.check_sample, cms) if args.check_sample else pool}
+    if args.check:
+        store["checkSample"] = args.check_sample
     jobs, same = [], {}
     for field, model in passes:
-        todo = [x for x in pool if not store["items"][x["id"]].get(field)]
+        todo = [x for x in pools[field] if not store["items"][x["id"]].get(field)]
         reps, s = dedupe(todo, cms)
         same[field] = s
         jobs += [(field, model, b) for b in make_batches(reps)]
-        print(f"{field} ({model}): {len(todo)} to label, {len(reps)} distinct", file=sys.stderr)
+        print(f"{field} ({model}): {len(todo)} of {len(pools[field])} to label, {len(reps)} distinct", file=sys.stderr)
     stats = {f: new_stats() for f, _ in passes}
     run_cost = 0.0
 

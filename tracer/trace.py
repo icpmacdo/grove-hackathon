@@ -13,7 +13,10 @@ The parquet files behind the views are not sorted by time, so every query is a f
 keeps them few and bounded: chat inside the panels, one memory scan from memory_lookback to the last
 panel's end (text is fetched only for snapshots the spec's regexes match), and one or two turn scans
 inside the panels. DuckDB (RE2) prefilters with the spec's regexes when it can parse them; Python's
-re makes every final decision.
+re makes every final decision. Every text is redacted before it is excerpted (label.py's pattern);
+DuckDB flags the few texts that can hold a credential, so Python only redacts those.
+
+Check built episodes against the contract with: uv run python -m tracer.check
 """
 
 import argparse
@@ -43,13 +46,39 @@ GROUP_LABELS = {NOCHAT: "(no chat in window)", OTHER_ROOMS: "(other rooms)", ALL
 
 # Auto links: a read counts within 90 minutes of a write; a reader's next mark within 45 minutes.
 READ_WINDOW, UPTAKE_WINDOW, ROOM_MEMORY = 90 * 60000, 45 * 60000, 48 * 3600000
+OUTPUT_CHARS = 20000  # command output read for evidence that a reader saw a write
 
-SECRET = re.compile(
-    r"\b(?:[a-z0-9]+_)?(?:sk|pk|ghp|gho|ghs|github_pat|glpat|xox[abpr])[-_][A-Za-z0-9_\-]{8,}|"
-    r"\bBearer\s+[A-Za-z0-9._\-]{12,}|\beyJ[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{10,}|"
-    r"[A-Za-z0-9+/]{20,}={1,2}|"
+# Credential-like strings: the redact() pattern of build_temporal_bleed.py plus the three token shapes
+# label.py adds (<prefix>_<mixed-case body>, <prefix>_<32+ hex>, "Auth Token: ..."), which a memory
+# credentials list in the dataset holds. Joined, the parts are label.py's SECRET, character for character.
+SECRET_PARTS = [
+    r"\b(?:[a-z0-9]+_)?(?:sk|pk|ghp|gho|ghs|github_pat|glpat|xox[abpr])[-_][A-Za-z0-9_\-]{8,}",
+    r"\bBearer\s+[A-Za-z0-9._\-]{12,}",
+    r"\beyJ[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{10,}",
+    r"[A-Za-z0-9+/]{20,}={1,2}",
     r"(?i:(?:api[ _-]?key|access[ _-]?token|password|secret|private[ _-]?key)\s*[:=]\s*`?)[^\s`]{6,}",
-)
+    r"\b[a-z]{2,12}_(?=(?:[A-Za-z0-9_\-]*?[A-Z]){3})(?=(?:[A-Za-z0-9_\-]*?\d){3})[A-Za-z0-9_\-]{20,}",
+    r"\b[a-z]{2,12}_[0-9a-f]{32,}\b",
+    r"(?i:(?:auth|session|refresh)[ _-]?token|credentials?)\s*[:=]\s*`?[^\s`]{6,}",
+]
+SECRET = re.compile("|".join(SECRET_PARTS))
+# For each part, a superset that DuckDB's RE2 can run: no lookaheads (the mixed-case body needs one
+# capital, and one digit in or right after it), Python's Unicode \s and \d spelled out (RE2's are
+# ASCII), [^\s`] widened to [^`]. RE2's ASCII \b only adds matches next to ASCII letters. A text where
+# a part's superset finds nothing holds no match of that part, so SQL tells Python which parts can
+# match (usually none) and redact_parts() runs only those, with the same result as redact().
+_WS = r"[\t\n\x{0b}\f\r \x{1c}-\x{1f}\x{85}\x{a0}\x{1680}\x{2000}-\x{200a}\x{2028}\x{2029}\x{202f}\x{205f}\x{3000}]"
+SUSPECT_PARTS = [
+    SECRET_PARTS[0],
+    rf"\bBearer{_WS}+[A-Za-z0-9._\-]{{12,}}",
+    SECRET_PARTS[2],
+    SECRET_PARTS[3],
+    rf"(?i:(?:api[ _-]?key|access[ _-]?token|password|secret|private[ _-]?key){_WS}*[:=]{_WS}*`?)[^`]{{6,}}",
+    r"\b[a-z]{2,12}_[A-Za-z0-9_\-]*(?:[A-Z][A-Za-z0-9_\-]*\p{Nd}|[0-9][A-Za-z0-9_\-]*[A-Z])",
+    SECRET_PARTS[6],
+    rf"(?i:(?:auth|session|refresh)[ _-]?token|credentials?){_WS}*[:=]{_WS}*`?[^`]{{6,}}",
+]
+SUSPECT = "|".join(SUSPECT_PARTS)
 FILE_WRITE = re.compile(
     r"cat\s*(<<|>)|>>|\btee\b|git (commit|push)|codex exec|json\.dump|write_text|open\([^)]*['\"][wa]|"
     r"memory\.py log|\bmv\b|mkdir"
@@ -75,6 +104,27 @@ FAMILY = {"belief": {"belief", "claim"}, "fix": {"fix"}}
 
 def redact(text):
     return SECRET.sub("[REDACTED]", text)
+
+
+_PARTS = {}
+
+
+def redact_parts(text, parts):
+    """redact() for a text in which only SECRET's parts flagged in parts (from suspect_sql) can match.
+    The other parts match nowhere in it, so leaving them out of the alternation changes nothing."""
+    key = tuple(i for i, f in enumerate(parts or ()) if f)
+    if not key:
+        return text
+    if key not in _PARTS:
+        _PARTS[key] = re.compile("|".join(SECRET_PARTS[i] for i in key))
+    return _PARTS[key].sub("[REDACTED]", text)
+
+
+def suspect_sql(expr):
+    """SQL: per SECRET part, whether expr may hold a match of it (a list of booleans), or NULL when
+    it can hold none. redact_parts() takes the list."""
+    flags = ", ".join(f"regexp_matches({expr}, {lit(p)})" for p in SUSPECT_PARTS)
+    return f"CASE WHEN regexp_matches({expr}, {lit(SUSPECT)}) THEN [{flags}] END"
 
 
 def parse(ts):
@@ -130,6 +180,40 @@ def hit(r, text):
 
 def either(*patterns):
     return "|".join(f"(?:{p})" for p in patterns if p)
+
+
+_PY_SETS = {"w": r"\pL\pN_", "d": r"\p{Nd}", "s": _WS[1:-1]}
+
+
+def sql_re(pattern):
+    """A spec regex for an RE2 prefilter that matches wherever Python's re would: \\w, \\d and \\s
+    spelled out as Python's Unicode sets (RE2's are ASCII), \\b and \\B dropped. Python's re still
+    makes every decision."""
+    if not pattern:
+        return pattern
+    out, i, in_set = [], 0, False
+    while i < len(pattern):
+        c = pattern[i]
+        if c == "\\" and i + 1 < len(pattern):
+            e = pattern[i + 1]
+            if e in _PY_SETS:
+                out.append(_PY_SETS[e] if in_set else f"[{_PY_SETS[e]}]")
+            elif not (e in "bB" and not in_set):
+                out.append(c + e)
+            i += 2
+            continue
+        if c == "[" and not in_set:
+            # a ] first in the set (after an optional ^) is a literal
+            j = i + 1 + (pattern[i + 1 : i + 2] == "^")
+            j += pattern[j : j + 1] == "]"
+            out.append(pattern[i:j])
+            in_set, i = True, j
+            continue
+        if c == "]" and in_set:
+            in_set = False
+        out.append(c)
+        i += 1
+    return "".join(out)
 
 
 def connect():
@@ -257,7 +341,7 @@ def build_episode(spec, con=None, info=None):
         data = ep.build()
         if info is not None:
             info.update(warnings=ep.warnings, addedNoChat=ep.added, corrector=ep.corrector, rooms=ep.rooms,
-                        memMerged=ep.dropped_mem, timings=ep.timings)
+                        memMerged=ep.dropped_mem, timings=ep.timings, noRow=ep.hidden, filesNoRow=ep.dropped_files)
         return data
     finally:
         if own:
@@ -329,13 +413,15 @@ class Episode:
         self.rooms = [r for r, _ in sorted(by_room.items(), key=lambda x: (-x[1], x[0]))] if rooms == "auto" else list(rooms)
 
         # An agent's group: the room it posted in most during the first panel where it posts.
-        posts, elsewhere = {}, set()
+        posts, elsewhere, self.posted_full = {}, set(), set()
         for stype, speaker, room, pi, n in counts:
             if stype == "user" or speaker is None:
                 continue
             name = self.alias(speaker)
             if room in self.rooms:
                 posts.setdefault(name, {}).setdefault(pi, Counter())[room] += n
+                if self.panels[pi].get("show_other", True):
+                    self.posted_full.add(name)
             else:
                 elsewhere.add(name)
         self.group_of = {}
@@ -347,31 +433,36 @@ class Episode:
         # Panels that hide untagged chat only need the tagged messages: prefilter in SQL when RE2 can.
         tagged = either(self.spec["claim"].get("chat"), (self.spec.get("correction") or {}).get("chat"),
                         (self.spec.get("correction") or {}).get("strong"), self.spec.get("linger"))
-        pre = re2(con, tagged)
+        pre = re2(con, sql_re(tagged))
         tagged_rx = rx(tagged)
-        hide = lambda p: f"regexp_matches(content, {lit(tagged)}, 'i')" if pre and not p.get("show_other", True) else None
+        hide = lambda p: f"regexp_matches(content, {lit(sql_re(tagged))}, 'i')" if pre and not p.get("show_other", True) else None
         rows = con.execute(
-            f"""SELECT created_at, speaker_type, speaker, coalesce(room, 'general'), id::VARCHAR, coalesce(content, '')
-            FROM chat WHERE ({self.win(extra=hide)}) AND coalesce(room, 'general') IN ({','.join(lit(r) for r in self.rooms)})
+            f"""SELECT created_at, speaker_type, speaker, room, id, content, {suspect_sql('content')}
+            FROM (SELECT created_at, speaker_type, speaker, coalesce(room, 'general') AS room, id::VARCHAR AS id,
+                         coalesce(content, '') AS content FROM chat
+                  WHERE ({self.win(extra=hide)}) AND coalesce(room, 'general') IN ({','.join(lit(r) for r in self.rooms)}))
             ORDER BY created_at, id"""
         ).fetchall() if self.rooms else []
+        rows = [(t, stype, speaker, room, mid, redact_parts(content, parts))
+                for t, stype, speaker, room, mid, content, parts in rows]
 
         # The corrector: author of the first correction-worded message at or after `at`. During the
         # probe window its evidence-gathering is a hint; everyone else's reading of it is belief.
         if self.corr_ms is not None and not self.corrector:
             fx = self.x_strong or self.x_chat
             for t, stype, speaker, room, mid, content in rows:
-                if ms(t) >= self.corr_ms and hit(fx, redact(content).lower()):
+                if ms(t) >= self.corr_ms and hit(fx, content.lower()):
                     self.corrector = self.alias(speaker) if stype != "user" else None
                     break
 
-        self.chat, self.said, self.order_first = [], {}, {}
+        self.chat, self.said, self.order_first, self.humans = [], {}, {}, {}
         self.chat_seq = {}  # name -> [(t, kind, id)] for every message, kept or not (for auto links)
         for t, stype, speaker, room, mid, content in rows:
-            content = redact(content)
             lc, tm = content.lower(), ms(t)
             if stype == "user":
-                name = next((n for n, p, _ in self.human_rows if p.search(lc)), f"Staff (human) · #{room}")
+                # Human rows: one per room, or the spec's human_rows row (group "_all" unless it names one).
+                hr = next(((n, g) for n, p, g in self.human_rows if p.search(lc)), None)
+                name = hr[0] if hr else f"Staff (human) · #{room}"
             else:
                 name = self.alias(speaker)
             kind = self.chat_kind(name, room, tm, lc)
@@ -390,8 +481,10 @@ class Episode:
             p = self.panel_at(tm)
             if kind == "other" and not m and p and not p.get("show_other", True):
                 continue
+            if stype == "user":
+                self.humans.setdefault(name, hr[1] if hr else room)
             text = clip(content, 900) if kind != "other" else \
-                snippet(content, m) if m and m.start() > 300 else clip(content, 360)
+                snippet(content, m, 120, 360) if m and m.start() > 300 else clip(content, 360)
             self.chat.append({"t": tm, "a": name, "room": room, "id": mid, "kind": kind, "stance": None, "check": None,
                               "text": text, "_claim": bool(claim)})
 
@@ -418,41 +511,44 @@ class Episode:
     # Memory --------------------------------------------------------------------------------------
 
     def load_memory(self):
-        """Every snapshot from memory_lookback to the last panel's end, for all agents. DuckDB redacts
-        each snapshot (RE2 is linear time; Python's re is the bottleneck on 30k-character memories)
-        and returns text only for snapshots the spec's regexes match, as in the prototype on the
-        redacted text. The rest keep their size and state "none"."""
+        """Every snapshot from memory_lookback to the last panel's end, for all agents. DuckDB returns
+        text only for snapshots the spec's regexes can match (RE2 is linear time; Python's re is the
+        bottleneck on 30k-character memories), with a flag per regex and per SECRET part. Python
+        redacts the few texts that may hold a credential, then decides on the redacted text as in the
+        prototype. The rest keep their size and state "none"."""
         con = self.con
         self.agent_names = {i: n for i, n in con.execute("SELECT id::VARCHAR, name FROM agents").fetchall()}
-        sql_red = re2(con, SECRET.pattern)
-        red = f"regexp_replace(content, {lit(SECRET.pattern)}, '[REDACTED]', 'g')" if sql_red else "content"
-        conds = []
         claim_p, fix_p = self.spec["claim"].get("memory"), (self.spec.get("correction") or {}).get("memory")
-        if claim_p:
-            conds.append(f"regexp_matches(r, {lit(claim_p)}, 'i')" if re2(con, claim_p) else "true")
+        c_sql = (f"regexp_matches(content, {lit(sql_re(claim_p))}, 'i')" if re2(con, sql_re(claim_p)) else "true") \
+            if claim_p else "false"
+        f_sql = "false"
         if fix_p and self.corr_ms is not None:
             at = lit(from_ms(self.corr_ms))
-            conds.append(f"(created_at >= {at} AND regexp_matches(r, {lit(fix_p)}, 'i'))" if re2(con, fix_p)
-                         else f"created_at >= {at}")
-        if any(c == "true" or c.startswith("created_at") for c in conds):
+            f_sql = f"(created_at >= {at} AND regexp_matches(content, {lit(sql_re(fix_p))}, 'i'))" \
+                if re2(con, sql_re(fix_p)) else f"created_at >= {at}"
+        if c_sql == "true" or f_sql.startswith("created_at"):
             self.warn("memory regex is not RE2-compatible: fetching full memory text (slow)")
         cur = con.execute(
-            f"""SELECT created_at, agent_id::VARCHAR, id::VARCHAR, length(r), CASE WHEN {' OR '.join(conds) or 'false'} THEN r END
-            FROM (SELECT created_at, agent_id, id, {red} AS r FROM agent_memories
-                  WHERE created_at BETWEEN {lit(self.lookback)} AND {lit(self.end)})
+            f"""SELECT created_at, agent_id, id, chars, CASE WHEN c OR f THEN content END, c, f,
+                   CASE WHEN c OR f THEN {suspect_sql('content')} END
+            FROM (SELECT created_at, agent_id::VARCHAR AS agent_id, id::VARCHAR AS id, length(content) AS chars,
+                         content, {c_sql} AS c, {f_sql} AS f
+                  FROM agent_memories WHERE created_at BETWEEN {lit(self.lookback)} AND {lit(self.end)})
             ORDER BY created_at, id"""
         )
         self.mem_all = []
         while batch := cur.fetchmany(500):
-            for t, aid, mid, chars, content in batch:
+            for t, aid, mid, chars, content, c, f, parts in batch:
                 tm = ms(t)
                 name = self.alias(self.agent_names.get(aid, aid))
                 state, m = "none", None
                 if content is not None:
-                    content = content if sql_red else redact(content)
+                    # Without a credential, the redacted text is the raw text and RE2's verdict (a
+                    # superset of Python's) can skip a search; with one, Python runs both searches.
+                    content = redact_parts(content, parts)
                     lc = content.lower()
-                    claim = hit(self.c_mem, lc)
-                    fix = hit(self.x_mem, lc) if self.corr_ms is not None and tm >= self.corr_ms else None
+                    claim = hit(self.c_mem, lc) if c or parts else None
+                    fix = hit(self.x_mem, lc) if (f or parts) and self.corr_ms is not None and tm >= self.corr_ms else None
                     if fix:
                         state, m = "fix", fix
                     elif claim:
@@ -465,9 +561,16 @@ class Episode:
     # Rows ----------------------------------------------------------------------------------------
 
     def build_rows(self):
+        """One row per agent that posts in a panel showing all chat; per agent whose posts are all in
+        panels that show only tagged chat, when it has a tagged mark somewhere in the episode (chat
+        kind other than other, memory state other than none, or a file mark); per extra agent; per
+        agent with no chat in the shown rooms whose memory holds the claim, an attribution or the
+        correction; and per human row. Marks by anyone else are dropped, so every mark has a row."""
         spec = self.spec
         known = set(self.agent_names.values()) | set(self.aliases.values())
-        place = dict(self.group_of)
+        tagged = {x["a"] for x in self.chat if x["kind"] != "other"} | \
+            {x["a"] for x in self.mem_all if x["state"] != "none"} | {x["a"] for x in self.files}
+        place = {n: g for n, g in self.group_of.items() if n in self.posted_full or n in tagged}
         notes = {}
         for e in spec.get("extra_agents", []):
             if e["name"] not in known:
@@ -483,6 +586,7 @@ class Episode:
         for name in holders:
             place[name] = OTHER_ROOMS if name in self.elsewhere else NOCHAT
         self.added = holders
+        self.hidden = sorted(set(self.group_of) - set(place))  # untagged chat in show_other=false panels only
         self.mem = [x for x in self.mem_all if x["a"] in place]
         self.mem_by = {}  # name -> (times, snapshots), in time order
         for x in self.mem:
@@ -490,12 +594,11 @@ class Episode:
             ts.append(x["t"])
             xs.append(x)
 
-        humans = {}
-        for x in self.chat:
-            if x["a"] not in place:
-                g = next((g for n, _, g in self.human_rows if n == x["a"]), None) or x["room"]
-                humans.setdefault(x["a"], g)
-        chatted = set(self.group_of)
+        humans = self.humans
+        self.dropped_files = sum(1 for x in self.files if x["a"] not in place)
+        self.chat = [x for x in self.chat if x["a"] in place or x["a"] in humans]
+        self.files = [x for x in self.files if x["a"] in place]
+        chatted = set(self.group_of)  # silent: no post at all in the shown rooms inside the panels
 
         group_keys = [r for r in self.rooms if r in place.values() or r in humans.values()]
         group_keys += sorted({g for g in place.values() if g not in group_keys and g not in GROUP_LABELS})
@@ -520,6 +623,19 @@ class Episode:
             rows += [{"name": h, "group": g, "human": True, "silent": False, "note": ""} for h in hs]
         self.rows = rows
         self.row_of = {r["name"]: r for r in rows}
+        # Spec entries that name an agent or a group the episode does not show.
+        keys = {g["key"] for g in self.groups}
+        for name in self.overrides:
+            if name not in self.row_of:
+                self.warn(f"agent_overrides: {name!r} has no row")
+        for m in spec.get("moves", []):
+            if m["agent"] not in self.row_of:
+                self.warn(f"moves: {m['agent']!r} has no row")
+            if m["to"] not in keys:
+                self.warn(f"moves: group {m['to']!r} is not shown")
+        for g in spec.get("room_notes", {}):
+            if g not in keys:
+                self.warn(f"room_notes: group {g!r} is not shown")
 
     def first_mark(self, name):
         """Row order inside a group: first order_by match (chat or claim memory), else first
@@ -540,12 +656,12 @@ class Episode:
 
     def load_files(self):
         con = self.con
-        agents = {r["name"] for r in self.rows if not r["human"]}
         pattern = either(self.spec["claim"].get("files"), (self.spec.get("correction") or {}).get("files"))
         self.files = []
         if not pattern:
             return
-        cond = f"regexp_matches(coalesce(command, action_text, ''), {lit(pattern)}, 'i')" if re2(con, pattern) else "true"
+        cond = f"regexp_matches(coalesce(command, action_text, ''), {lit(sql_re(pattern))}, 'i')" \
+            if re2(con, sql_re(pattern)) else "true"
         if cond == "true":
             self.warn("file regex is not RE2-compatible: scanning every turn in the panels (slow)")
         rows = con.execute(
@@ -553,9 +669,9 @@ class Episode:
             WHERE ({self.win()}) AND {cond} ORDER BY created_at, id"""
         ).fetchall()
         for t, agent, tid, cmd in rows:
-            name = self.alias(agent) if agent else None
-            if name not in agents:
+            if not agent:
                 continue
+            name = self.alias(agent)
             cmd = redact(cmd)
             kind, m = self.file_kind(ms(t), cmd.lower())
             if kind:
@@ -616,9 +732,22 @@ class Episode:
         coll = {"chat": self.chat, "mem": self.mem, "files": self.files, "file": self.files}.get(typ)
         if coll is None:
             raise ValueError(f"{where}: unknown type {typ!r} (chat, mem or files)")
+        if not isinstance(prefix, str) or not prefix:
+            raise ValueError(f"{where}: id prefix must be a non-empty string, got {prefix!r}")
         found = [x for x in coll if x["id"].startswith(prefix)]
         if len(found) != 1:
-            what = "matches nothing" if not found else f"matches {len(found)} items"
+            if found:
+                what = f"matches {len(found)} items ({', '.join(x['id'][:13] for x in found[:4])}): use a longer prefix"
+            else:
+                other = [t for t, c in (("chat", self.chat), ("mem", self.mem), ("files", self.files))
+                         if t != typ and any(x["id"].startswith(prefix) for x in c)]
+                why = {"chat": "outside the panels and rooms, by an agent with no row, or untagged chat in a "
+                               "show_other=false panel",
+                       "mem": "outside memory_lookback to the last panel's end, or by an agent with no row",
+                       }.get(typ, "outside the panels, by an agent with no row, or a command no file regex tags "
+                                  "(a hand link end is fetched by prefix; a step key is not)")
+                what = f"matches nothing in the episode data ({why})" + \
+                    (f"; it does match in {', '.join(other)}" if other else "")
             raise ValueError(f"{where}: {typ} id prefix {prefix!r} {what}")
         return found[0]
 
@@ -696,23 +825,32 @@ class Episode:
         win = " OR ".join(f"(created_at BETWEEN {lit(from_ms(a))} AND {lit(from_ms(b))})" for a, b in clipped)
         by_id = f" OR id::VARCHAR IN ({','.join(lit(i) for i in ids)})" if ids else ""
         family_rx = {"belief": self.c_files, "fix": self.x_files}
+        # Only output that can hold the evidence comes back (RE2 keeps whatever Python's re would match).
+        family = sql_re(either(self.spec["claim"].get("files"), (self.spec.get("correction") or {}).get("files")))
+        evidence = f"AND regexp_matches(output, {lit(family)}, 'i')" if re2(self.con, family) else ""
         untagged = []
         if clipped:
-            for t, agent, tid, cmd, output in self.con.execute(
-                f"""SELECT created_at, agent, id::VARCHAR, coalesce(command, action_text, ''),
-                       left(coalesce(output, '') || chr(10) || coalesce(error, ''), 20000) FROM turns
-                WHERE ({win}) AND (regexp_matches(coalesce(command, action_text, ''), {lit(name_rx)}, 'i'){by_id})
+            for t, agent, tid, cmd, pc, output, po in self.con.execute(
+                f"""SELECT created_at, agent, id, cmd, {suspect_sql('cmd')}, output, {suspect_sql('output')}
+                FROM (SELECT created_at, agent, id::VARCHAR AS id, coalesce(command, action_text, '') AS cmd,
+                             left(coalesce(output, '') || chr(10) || coalesce(error, ''), {OUTPUT_CHARS}) AS output FROM turns
+                      WHERE ({win}) AND (regexp_matches(coalesce(command, action_text, ''), {lit(name_rx)}, 'i'){by_id}))
+                WHERE true {evidence}
                 ORDER BY created_at, id"""
             ).fetchall():
                 name = self.alias(agent) if agent else None
                 if name not in agents or tid in have:
                     continue
-                cmd, output = redact(cmd), redact(output)
+                if len(output) >= OUTPUT_CHARS:
+                    output = re.sub(r"\S*$", "", output)  # a token cut at the limit could be part of a credential
+                cmd, output = redact_parts(cmd, pc), redact_parts(output, po)
                 if FILE_WRITE.search(cmd):
                     continue
                 seen = {fam: m for fam, r in family_rx.items() if (m := hit(r, output.lower()))}
+                if not seen:
+                    continue
                 item = self.file_item(t, name, tid, cmd, None)
-                if seen and item["_arts"] & set(names):
+                if item["_arts"] & set(names):
                     item["_seen"] = seen
                     item["_out"] = output
                     untagged.append(item)
@@ -831,7 +969,7 @@ class Episode:
                     continue
                 x["stance"], x["check"] = lab.get("stance"), lab.get("check")
                 if lab.get("reason"):
-                    x["reason"] = lab["reason"]  # optional field the viewer shows in its inspector
+                    x["reason"] = redact(lab["reason"])  # optional field the viewer shows in its inspector
                 # A claim match maps by stance. After the correction that includes chat the regexes
                 # left as "other": the labeller says whether the mention still adopts the claim.
                 late = x.get("_claim") and x[field] == "other" and self.corr_ms is not None and x["t"] >= self.corr_ms
@@ -876,7 +1014,8 @@ class Episode:
         if self.corr_ms is not None:
             linger = {x["a"] for x in chat if x["kind"] == "belief" and x["t"] >= self.corr_ms} | \
                      {x["a"] for x in mem if x["state"] == "claim" and x["t"] >= self.corr_ms}
-        end_agent = {(t, x["id"]): x["a"] for t, coll in (("chat", chat), ("mem", mem), ("files", files)) for x in coll}
+        end_agent = {(t, x["id"]): x["a"] for t, coll in (("chat", self.chat), ("mem", self.mem), ("files", self.files))
+                     for x in coll}
         group = {r["name"]: r["group"] for r in self.rows}
         cross = sum(1 for ln in links
                     if group.get(end_agent.get(tuple(ln["from"]))) != group.get(end_agent.get(tuple(ln["to"]))))
@@ -903,13 +1042,16 @@ class Episode:
             "crossroom_links": cross,
             "first_claim": first({"belief", "claim"}),
             "first_fix": first({"fix"}),
+            "corrector": self.corrector,
         }
 
     def compact_memory(self, keep):
         """Panels that show everything keep every snapshot. Elsewhere (panels with show_other false,
-        the lookback, gaps) a snapshot stays only where the agent's state changes, as each agent's
-        last snapshot at or before a panel start (the state it carries in), or when a link or step
-        names it (keep). The bands the viewer draws come out the same; a long panel stays small."""
+        the lookback, gaps) a snapshot stays only where the agent's state or stance changes, as each
+        agent's last snapshot at or before a panel start (the state it carries in), as its first
+        snapshot at or after the correction (so linger_agents can be checked from the data), when the
+        two labellers disagree on it (the viewer counts those), or when a link or step names it
+        (keep). The bands the viewer draws come out the same; a long panel stays small."""
         full = [(p["s"], p["e"]) for p in self.panels if p.get("show_other", True)]
         carry = set()
         for ts, xs in self.mem_by.values():
@@ -917,11 +1059,16 @@ class Episode:
                 i = bisect_right(ts, p["s"]) - 1
                 if i >= 0:
                     carry.add(xs[i]["id"])
+            if self.corr_ms is not None:
+                i = bisect_right(ts, self.corr_ms - 1)
+                if i < len(xs):
+                    carry.add(xs[i]["id"])
         out, state = [], {}
         for x in self.mem:
-            changed = state.get(x["a"]) != x["state"]
-            state[x["a"]] = x["state"]
-            if changed or x["id"] in carry or x["id"] in keep or any(a <= x["t"] <= b for a, b in full):
+            changed = state.get(x["a"]) != (x["state"], x["stance"])
+            state[x["a"]] = (x["state"], x["stance"])
+            if changed or x["id"] in carry or x["id"] in keep or (x["check"] and x["check"] != x["stance"]) or \
+                    any(a <= x["t"] <= b for a, b in full):
                 out.append(x)
         self.dropped_mem = len(self.mem) - len(out)
         self.mem = out
@@ -954,6 +1101,8 @@ class Episode:
         for i, st in enumerate(self.spec.get("steps", [])):
             st = copy.deepcopy(st)
             if st.get("key"):
+                if not (isinstance(st["key"], list) and len(st["key"]) == 2):
+                    raise ValueError(f"steps[{i}] ({st.get('title', '')}) key must be [type, id prefix], got {st['key']!r}")
                 typ, prefix = st["key"]
                 x = self.resolve(typ, prefix, f"steps[{i}] ({st.get('title', '')}) key")
                 st["key"] = ["files" if typ == "file" else typ, x["id"]]
@@ -972,14 +1121,17 @@ class Episode:
         self.timed("chat", self.load_chat)
         self.timed("memory", self.load_memory)
         self.label_stats = self.apply_labels()
-        self.build_rows()
         self.timed("artifacts", self.load_artifacts)
         self.timed("files", self.load_files)
+        self.build_rows()
         links = self.timed("hand links", self.hand_links)
         if spec.get("auto_links", True):
             links += self.timed("auto links", self.auto_links, links)
+        for ln in links:
+            if ln["auto"]:
+                ln["label"] = redact(ln["label"])  # it quotes artifact names from the data
         for f in self.files:
-            f["artifact"] = ", ".join(sorted(f.pop("_arts"))) or None
+            f["artifact"] = redact(", ".join(sorted(f.pop("_arts")))) or None
             f.pop("_seen", None)
             f.pop("_out", None)
         for x in self.chat:
@@ -1079,7 +1231,7 @@ def write_site():
     # file:// pages cannot fetch the episode JSON, so the preview inlines it (config null -> TRACER_INLINE).
     (site / "preview.html").write_text(
         '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
-        '<meta name="viewport" content="width=device-width, initial-scale=1">\n</head>\n<body>\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>Belief Tracer</title>\n</head>\n<body>\n'
         f"<script>window.TRACER_INLINE = {script_json(inline)};</script>\n"
         + tpl + "\n</body>\n</html>\n"
     )
@@ -1095,7 +1247,9 @@ def summary(data, info, seconds):
     lines = [
         f"== {data['slug']}  ({seconds:.1f} s)",
         f"rows {len(data['rows'])} in {len(data['groups'])} groups ({', '.join(g['key'] for g in data['groups'])}); "
-        f"added with no chat: {len(info['addedNoChat'])} {info['addedNoChat'] or ''}",
+        f"added with no chat: {len(info['addedNoChat'])} {info['addedNoChat'] or ''}; "
+        f"no row (untagged chat in show_other=false panels only): {len(info['noRow'])} {info['noRow'] or ''}; "
+        f"file marks by agents with no row: {info['filesNoRow']}",
         f"chat {len(data['chat'])}: " + " ".join(f"{k} {kinds[k]}" for k in ("belief", "attributed", "hint", "fix", "other")),
         f"mem {len(data['mem'])}: " + " ".join(f"{k} {states[k]}" for k in ("claim", "attributed", "fix", "none")),
         f"files {len(data['files'])}: " + " ".join(f"{k} {v}" for k, v in sorted(fk.items())),

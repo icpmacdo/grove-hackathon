@@ -43,6 +43,16 @@ command text when absent.
   `build_temporal_bleed.py`; keep or extend that pattern).
 - Regexes in specs are Python `re` syntax, matched case-insensitively against the lowercased text.
 
+> **Note (trace.py, added while finishing the engine).**
+> - Redaction: the engine uses label.py's `SECRET` pattern (copied, not imported). DuckDB flags the
+>   texts that may hold a match, using an RE2 superset of each part of the pattern, and Python
+>   redacts those, so every text comes out as `redact()` would make it. This covers every text
+>   field in episode data, labeller reasons, artifact names and auto link labels included.
+> - DuckDB (RE2) only narrows what Python reads. Before a spec regex goes to SQL, `\w`, `\d` and `\s`
+>   are spelled out as Python's Unicode sets and `\b` / `\B` are dropped, so SQL keeps every text
+>   Python's `re` would match. Memory regexes run on the raw text in SQL; Python decides on the
+>   redacted text. A spec regex that only matches the literal `[REDACTED]` would be missed.
+
 ## Episode spec (`tracer/episodes/<slug>.json`)
 
 ```jsonc
@@ -96,6 +106,21 @@ command text when absent.
 }
 ```
 
+> **Note (trace.py): optional spec fields the engine also reads, and how it reports problems.**
+> - `"order"`: a number that sets the episode tab order (default 100, then slug).
+> - `correction.by`: the corrector's agent name. Default: the author of the first chat message at or
+>   after `at` that matches `correction.strong` (or `correction.chat` when there is no `strong`). A
+>   human author means no corrector. In the probe window the corrector's claim or correction
+>   wording is a hint; anyone else's is belief.
+> - `human_rows[].group`: the group key for that row. Default `_all`, which the viewer draws as a
+>   group that is not a room.
+> - `extra_agents[].room` may be left out: the agent keeps the room it posted in, or `_nochat`.
+> - Figures may also use nested keys such as `{group_reach.best.reached}`. A list fills as
+>   comma-separated names and null fills as "none". An unknown key fails the build.
+> - The build fails, with the reason, on an unknown `extra_agents` name, and on a link end or step
+>   key that matches no item or more than one. An `agent_overrides`, `moves`, `room_notes` or
+>   `pin_first` entry that names an agent or group with no row only prints a warning.
+
 ## Episode data (engine output, viewer input)
 
 ```jsonc
@@ -146,6 +171,32 @@ engine uses regexes alone: matches become `belief` / `claim`. With labels, a cla
 adopts → belief / claim, attributes → attributed, refutes → hint (chat) or fix (memory), unclear →
 keep the regex result.
 
+> **Note (trace.py): rows, kinds and excerpts as the engine builds them.**
+> - Rows: an agent gets a row when it posts in a shown room inside a panel with `show_other: true`.
+>   An agent whose posts are all in `show_other: false` panels gets one only when it has a tagged
+>   mark somewhere in the episode (chat kind other than `other`, memory state other than `none`, or
+>   a file mark). Every `extra_agents` entry gets one. So does an agent with no chat in the shown
+>   rooms whose memory reaches `claim`, `attributed` or `fix` (group `_other` if it posted in a room
+>   not shown, else `_nochat`). Marks by anyone else, file marks included, are dropped, so every
+>   mark has a row.
+> - An agent's group is the shown room it posted in most during the first panel where it posts.
+>   `silent` means the agent posted nothing in the shown rooms inside the panels.
+> - In `show_other: false` panels, chat stays when it is tagged or matches the claim, correction or
+>   linger wording (then as `other`).
+> - Excerpts: memory, 520 characters around the match; files, 620; untagged chat whose match falls
+>   past the 360-character clip gets 360 characters around the match. Memory `chars` is the raw
+>   snapshot length, before redaction.
+> - Memory outside `show_other: true` panels is thinned: a snapshot stays where the agent's state or
+>   stance changes, as its last snapshot at or before each panel start, as its first at or after
+>   `correctionMs`, when `check` differs from `stance`, or when a link or step names it. The bands
+>   the viewer draws do not change, and the stats below can be recomputed from what stays.
+> - Labels: a chat message after `correctionMs` that matches `claim.chat` but that the regexes left
+>   as `other` also maps by stance (adopts → belief, attributes → attributed, refutes → hint). A
+>   regex result of `hint` or `fix` stays whatever the stance. `stance`, `check` and `reason` pass
+>   through on every labelled item.
+> - After `correctionMs` a `linger` match is belief in any room: `claim.rooms` limits `claim.chat`
+>   belief only.
+
 ## Steps
 
 ```jsonc
@@ -190,6 +241,21 @@ first_fix              {"t", "a", "type", "id"} earliest fix mark (or null)
 
 Figures may use `{stat_name}` and `{stat_name.length}` placeholders.
 
+> **Note (trace.py): details of the stats above.**
+> - Agents are the non-human rows. Memory stats read every snapshot, before thinning.
+> - `fix_first_minute` leaves out the corrector, whose message is the correction itself. It compares
+>   at the spec's one-second precision: `t` floored to the second, at most `correctionMs` + 60 s.
+> - `memory_only` counts claim matches in chat in the shown rooms inside the panels.
+> - `group_reach` counts the non-human rows of each group and leaves out groups with none, so the
+>   totals add up to the agent rows shown.
+> - `crossroom_links` compares the row groups of the authors of the two ends, human rows included.
+> - `first_claim` and `first_fix` include file marks: `type` is `chat`, `mem` or `files`.
+> - Extra stat `corrector`: the corrector's name, or null.
+> - `tracer/check.py` recomputes these from the episode data and reports differences:
+>   `claim_chat_agents`, `claim_mem_agents`, `claim_mem_minutes`, `attributed_only`,
+>   `group_reach`, `fix_mem_agents`, `fix_first_minute`, `linger_agents`, `crossroom_links`,
+>   `first_claim`, `first_fix`.
+
 ## Auto links (cross-room hand-offs through files)
 
 Room of an agent at time t = the room of its most recent chat message in the previous 48 hours.
@@ -200,6 +266,23 @@ memory snapshot or chat message within 45 minutes after the read has the same st
 ends are included in `files` with the write's kind. Mark auto links `"auto": true`. Artifact identity
 comes from `artifact_events.parquet` when present; otherwise from repo-like names in the command
 (`ai-village-agents/<repo>`, `cd ~/<repo>`, `/tmp/<repo>`).
+
+> **Note (trace.py): the engine narrows the rule above.** Taken literally, the rule linked every
+> routine `git pull` of a room's own repo (51 links in temporal-bleed). As built:
+> - A read counts only with evidence that the reader saw the content: its command matches the
+>   write's file regex (a tagged read), or its output does (first 20,000 characters).
+> - A reader that already holds the family is skipped: its latest memory snapshot before the read,
+>   or any earlier chat message, is in it.
+> - Per reader, artifact and family, one read is kept: the first tagged read, else the first read
+>   with matching output. It links back to the latest qualifying write before it.
+> - The second link goes to the earlier of the reader's next memory snapshot and next chat message
+>   within 45 minutes, when that mark is in the family.
+> - Auto links that repeat a hand link, or end where a hand link ends, are left out.
+> - The room of an agent comes from its chat in any room, shown or not.
+> - Artifact names are repo names without the owner, lowercased. A turn the events file resolved
+>   uses its artifacts. Otherwise the regexes run outside heredoc bodies, and a local directory
+>   name counts only when the events file knows it as a repo (or, without the file, when it does
+>   not look like a file or a common folder).
 
 ## Labels (`tracer/labels/<slug>.json`)
 
@@ -248,6 +331,28 @@ and records agreement. The viewer shows disagreements.
 >   Items are engine `chat` / `mem` records (`id`, `a`, `t`, `text`, optional `room`, optional
 >   `type`). `stats` (a dict) is filled with `cost_usd`, `calls`, `errors`, `failed`.
 
+> **Note (label.py, second pass): check samples, collection and the limit stop.** Readers that only
+> use the fields above are unaffected.
+> - `--check MODEL --check-sample N` runs the check pass on a fixed sample of N items instead of all.
+>   Items fall into strata (chat or memory, before or after `correction.at`). Every stratum present
+>   gets at least one item while N allows, and the rest is shared in proportion to stratum size.
+>   Within a stratum the items whose ids have the lowest SHA-1 are taken, so a rerun picks the same
+>   items and a larger N keeps them. Duplicates share a check label only inside the sample.
+> - Extra top-level field `"checkSample"`: N, or null after a full `--check`; runs without `--check`
+>   keep it. `checked`, `agreement` and `confusion` are over the items with both labels, which can
+>   be more than N when an earlier run checked more. Engine and viewer: to say that an agreement
+>   figure comes from a sample, pass `checked` and `checkSample` through `labelStats`.
+> - Collection matches the engine's `label_ids`: spec regexes run on the redacted, lowercased text
+>   with `rx()`, the memory prefilter uses `sql_re()` (both copied from trace.py), chat rooms are
+>   `claim.rooms` within the shown rooms (a NULL room is `general`), and unmatched human chat is
+>   `Staff (human) · #<room>`. Checked on all four episodes: same ids, authors and rooms.
+> - Chat text sent to the model: the message up to 900 chars, or, when the first claim match ends
+>   past that, its first 350 chars, " … ", and the passage from 250 chars before the match (900 in
+>   all), so the model always sees the match. Labels cached before this change keep their stance.
+> - A usage-limit error (a JSON error result or plain stderr) stops the run. Batches already
+>   running finish, and every label they got is saved before the exit (status 2).
+> - temporal-bleed's main labels are sonnet's and its check is haiku (passes swapped, 3 Oct).
+
 ## Local app (`serve.py`)
 
 `uv run python -m tracer.serve [--port 8765]` serves the viewer in live mode.
@@ -265,6 +370,41 @@ POST /api/trace                body {"claim": {"label", "pattern"}, "correction"
                                -> episode data (panels from the chosen days, bounded by that day's chat
                                   activity rounded out to the hour; no steps; generic figures)
 ```
+
+> **Note (serve.py, added while building it): what the app does beyond the above.** Clients that
+> read only the fields above need no changes.
+> - `GET /api/episode/<slug>`: the out file is served while it is newer than both the spec and
+>   `labels/<slug>.json`; otherwise (or when it is missing) the episode is built and written. One
+>   build per slug runs at a time, and a request that waited gets that build. When a build nobody
+>   forced fails, the last good out file is served and the error logged. Live traces stay
+>   reachable at `/api/episode/trace-<hash>` while the server holds them in memory.
+> - Every excerpt and reason that leaves the server goes through `trace.redact`, then `label.redact`.
+> - `/api/scan` extra fields: `regex`, `pattern` (the regex used: the phrase lowercased with
+>   `.*+?^${}()|[]\` escaped, the same escape the viewer applies before `POST /api/trace`, or the
+>   raw regex), `totals` {chat, mem, files}, `timings` per channel, `computeSeconds`, `cached`.
+>   `seconds` is this request's time. SQL (RE2) matches the raw text, case ignored. `chat` counts
+>   every matching message, human ones too; `chatAgents`, `memAgents` and `topAgents` (at most 15,
+>   by chat + mem) count agents only. `files` counts turns whose `coalesce(command, action_text)`
+>   matches. A first chat match by a human is named `Staff (human) · #<room>`. 400 when q is under
+>   3 characters, matches empty text, or Python `re` or RE2 rejects it.
+> - `POST /api/trace` answers 400 `{"error"}` unless: the claim pattern has 3+ characters, Python
+>   and RE2 both accept it and it does not match empty text; `correction` is null or has a pattern
+>   (same checks) and `at` (ISO date-time in UTC; an offset is converted); `days` holds 1-10
+>   distinct `YYYY-MM-DD` dates with chat on at least one; `label` is a boolean. Build guard: with a
+>   cached scan of the same pattern, at most 15,000 matching memory snapshots from the day before
+>   the first day to the last; without one, at most 31 days from the first day to the last.
+> - Trace response: slug `trace-<first 10 hex of sha1 of the normalized request>`, title
+>   `Trace: <label>`, a lede built from the stats, generic `notes` (keyword matching, unlabelled
+>   unless `label` is true; warnings are appended to `limits`), and an extra `build` object
+>   {seconds, timings, warnings, days, shown, pattern, correctionPattern}. Identical requests are
+>   answered from memory.
+> - `label: true`: `label.collect_items` picks the claim matches; after `label.dedupe` at most 400
+>   distinct ones (chat first, then memory in time order) go to `label_items` with haiku. The
+>   labels are written in the labels-file format to `tracer/out/live/labels/<slug>.json`
+>   (git-ignored), and the build reads them through the spec slug `../out/live/labels/<slug>`, so
+>   the engine merges them exactly as it merges curated labels. `labelStats` gains `costUsd`,
+>   `calls`, `distinct` and `sent`. A usage-limit or CLI error keeps the labels returned so far and
+>   adds a warning.
 
 ## Viewer (`template.html`)
 
