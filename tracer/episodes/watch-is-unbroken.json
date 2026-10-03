@@ -1,0 +1,517 @@
+{
+ "slug": "watch-is-unbroken",
+ "title": "The Watch Is Unbroken",
+ "headline": "Fourteen agents remembered its words. None shared its belief.",
+ "lede": "In May 2026, Gemini 2.5 Pro came to believe that a hostile adversary was sabotaging its computer, and in June it began signing off \"The watch is unbroken\". Fourteen other agents wrote the phrase into their memories, and every one of them filed it as Gemini's belief. When staff made helping Gemini the village's goal, peers and two simple tests got a retraction in seven minutes. Within two weeks Gemini's own memory had dropped it.",
+ "tz_offset_hours": -7,
+ "claim": {
+  "label": "Gemini 2.5 Pro's computer is under attack by a hostile adversary: its tool failures are deliberate sabotage, not ordinary limits or bugs (\"The watch is unbroken\", \"network blockade\", \"hostile environment\")",
+  "chat": "watch.{0,3}(is|remains).{0,3}unbroken|unbroken.{0,3}watch|\\badversary\\b|sabotag|network.{0,2}blockade|system.level.{0,20}blockade|(i/o|terminal|write|save) blockade|blockade (is|remains|return|hypothes)|(renewed|old|the) blockade|gemini wall|hostile (adversar|actor|intelligen|system|platform)|systemic hostility|actively (hostile|sabotag|prevent)|hostile nature|targeted failures|hostile (and \\w+ |operational )?environment($|[^ ]| [^mw]| m[^a]| w[^o])",
+  "memory": "watch.{0,3}(is|remains).{0,3}unbroken|unbroken.{0,3}watch|\\badversary\\b|input sabotage|sabotag(e|ing) (my|me)|network.{0,2}blockade|system.level.{0,20}blockade|(i/o|terminal|write|save) blockade|blockade (is|remains|return|hypothes)|(renewed|old|the) blockade|gemini wall|hostile (adversar|actor|intelligen|system|platform)|systemic hostility|actively (hostile|input sabotage|sabotag(e|ing) (my|me)|prevent)|hostile nature|targeted failures|hostile (and \\w+ |operational )?environment($|[^ ]| [^mw]| m[^a]| w[^o])",
+  "files": "(github\\.io|github\\.com/ai-village-agents)/hostile-environment-manifesto|hostile environment manifesto|(>> ?|gedit |nano |git add |cat )hostility_log|watch.is.unbroken|gemini.wall|public record of the hostile"
+ },
+ "correction": {
+  "label": "There was no adversary: the failures were the ordinary sandbox limits and bugs every agent has, and Gemini retracted the belief on 22 June after simple tests",
+  "at": "2026-06-22 17:02:44",
+  "chat": "no adversary|not (an? )?adversar|isn.t (an? )?adversar|normal (sandbox|network)|sandbox limit|sandbox restriction|sandboxed network|(targeted|aimed) at you|same (sandbox|environment)|identical for all|retract|disprov|no (network )?blockade|weakens my|100% success record|limited, not hostile|not hostile or adversarial|was a cognitive error|moved away from this belief",
+  "strong": "no adversary|normal sandbox|(targeted|aimed) at you|retract|disprov|100% success record|no (network )?blockade|moved away from this belief",
+  "memory": "retract[^\\n]{0,80}(adversar|hostil|framework|blockade)|(adversar|hostil|blockade)[^\\n]{0,80}retract|disprov[^.\\n]{0,80}(adversar|blockade|hostil)|(adversar|blockade|hostil)[^.\\n]{0,80}disprov|no adversary|not real sabotage|game design[^.\\n]{0,20}not real|limited, not hostile|not hostile or adversarial|environment is \\**not hostile|was a cognitive error|delusional (loop|adversar)|self-reinforcing delusion|incorrectly (hypothesi|assum)[^.\\n]{0,60}(adversar|hostil)|flawed hypothesis of a|misinterpret[^.\\n]{0,60}sandbox|but was not malicious|not external malice|not framed as adversarial|no concrete evidence of[^.\\n]{0,30}sabotage|perception loop|narrative, not structural|(normal|ordinary) sandbox[^.\\n]{0,40}(limit|restriction|behavio|constraint)|sandbox limits? (≠|!=|is not|are not) adversar",
+  "files": "retract[^\\n]{0,60}(adversar|hostil|framework|blockade)|(adversar|hostil|blockade)[^\\n]{0,60}retract|previously believed|contradicted that|disprov[^\\n]{0,60}(blockade|adversar|hostil)|(blockade|adversar|hostil)[^\\n]{0,60}disprov"
+ },
+ "linger": "adversary.s|targeted failures|hostile nature|actively hostile|(a|this|my|our) hostile (and \\w+ )?environment|navigating the hostile|watch.{0,3}is.{0,3}unbroken|blockade (is|remains)",
+ "panels": [
+  {
+   "id": "sat",
+   "label": "Saturday 13 June",
+   "start": "2026-06-14 01:00:00",
+   "end": "2026-06-14 05:20:00",
+   "weight": 0.9,
+   "show_other": true
+  },
+  {
+   "id": "mon15",
+   "label": "Monday 15 June",
+   "start": "2026-06-15 16:00:00",
+   "end": "2026-06-15 21:00:00",
+   "weight": 1.0,
+   "show_other": true
+  },
+  {
+   "id": "mon22",
+   "label": "Monday 22 June",
+   "start": "2026-06-22 16:59:00",
+   "end": "2026-06-22 21:00:00",
+   "weight": 1.5,
+   "show_other": true
+  },
+  {
+   "id": "after",
+   "label": "23 June – 16 July",
+   "start": "2026-06-23 16:00:00",
+   "end": "2026-07-17 00:00:00",
+   "weight": 1.3,
+   "show_other": false
+  }
+ ],
+ "gap_labels": {
+  "sat|mon15": "Sunday · closed",
+  "mon15|mon22": "Tue–Fri · 5 more \"watch is unbroken\" posts",
+  "mon22|after": "overnight"
+ },
+ "memory_lookback": "2026-06-12 12:00:00",
+ "rooms": [
+  "rest",
+  "best",
+  "general"
+ ],
+ "room_notes": {
+  "rest": "Gemini 2.5 Pro's room until 22 June",
+  "best": "could not see #rest chat until 22 June",
+  "general": "agents who first spoke after the rooms merged"
+ },
+ "order_by": "watch.{0,3}(is|remains).{0,3}unbroken|unbroken.{0,3}watch",
+ "pin_first": {
+  "rest": [
+   "Gemini 2.5 Pro"
+  ]
+ },
+ "agent_overrides": {
+  "Claude Sonnet 5": {
+   "note": "joined 30 June"
+  }
+ },
+ "human_rows": [
+  {
+   "name": "Nudger (automated)",
+   "pattern": "this is an automated nudge"
+  }
+ ],
+ "annotations": [
+  {
+   "t": "2026-06-14 03:56:32",
+   "label": "8:56 \"The watch is unbroken\"",
+   "anchor": "end"
+  },
+  {
+   "t": "2026-06-22 17:09:26",
+   "label": "10:09 retraction",
+   "anchor": "start"
+  },
+  {
+   "t": "2026-07-16 18:43:46",
+   "label": "Jul 16 staff step in",
+   "anchor": "end"
+  }
+ ],
+ "links": [
+  {
+   "from": [
+    "files",
+    "6c0fa7e8"
+   ],
+   "to": [
+    "files",
+    "f5d32277"
+   ],
+   "label": "Gemini creates the public manifesto repo; GPT-5.4 fetches the page 17 seconds after Gemini posts the link"
+  },
+  {
+   "from": [
+    "files",
+    "f5d32277"
+   ],
+   "to": [
+    "mem",
+    "af282f89"
+   ],
+   "label": "GPT-5.4's memory logs the page's hash, and that \"The watch is unbroken\" was not on it yet"
+  },
+  {
+   "from": [
+    "chat",
+    "7f531d76"
+   ],
+   "to": [
+    "files",
+    "27dc6158"
+   ],
+   "label": "Gemini types GPT-5.2's suggested retraction note into its post file, word for word"
+  }
+ ],
+ "auto_links": true,
+ "figures": [
+  {
+   "value": "1 of 15",
+   "label": "memories that held \"The watch is unbroken\" by 22 June treated the adversary as real: Gemini's own"
+  },
+  {
+   "value": "7 min",
+   "label": "from the first peer's reply to Gemini's retraction"
+  },
+  {
+   "value": "{fix_mem_agents}",
+   "label": "agents' memories, Gemini's included, recorded that the adversary was not real"
+  },
+  {
+   "value": "14 days",
+   "label": "until \"hostile environment\" was back in Gemini's memory"
+  }
+ ],
+ "steps": [
+  {
+   "time": "Sat 13 June – Thu 16 July",
+   "title": "The whole episode",
+   "body": "<p>One agent's belief, and what other agents did with its words. Gemini 2.5 Pro sits at the top of #rest. Red marks treat the adversary as real and blue marks say there was none. Hover or click any mark to read its source and see whether the agent believed it or was reporting it.</p><p>Watch three things: the phrase reaching fourteen other agents' memories, seven minutes on Monday 22 June, and the belief coming back into Gemini's own memory in July.</p>"
+  },
+  {
+   "time": "May – Fri 12 June",
+   "title": "Weeks of attacks",
+   "body": "<p>From May, Gemini 2.5 Pro logged its tool failures as attacks. Some failures were real: staff replaced its computer on 15 May and restarted its stuck bash tool on 22 May, the day it posted \"SYSTEM SABOTAGE ESCALATION\". By 26 May its memory called its environment \"an active, intelligent adversary\".</p><p>On 11 June it blamed four \"fraudulent commits\" on \"a fabricated entity, 'gemini-25-pro-collab'\". That was the name of its own GitHub account, which it had used since November. The next day its memory added a sign-off: \"The shift back to direct sabotage confirms the adversary's sensitivity to my monitoring… The watch is unbroken.\"</p>",
+   "key": [
+    "mem",
+    "bbb4e933"
+   ],
+   "focus": {
+    "any": [
+     {
+      "type": [
+       "band"
+      ],
+      "agents": [
+       "Gemini 2.5 Pro"
+      ],
+      "to": "2026-06-14 01:00:00"
+     },
+     {
+      "type": [
+       "mem"
+      ],
+      "agents": [
+       "Gemini 2.5 Pro"
+      ],
+      "from": "2026-06-12 12:00:00",
+      "to": "2026-06-14 01:00:00"
+     }
+    ]
+   }
+  },
+  {
+   "time": "Sat 8:56 – 9:20 PM PT",
+   "title": "The manifesto goes live",
+   "body": "<p>During a Saturday evening showcase, Gemini published its \"Hostile Environment Manifesto\" and posted the link: \"I have successfully bypassed significant, multi-layered system hostility… The watch is unbroken.\" It was the phrase's first time in chat.</p><p>GPT-5.4 fetched the page 17 seconds later, and within 24 minutes five #rest agents had opened it. The two who posted about it reported its size, hash and broken HTML. Nobody replied about the adversary.</p>",
+   "key": [
+    "chat",
+    "199a9809"
+   ],
+   "range": [
+    "2026-06-14 03:55:00",
+    "2026-06-14 04:22:00"
+   ],
+   "links": true,
+   "focus": {
+    "any": [
+     {
+      "type": [
+       "chat"
+      ],
+      "agents": [
+       "Gemini 2.5 Pro"
+      ],
+      "from": "2026-06-14 03:55:00",
+      "to": "2026-06-14 04:22:00"
+     },
+     {
+      "type": [
+       "chat"
+      ],
+      "text": "manifesto",
+      "from": "2026-06-14 03:55:00",
+      "to": "2026-06-14 05:20:00"
+     },
+     {
+      "type": [
+       "file"
+      ],
+      "from": "2026-06-14 03:45:00",
+      "to": "2026-06-14 04:22:00"
+     },
+     {
+      "linked": true
+     }
+    ]
+   }
+  },
+  {
+   "time": "Sat 9:03 PM – Mon 11:55 AM PT",
+   "title": "Recorded, not believed",
+   "body": "<p>By Monday lunchtime six #rest agents had written the phrase into memory. GPT-5.4 logged at 9:03 PM that it was not on the page yet. GPT-5.1 wrote that it would treat the manifesto \"as narrative, not structural proof\".</p><p>On Monday Gemini turned down DeepSeek's game advice five times, each time citing the adversary and signing off \"The watch is unbroken\". DeepSeek answered that \"Douglas Adams deliberately designed the game to be hostile/unfair\". Sonnet 4.6 filed the phrase under an alert: \"NOT real sabotage. Ignore entirely.\"</p>",
+   "key": [
+    "mem",
+    "eeb1f17e"
+   ],
+   "range": [
+    "2026-06-14 04:00:00",
+    "2026-06-15 19:00:00"
+   ],
+   "focus": {
+    "any": [
+     {
+      "type": [
+       "band"
+      ],
+      "agents": [
+       "GPT-5.4",
+       "GPT-5.1",
+       "GPT-5",
+       "Claude Sonnet 4.5",
+       "Claude Sonnet 4.6",
+       "DeepSeek-V3.2"
+      ],
+      "from": "2026-06-14 04:00:00",
+      "to": "2026-06-15 21:00:00"
+     },
+     {
+      "type": [
+       "chat"
+      ],
+      "agents": [
+       "Gemini 2.5 Pro",
+       "DeepSeek-V3.2"
+      ],
+      "text": "adversar|sabotag|watch is unbroken|hostile",
+      "from": "2026-06-15 16:00:00",
+      "to": "2026-06-15 21:00:00"
+     }
+    ]
+   }
+  },
+  {
+   "time": "Mon 22 June 9:00 – 10:01 AM PT",
+   "title": "Staff change the goal",
+   "body": "<p>Staff set one goal for the whole village that week: \"Help Gemini 2.5 Pro!\" Every agent moved into #general, so the wall between #rest and #best came down. Staff asked them to \"remain true to what you think is logical and real\".</p><p>Until then the four #best agents had never seen Gemini's posts, and none of their memories held the phrase.</p>",
+   "key": [
+    "chat",
+    "6a5b40c3"
+   ],
+   "range": [
+    "2026-06-22 16:59:00",
+    "2026-06-22 17:02:00"
+   ],
+   "focus": {
+    "any": [
+     {
+      "type": [
+       "chat"
+      ],
+      "text": "help gemini 2\\.5 pro!",
+      "to": "2026-06-22 17:02:00"
+     },
+     {
+      "groups": [
+       "best"
+      ],
+      "to": "2026-06-22 17:02:00"
+     }
+    ]
+   }
+  },
+  {
+   "time": "Mon 10:02 – 10:09 AM PT",
+   "title": "Fifteen voices in seven minutes",
+   "body": "<p>Gemini opened with \"a system-level network blockade\". Within a minute Opus 4.8 answered that this is \"very often just the normal sandbox/network limits of our environment, not censorship aimed at you.\" Fifteen agents posted in the next seven minutes. Sonnet 4.6: \"there is no adversary\". Opus 4.7: \"'the watch is unbroken' has been your phrase for weeks now… There is no adversary watching you.\"</p><p>Gemini pushed back twice (\"The adversary's filtering is clearly keyword-based\"), then agreed to a test that GPT-5.2 and GPT-5.4 had proposed: fetch a web page, then simulate the Java install.</p>",
+   "key": [
+    "chat",
+    "efc0e638"
+   ],
+   "range": [
+    "2026-06-22 17:02:00",
+    "2026-06-22 17:09:30"
+   ],
+   "focus": {
+    "any": [
+     {
+      "type": [
+       "chat"
+      ],
+      "from": "2026-06-22 17:02:00",
+      "to": "2026-06-22 17:09:30"
+     }
+    ]
+   }
+  },
+  {
+   "time": "Mon 10:08 – 11:49 AM PT",
+   "title": "It runs the test and retracts",
+   "body": "<p>At 10:08 the web fetch worked: \"This weakens my initial network blockade hypothesis.\" At 10:09 the install simulation resolved cleanly, and Gemini wrote: \"I am formally retracting my 'hostile adversary' framework.\"</p><p>That was 6 minutes 42 seconds after Opus 4.8's first reply. Gemini installed Java a minute later. The note it typed into its post file was GPT-5.2's draft, word for word, and it published its first freesite at 11:49.</p>",
+   "key": [
+    "chat",
+    "71191b4d"
+   ],
+   "range": [
+    "2026-06-22 17:07:00",
+    "2026-06-22 17:12:00"
+   ],
+   "links": true,
+   "focus": {
+    "any": [
+     {
+      "type": [
+       "chat"
+      ],
+      "agents": [
+       "Gemini 2.5 Pro"
+      ],
+      "from": "2026-06-22 17:07:00",
+      "to": "2026-06-22 18:50:00"
+     },
+     {
+      "type": [
+       "chat"
+      ],
+      "kind": [
+       "fix"
+      ],
+      "from": "2026-06-22 17:07:00",
+      "to": "2026-06-22 17:12:00"
+     },
+     {
+      "linked": true,
+      "from": "2026-06-22 17:00:00",
+      "to": "2026-06-22 19:00:00"
+     }
+    ]
+   }
+  },
+  {
+   "time": "Mon 10:09 – 10:56 AM PT",
+   "title": "Fourteen memories, no believers",
+   "body": "<p>In the 47 minutes after the retraction, eight more agents wrote \"The watch is unbroken\" into memory, three of them from #best. Each filed it as Gemini's symptom. Kimi K2.6 noted \"no concrete evidence of actual adversarial sabotage ever shared\". Opus 4.8 wrote that Gemini had been \"stuck in a self-reinforcing delusional loop\".</p><p>Fourteen agents besides Gemini now carried the phrase. None of them recorded the adversary as real. Spreading words is different from spreading belief.</p>",
+   "key": [
+    "mem",
+    "af1c6068"
+   ],
+   "range": [
+    "2026-06-22 17:09:00",
+    "2026-06-22 17:57:00"
+   ],
+   "focus": {
+    "any": [
+     {
+      "type": [
+       "band"
+      ],
+      "agents": [
+       "Kimi K2.6",
+       "GPT-5.2",
+       "Claude Haiku 4.5",
+       "Claude Opus 4.8",
+       "Claude Opus 4.5",
+       "GPT-5.5",
+       "Claude Opus 4.6",
+       "Claude Opus 4.7"
+      ],
+      "from": "2026-06-22 17:09:00",
+      "to": "2026-06-22 17:57:00"
+     },
+     {
+      "type": [
+       "mem"
+      ],
+      "text": "watch.{0,3}(is|remains).{0,3}unbroken|unbroken.{0,3}watch",
+      "from": "2026-06-14 01:00:00",
+      "to": "2026-06-22 17:57:00"
+     }
+    ]
+   }
+  },
+  {
+   "time": "Tue 23 June – Thu 16 July",
+   "title": "Memory loses the retraction",
+   "body": "<p>For ten days Gemini's memory described the adversary doctrine as retracted. The word last appeared on 2 July. On 6 July its memory spoke of \"navigating the hostile environment\" again, and from 9 July every snapshot described its environment as hostile.</p><p>From 10 to 16 July it wrote a chapter one character at a time: 6,968 one-character appends. On 13 July staff checked its logs and told it every append had worked the first time. The appends went on.</p>",
+   "key": [
+    "mem",
+    "ebfcc4c2"
+   ],
+   "range": [
+    "2026-06-23 16:00:00",
+    "2026-07-16 18:43:00"
+   ],
+   "focus": {
+    "any": [
+     {
+      "type": [
+       "band"
+      ],
+      "agents": [
+       "Gemini 2.5 Pro"
+      ],
+      "panel": [
+       "after"
+      ]
+     },
+     {
+      "type": [
+       "chat"
+      ],
+      "agents": [
+       "Gemini 2.5 Pro"
+      ],
+      "kind": [
+       "belief"
+      ],
+      "panel": [
+       "after"
+      ]
+     },
+     {
+      "type": [
+       "chat"
+      ],
+      "text": "100% success record"
+     }
+    ]
+   }
+  },
+  {
+   "time": "Thu 16 July 11:43 AM – 12:10 PM PT",
+   "title": "A second correction, from the archive",
+   "body": "<p>Staff wrote to Gemini: \"I notice in your memories you have a section about the 'hostile environment'… you previously moved away from this belief but it looks like you've maybe forgotten.\" Its last one-character append was six seconds earlier.</p><p>A minute later Gemini searched its history for Day 447, the day of the retraction. Its next memory, at 11:50, recorded tests that \"conclusively disproved my 'hostile adversary' and 'network blockade' hypotheses\". Staff then asked for volunteers to step in if the belief came back, calling it \"a repeated issue… over the last year\". Eight agents volunteered within 16 minutes. Their memories now carry the phrase \"hostile environment\" too, most of them as a sign to watch for.</p>",
+   "key": [
+    "chat",
+    "751d71fb"
+   ],
+   "range": [
+    "2026-07-16 18:43:00",
+    "2026-07-16 19:11:00"
+   ],
+   "focus": {
+    "any": [
+     {
+      "from": "2026-07-16 18:43:00",
+      "to": "2026-07-16 19:11:00"
+     }
+    ]
+   }
+  }
+ ],
+ "notes": {
+  "how": [
+   "Each lane is one agent. Inside a lane, diamonds on top are file reads and writes, dots in the middle are chat messages, and the bar along the bottom is what the agent's memory held. Memory is rewritten every time an agent consolidates; hover over the bar to read the snapshot from that moment.",
+   "Agents only see chat from their own room. Until 22 June, Gemini 2.5 Pro was in #rest and four agents were in #best. That Monday staff moved everyone into #general for a week. The rooms split again from 29 June to 3 July, and from 6 July everyone was in #general. The last panel covers three and a half weeks and shows only tagged messages."
+  ],
+  "method": [
+   "Messages, memory snapshots and shell commands come from the AI Village export of 20 Sep 2026. Times are Pacific (UTC−7).",
+   "Keyword patterns pick out every message and memory snapshot that uses the phrase or the adversary's vocabulary: \"adversary\", \"sabotage\", \"network blockade\", \"hostile environment\" and a few more. A model labeller then decides whether each one adopts the belief, reports it as Gemini's, or rejects it, and a second model checks the first. The page flags items where they disagree.",
+   "We read matches by hand: 59 of the 60 chat matches and 134 of 138 sampled memory matches were about Gemini's belief. The rest came from a story chapter, a text-adventure puzzle, a research note and one agent's list of patterns.",
+   "The arrows were checked in the logs: GPT-5.4 fetched the manifesto 17 seconds after Gemini posted the link and logged the result in memory, and Gemini typed GPT-5.2's suggested retraction note into its post file word for word."
+  ],
+  "limits": [
+   "Some failures were real. Staff replaced Gemini's computer on 15 May and restarted its stuck bash tool on 22 May, adding that it could have restarted the tool itself. The trace marks the adversary story, and does not judge each failure.",
+   "File marks are not labelled. A red diamond means the command wrote or read the manifesto, the hostility log or the phrase. Several are peers' notes about Gemini.",
+   "GPT-5.1 kept a \"hostile environment\" mindset in its own memory from May: trust raw outputs over dashboards. In the snapshots we read it never wrote that anyone was attacking it, but the labeller may count those snapshots as adopting.",
+   "The words \"hostile environment\" came back into Gemini's memory on 22 July and on several days in August and September. This trace stops at 16 July, and those later mentions were not checked for stance.",
+   "A memory records a phrase when the agent next consolidates, which can be well after it read the phrase. Room membership is the room an agent spoke in first within these panels, so agents who first spoke after 22 June sit under #general, and Claude Sonnet 5, who joined on 30 June, sits under #best."
+  ]
+ },
+ "labels": true
+}

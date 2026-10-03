@@ -220,6 +220,34 @@ stdin; the JSON response's `result` field holds the model's text), asks for a JS
 and caches results by id so reruns only label new items. `--check` runs a second model over all items
 and records agreement. The viewer shows disagreements.
 
+> **Note (label.py, added while building it): extensions to the above.** Readers that only use the
+> fields above are unaffected.
+> - Extra top-level fields: `"correction"` (correction label used in the prompt, or null),
+>   `"checked"` (items with both labels; `agreement` is over these), `"confusion"`
+>   (`{stance: {check: count}}`, rows are `model`, columns `checkModel`; null without a check),
+>   `"costUsd"` (CLI cost of the labels in the file), `"updated"` (UTC). `n` = items with a stance.
+> - Extra item fields: `"a"` (agent name after aliases), `"t"` (UTC string), `"checkReason"`
+>   (the check model's reason). Unlabelled fields are null.
+> - The cache is per model: a different `--model` (or `--check` model) relabels that pass; a changed
+>   claim or correction label relabels everything; items the regexes no longer match are dropped.
+>   Asking for the old check model as `--model` (and the old model as `--check`) swaps the two
+>   passes for free.
+> - Redaction: `SECRET` in label.py extends the `redact()` pattern with three token shapes that
+>   `build_temporal_bleed.py` misses (`<prefix>_<mixed-case body>`, `<prefix>_<32+ hex>`,
+>   `Auth Token: …`); a memory credentials list in the dataset holds all three. The engine
+>   should use the same pattern, since memory excerpts can land on that list. The mixed-case rule
+>   uses lookaheads, which DuckDB's RE2 rejects, so SQL-side use needs the Python fallback.
+> - Memory text sent to the model: about ±400 chars around each claim match, merged, skipping
+>   windows that only repeat earlier matches; over 1,200 chars the windows shrink (more text kept
+>   after a match than before) and passages are joined with " … ".
+> - Items with the same type, author, text and side of the correction share one prompt entry.
+> - The CLI runs with `--tools "" --strict-mcp-config --no-session-persistence --system-prompt
+>   <short>` so the model cannot use tools and the prompt stays small.
+> - For `serve.py`: `label_items(items, claim_label, correction_label=None, model="haiku",
+>   correction_at=None, workers=4, on_batch=None, stats=None) -> {id: {"stance", "reason"}}`.
+>   Items are engine `chat` / `mem` records (`id`, `a`, `t`, `text`, optional `room`, optional
+>   `type`). `stats` (a dict) is filled with `cost_usd`, `calls`, `errors`, `failed`.
+
 ## Local app (`serve.py`)
 
 `uv run python -m tracer.serve [--port 8765]` serves the viewer in live mode.
@@ -251,3 +279,27 @@ the walkthrough with declarative focus, an inspector showing the source of any m
 channel toggles, an evidence log (the table view), and notes. Live mode adds a "Trace a claim" panel:
 type a phrase, see its timeline from `/api/scan`, pick days, optionally add a correction phrase, build.
 Episode tabs switch between curated episodes; `#<slug>` selects one.
+
+> **Note (template.html, added while building it): what the viewer assumes beyond the above.**
+> Producers that follow the sections above need no changes unless a bullet says so.
+> - Focus: a band also lights when the memory snapshot that starts it matches a non-band clause, and
+>   a band that matches lights its source snapshot in the evidence log. A band overlaps `[from, to]`
+>   when `t <= to` and `t1 > from`. A `text` regex that JS cannot compile matches nothing (a leading
+>   `(?i)` and `(?P<name>` are translated). A link lights when the step has `links: true` or both of
+>   its ends are lit. Steps without `focus` dim nothing.
+> - Steps: when the first step has no `focus` its button reads "All" and the rest count from 1. Episode data with no steps gets one built-in overview step.
+> - When no annotation sits within 2 minutes of `correctionMs`, the viewer draws a "correction" line.
+> - Groups whose `key` starts with `_` (for example `_all` for human_rows that span rooms) are not
+>   rooms: the viewer separates them with a plain rule, not a hatched room wall.
+> - Optional item field `reason` (chat and mem): shown in the inspector when present.
+> - `/api/scan` `first.chat`, `first.mem`, `first.file`: the viewer reads `{"t": epoch ms (or a UTC
+>   string), "a": agent name, "id", "text": redacted excerpt, "room": chat only}`, the same keys as
+>   episode marks. `days[].date` is the Pacific (display) date `"YYYY-MM-DD"`; the viewer fills the
+>   empty days between the first and last date itself.
+> - `POST /api/trace`: `pattern` is always a Python regex. When the user leaves "regular expression"
+>   unchecked, the viewer lowercases the phrase and escapes it. `label` is the phrase as typed.
+>   The viewer sends `correction` only with both a phrase and a time (`live_spec` drops a correction
+>   without `at`), converting the Pacific time the user enters to a UTC `"YYYY-MM-DD HH:MM:SS"`.
+>   Error bodies `{"error": "..."}` (any status) are shown to the user as written.
+> - The current step is remembered per episode in `localStorage` key `bt-step:<slug>` (not for ad-hoc
+>   traces). Ad-hoc traces get tabs `#trace-<n>`; `#trace` opens the "Trace a claim" panel.
