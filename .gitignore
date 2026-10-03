@@ -27,3 +27,6 @@ analysis/**/*.out.txt
 analysis/**/out/
 # Restrictions analysis was dropped; never commit it
 analysis/boundaries/
+
+# Tracer build output inlines agent text from the gated dataset
+tracer/out/
