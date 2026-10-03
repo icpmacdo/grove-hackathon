@@ -169,7 +169,8 @@ Kinds and states:
 labeller's stance (same values, or null); the viewer flags items where `stance` and `check` differ. Without labels the
 engine uses regexes alone: matches become `belief` / `claim`. With labels, a claim match maps by stance:
 adopts → belief / claim, attributes → attributed, refutes → hint (chat) or fix (memory), unclear →
-keep the regex result.
+other (chat) or none (memory). Red needs a labeller's adopts: an unclear keyword match draws neutral, and
+the inspector still shows its stance. (Changed 2026-10-03; it used to keep the regex result.)
 
 > **Note (trace.py): rows, kinds and excerpts as the engine builds them.**
 > - Rows: an agent gets a row when it posts in a shown room inside a panel with `show_other: true`.

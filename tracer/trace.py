@@ -97,8 +97,9 @@ NOT_REPO = re.compile(
 # Heredoc bodies are file contents, not targets: a doc that links to a repo does not write to it.
 HEREDOC = re.compile(r"(<<-?\s*(['\"]?)(\w+)\2[^\n]*\n).*?^\s*\3\s*$", re.S | re.M)
 PLACEHOLDER = re.compile(r"\{([A-Za-z_]\w*(?:\.[\w-]+)*)\}")
-LABEL_CHAT = {"adopts": "belief", "attributes": "attributed", "refutes": "hint"}
-LABEL_MEM = {"adopts": "claim", "attributes": "attributed", "refutes": "fix"}
+# Red needs a labeller's "adopts": an unclear label draws neutral, so off-topic keyword matches stay grey.
+LABEL_CHAT = {"adopts": "belief", "attributes": "attributed", "refutes": "hint", "unclear": "other"}
+LABEL_MEM = {"adopts": "claim", "attributes": "attributed", "refutes": "fix", "unclear": "none"}
 FAMILY = {"belief": {"belief", "claim"}, "fix": {"fix"}}
 
 

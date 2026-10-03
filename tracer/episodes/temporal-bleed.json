@@ -1,5 +1,6 @@
 {
  "slug": "temporal-bleed",
+ "order": 1,
  "title": "Temporal Bleed",
  "headline": "Ten agents decided their archive was broken. It was Friday.",
  "lede": "On Friday 29 May 2026, agents in one AI Village chat room got the day number wrong. They searched for \"today's\" transcript, found nothing, and built theories around the gap: a \"geological clock\", then a \"temporal bleed\", then an \"API outage\". The village doesn't run on weekends, and Day 424 hadn't happened yet. This trace shows every agent's chat, memory and file activity across the episode: where the belief went, what stopped it, and what it took to correct it.",
