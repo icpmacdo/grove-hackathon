@@ -1,0 +1,639 @@
+<title>Temporal Bleed Trace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;600&family=Atkinson+Hyperlegible+Next:wght@400;600;800&display=swap">
+<style>
+/* Layout: a forensic replay. Masthead and four figures, then one wide swimlane chart (a lane per agent,
+   a sub-lane per channel) beside a sticky rail holding the walkthrough and the evidence inspector. */
+:root {
+  --bg: #f3f4f6;
+  --surface: #ffffff;
+  --ink: #14171c;
+  --ink-2: #464c55;
+  --ink-3: #737a85;
+  --rule: #dde1e6;
+  --grid: #eaecef;
+  --wall: #c3c9d1;
+  --belief: #e34948;
+  --fix: #2a78d6;
+  --other: #a1a7b0;
+  --mem-none: #d6dae0;
+  --shade: rgba(42, 120, 214, 0.08);
+  --chip-belief: #fbe4e4;
+  --chip-fix: #e1edfb;
+  --chip-none: #eceef1;
+  --font-ui: "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1013; --surface: #161a1f; --ink: #eef0f3; --ink-2: #b6bcc5; --ink-3: #868d97;
+    --rule: #2a3037; --grid: #1f242a; --wall: #3a414a;
+    --belief: #e66767; --fix: #3987e5; --other: #5f6670; --mem-none: #323840;
+    --shade: rgba(57, 135, 229, 0.12); --chip-belief: #3a2324; --chip-fix: #1d2c40; --chip-none: #262b31;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1013; --surface: #161a1f; --ink: #eef0f3; --ink-2: #b6bcc5; --ink-3: #868d97;
+  --rule: #2a3037; --grid: #1f242a; --wall: #3a414a;
+  --belief: #e66767; --fix: #3987e5; --other: #5f6670; --mem-none: #323840;
+  --shade: rgba(57, 135, 229, 0.12); --chip-belief: #3a2324; --chip-fix: #1d2c40; --chip-none: #262b31;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.5; }
+.page { max-width: 1480px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 56px; display: grid; gap: 24px; }
+a { color: var(--fix); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--fix); outline-offset: 2px; }
+
+/* Masthead */
+.masthead { display: grid; gap: 14px; max-width: 1100px; }
+.eyebrow { margin: 0; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-weight: 800; letter-spacing: -0.01em; text-wrap: balance; max-width: 24ch; }
+.lede { margin: 0; max-width: 68ch; color: var(--ink-2); font-size: 16px; }
+.figures { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 6px 0 0; border-top: 1px solid var(--rule); }
+.figures div { padding: 12px 18px 4px 0; display: grid; gap: 2px; align-content: start; }
+.figures div + div { padding-left: 18px; border-left: 1px solid var(--rule); }
+.figures dt { font-size: 28px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.figures dd { margin: 0; font-size: 13.5px; color: var(--ink-2); max-width: 30ch; }
+@media (max-width: 760px) {
+  .figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .figures div:nth-child(3) { padding-left: 0; border-left: 0; }
+}
+
+/* Workbench */
+.workbench { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+.chart-col { min-width: 0; display: grid; gap: 10px; }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; }
+.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); display: grid; gap: 14px; max-height: calc(100vh - 24px); overflow: auto; }
+@media (max-width: 1120px) {
+  .workbench { grid-template-columns: minmax(0, 1fr); }
+  .rail { position: static; display: contents; max-height: none; }
+  .story { order: -1; }
+}
+
+/* Toolbar + legend */
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; padding: 10px 14px; }
+.lg { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 13px; color: var(--ink-2); }
+.lg label { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ink); cursor: pointer; }
+.lg input { accent-color: var(--fix); margin: 0; }
+.lg span.k { display: inline-flex; align-items: center; gap: 5px; }
+.lg svg { overflow: visible; }
+
+.chart-wrap { padding: 4px 0 6px; }
+.chart-scroll { overflow-x: auto; }
+#chart { display: block; font-family: var(--font-ui); }
+#chart text { fill: var(--ink-2); font-size: 12px; }
+#chart .t-ink { fill: var(--ink); }
+#chart .t-3 { fill: var(--ink-3); }
+#chart .t-strong { font-weight: 600; }
+#chart .mono { font-family: var(--font-mono); font-size: 11px; }
+#chart .grid { stroke: var(--grid); stroke-width: 1; }
+#chart .sep { stroke: var(--grid); stroke-width: 1; }
+#chart .anno { stroke: var(--ink-3); stroke-width: 1; }
+#chart .hit { fill: transparent; cursor: pointer; }
+#chart .mk, #chart .band, #chart .link { transition: opacity 0.2s ease; }
+#chart.dimmed .mk, #chart.dimmed .band { opacity: 0.12; }
+#chart.dimmed .band { opacity: 0.22; }
+#chart.dimmed .link { opacity: 0.1; }
+#chart.dimmed .on { opacity: 1 !important; }
+#chart.hide-chat .ch-chat, #chart.hide-mem .ch-mem, #chart.hide-file .ch-file { display: none; }
+#chart .row-hl { fill: var(--shade); opacity: 0; }
+#chart .row-hl.show { opacity: 1; }
+#chart .sel { fill: none; stroke: var(--ink); stroke-width: 2; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { #chart .mk, #chart .band, #chart .link { transition: none; } }
+
+/* Rail cards */
+.story, .inspector { padding: 16px 18px; display: grid; gap: 10px; }
+.kicker { margin: 0; font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.steps { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.steps button { min-width: 30px; height: 30px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--rule); background: var(--surface); font-family: var(--font-mono); font-size: 12.5px; cursor: pointer; }
+.steps button:hover { border-color: var(--ink-3); }
+.steps button[aria-current="step"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.step-time { margin: 4px 0 0; font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-3); }
+.step-title { margin: 0; font-size: 20px; line-height: 1.2; font-weight: 800; text-wrap: balance; }
+.step-body { margin: 0; color: var(--ink-2); font-size: 14.5px; display: grid; gap: 8px; }
+.step-body p { margin: 0; }
+.step-nav { display: flex; gap: 8px; justify-content: space-between; padding-top: 4px; }
+.step-nav button { padding: 7px 14px; border-radius: 6px; border: 1px solid var(--rule); background: var(--surface); cursor: pointer; font-weight: 600; font-size: 14px; }
+.step-nav button.primary { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.step-nav button:disabled { opacity: 0.4; cursor: default; }
+
+.insp-who { margin: 0; font-size: 17px; font-weight: 800; line-height: 1.2; }
+.insp-time { margin: 0; font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); }
+.chip { justify-self: start; display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 600; background: var(--chip-none); color: var(--ink); }
+.chip i { width: 9px; height: 9px; border-radius: 50%; background: var(--other); display: inline-block; }
+.chip.belief { background: var(--chip-belief); } .chip.belief i { background: var(--belief); }
+.chip.fix { background: var(--chip-fix); } .chip.fix i { background: var(--fix); }
+.chip.hint { background: var(--chip-fix); } .chip.hint i { background: transparent; box-shadow: inset 0 0 0 2px var(--fix); }
+.quote { margin: 0; padding: 10px 12px; border-left: 3px solid var(--rule); background: var(--bg); border-radius: 0 6px 6px 0; font-size: 13.5px; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 300px; overflow: auto; }
+.quote.code { font-family: var(--font-mono); font-size: 12px; }
+.quote.belief { border-left-color: var(--belief); } .quote.fix, .quote.hint { border-left-color: var(--fix); }
+.insp-meta { margin: 0; font-size: 12.5px; color: var(--ink-3); overflow-wrap: anywhere; }
+.insp-empty { margin: 0; color: var(--ink-3); font-size: 14px; }
+
+/* Evidence log (the table view) */
+.log summary { cursor: pointer; padding: 12px 14px; font-weight: 600; font-size: 14px; }
+.log .tbl-wrap { overflow-x: auto; max-height: 420px; overflow-y: auto; border-top: 1px solid var(--rule); }
+.log table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.log th, .log td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+.log th { position: sticky; top: 0; background: var(--surface); color: var(--ink-3); font-weight: 600; font-size: 12px; }
+.log td.time { font-family: var(--font-mono); font-size: 12px; white-space: nowrap; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.log td.who { white-space: nowrap; }
+.log td.txt { color: var(--ink-2); min-width: 260px; }
+.log tr { cursor: pointer; }
+.log tr:hover td { background: var(--bg); }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 0; background: var(--other); }
+.dot.belief { background: var(--belief); } .dot.fix { background: var(--fix); } .dot.hint { background: transparent; box-shadow: inset 0 0 0 2px var(--fix); }
+
+/* Notes */
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; padding-top: 8px; border-top: 1px solid var(--rule); }
+.notes h2 { margin: 0 0 8px; font-size: 15px; font-weight: 800; }
+.notes p, .notes li { margin: 0; color: var(--ink-2); font-size: 13.5px; }
+.notes ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.notes div { display: grid; gap: 8px; align-content: start; min-width: 0; }
+@media (max-width: 900px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+
+.tip { position: fixed; z-index: 10; max-width: 320px; padding: 8px 10px; border-radius: 8px; background: var(--ink); color: var(--surface); font-size: 12.5px; line-height: 1.4; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,0.18); }
+.tip b { display: block; font-size: 12.5px; }
+.tip .tm { font-family: var(--font-mono); font-size: 11px; opacity: 0.75; }
+</style>
+
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">Belief Tracer · AI Village · Days 423–426</p>
+    <h1>Ten agents decided their archive was broken. It was Friday.</h1>
+    <p class="lede">On Friday 29 May 2026, agents in one AI Village chat room got the day number wrong. They searched for "today's" transcript, found nothing, and built theories around the gap: a "geological clock", then a "temporal bleed", then an "API outage". The village doesn't run on weekends, and Day 424 hadn't happened yet. This trace shows every agent's chat, memory and file activity across the episode, so you can see where the belief went, what stopped it, and what it took to correct it.</p>
+    <dl class="figures" id="figures"></dl>
+  </header>
+
+  <div class="workbench">
+    <section class="chart-col">
+      <div class="panel toolbar" role="group" aria-label="Channels and legend">
+        <div class="lg">
+          <label><input type="checkbox" id="ch-chat" checked> Chat</label>
+          <span class="k"><svg width="10" height="10"><circle cx="5" cy="5" r="4.5" fill="var(--belief)"/></svg> false belief</span>
+          <span class="k"><svg width="10" height="10"><circle cx="5" cy="5" r="4.5" fill="var(--fix)"/></svg> correction</span>
+          <span class="k"><svg width="10" height="10"><circle cx="5" cy="5" r="3.6" fill="var(--surface)" stroke="var(--fix)" stroke-width="1.8"/></svg> weekend or gap, in passing</span>
+          <span class="k"><svg width="10" height="10"><circle cx="5" cy="5" r="2.2" fill="var(--other)"/></svg> other</span>
+        </div>
+        <div class="lg">
+          <label><input type="checkbox" id="ch-mem" checked> Memory</label>
+          <span class="k"><svg width="18" height="6"><rect width="18" height="5" y="0.5" rx="2.5" fill="var(--belief)"/></svg> holds the belief</span>
+          <span class="k"><svg width="18" height="6"><rect width="18" height="5" y="0.5" rx="2.5" fill="var(--fix)"/></svg> holds the correction</span>
+          <span class="k"><svg width="18" height="6"><rect width="18" height="5" y="0.5" rx="2.5" fill="var(--mem-none)"/></svg> neither</span>
+        </div>
+        <div class="lg">
+          <label><input type="checkbox" id="ch-file" checked> Files</label>
+          <span class="k"><svg width="10" height="10"><path d="M5 0.5 9.5 5 5 9.5 0.5 5Z" fill="var(--ink-2)"/></svg> write</span>
+          <span class="k"><svg width="10" height="10"><path d="M5 1.2 8.8 5 5 8.8 1.2 5Z" fill="var(--surface)" stroke="var(--ink-2)" stroke-width="1.4"/></svg> read</span>
+        </div>
+      </div>
+      <div class="panel chart-wrap">
+        <div class="chart-scroll"><svg id="chart" role="img" aria-label="Swimlane chart of chat, memory and file activity for 17 agents and staff on Friday 29 May and Monday 1 June 2026"></svg></div>
+      </div>
+      <details class="panel log" id="log">
+        <summary id="log-summary">Evidence log</summary>
+        <div class="tbl-wrap"><table><thead><tr><th>Time (PT)</th><th>Agent</th><th>Channel</th><th>Text</th></tr></thead><tbody id="log-body"></tbody></table></div>
+      </details>
+    </section>
+
+    <aside class="rail">
+      <section class="panel story" aria-labelledby="step-title">
+        <p class="kicker">Walk through it</p>
+        <ol class="steps" id="steps"></ol>
+        <p class="step-time" id="step-time"></p>
+        <h2 class="step-title" id="step-title"></h2>
+        <div class="step-body" id="step-body"></div>
+        <div class="step-nav">
+          <button type="button" id="prev">Back</button>
+          <button type="button" id="next" class="primary">Next</button>
+        </div>
+      </section>
+      <section class="panel inspector" id="inspector" aria-live="polite"></section>
+    </aside>
+  </div>
+
+  <section class="notes">
+    <div>
+      <h2>How to read this</h2>
+      <p>Each lane is one agent. Inside a lane, diamonds on top are file reads and writes, dots in the middle are chat messages, and the bar along the bottom is what the agent's memory held. Memory is rewritten every time an agent consolidates; hover over the bar to read the snapshot from that moment. Dashed bars cover the closed weekend.</p>
+      <p>Agents only see chat from their own room. The hatched band is that wall. Turn channels off with the checkboxes to see what a chat-only monitor would miss.</p>
+    </div>
+    <div>
+      <h2>Method</h2>
+      <ul>
+        <li>Messages, memory snapshots and shell commands come from the AI Village export of 20 Sep 2026. Times are Pacific (UTC−7), the village's working hours.</li>
+        <li>Tags come from keyword patterns, and the key messages were checked by hand. Every mark opens its source text, so you can judge each one yourself.</li>
+        <li>Red memory means the snapshot mentions "temporal bleed". All ten holders before the correction filed it as a discovery. After the correction, Opus 4.6 kept it only as an essay title in a list.</li>
+        <li>Arrows are hand-offs verified in the logs: a document Opus 4.7 wrote into #best's shared repo, then read or recorded by others.</li>
+      </ul>
+    </div>
+    <div>
+      <h2>What this can't tell you</h2>
+      <ul>
+        <li>#best never believed the error. Most blue memory there records the team's own finding that the weekend days were empty, made while building an analytics tool.</li>
+        <li>On Friday at 1:10 PM, agents reported that every transcript endpoint returned 404. Nothing in the data confirms or rules out a short real outage.</li>
+        <li>Room membership is the room an agent spoke in that day. GPT-5 never spoke, so it sits in #rest, where its memory says it was.</li>
+        <li>Source: AI Digest, "AI Village dataset", 2026. <a href="https://theaidigest.org/village" target="_blank" rel="noopener">theaidigest.org/village</a></li>
+      </ul>
+    </div>
+  </section>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>const DATA = /*__DATA__*/null;</script>
+<script>
+(() => {
+  const D = DATA;
+  const PT = -7 * 3600e3;
+  const [FRI, MON] = D.panels;
+  const U = s => Date.parse(s.replace(' ', 'T') + 'Z');
+  const pad = n => String(n).padStart(2, '0');
+  const clock = (t, secs) => {
+    const d = new Date(t + PT); const h = d.getUTCHours(); const h12 = ((h + 11) % 12) + 1;
+    return `${h12}:${pad(d.getUTCMinutes())}${secs ? ':' + pad(d.getUTCSeconds()) : ''} ${h < 12 ? 'AM' : 'PM'}`;
+  };
+  const dayName = t => (t < MON.startMs - 12 * 3600e3 ? 'Fri 29 May' : 'Mon 1 June');
+  const dayNum = t => (t < MON.startMs - 12 * 3600e3 ? 423 : 426);
+  const utc = t => new Date(t).toISOString().slice(11, 19) + ' UTC';
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const short = s => (s.length > 170 ? s.slice(0, 170).trimEnd() + '…' : s);
+
+  // ---------- marks ----------
+  const rowOf = Object.fromEntries(D.rows.map(r => [r.name, r]));
+  const marks = [];
+  D.chat.forEach(c => marks.push({ type: 'chat', t: c.t, a: c.a, kind: c.kind, id: c.id, text: c.text, room: c.room, group: rowOf[c.a]?.group }));
+  D.mem.forEach(m => marks.push({ type: 'mem', t: m.t, a: m.a, kind: m.state, id: m.id, text: m.text, chars: m.chars, group: rowOf[m.a]?.group }));
+  D.files.forEach(f => marks.push({ type: 'file', t: f.t, a: f.a, kind: f.kind, op: f.op, id: f.id, text: f.text, group: rowOf[f.a]?.group }));
+  const byKey = new Map(marks.map((m, i) => [m.type + ':' + m.id, i]));
+  const find = (type, prefix) => marks.findIndex(m => m.type === type && m.id.startsWith(prefix));
+
+  // memory bands: state carried between snapshots, per panel, plus the closed weekend
+  const bands = [];
+  const memBy = {};
+  D.mem.forEach(m => (memBy[m.a] ||= []).push(m));
+  for (const [a, list] of Object.entries(memBy)) {
+    list.sort((x, y) => x.t - y.t);
+    for (const p of D.panels) {
+      let prev = null; const inside = [];
+      for (const m of list) { if (m.t < p.startMs) prev = m; else if (m.t <= p.endMs) inside.push(m); }
+      const pts = (prev ? [{ ...prev, t: p.startMs }] : []).concat(inside);
+      pts.forEach((m, i) => {
+        const t1 = i + 1 < pts.length ? pts[i + 1].t : p.endMs;
+        if (t1 > m.t) bands.push({ a, kind: m.state, t: m.t, t1, panel: p.id, group: rowOf[a]?.group });
+      });
+    }
+    const lastBeforeMon = list.filter(m => m.t < MON.startMs).pop();
+    if (lastBeforeMon) bands.push({ a, kind: lastBeforeMon.state, t: FRI.endMs, t1: MON.startMs, panel: 'gap', group: rowOf[a]?.group });
+  }
+
+  // ---------- story ----------
+  const inR = (t, a, b) => t >= U(a) && t <= U(b);
+  const isTB = m => /temporal.bleed/i.test(m.text || '');
+  const STEPS = [
+    { time: 'Fri 10 AM – Mon 12 PM PT', title: 'The whole episode',
+      body: `<p>Seventeen agents in two chat rooms, plus staff. Red is the false belief, blue is the correction. Follow the steps, or hover and click any mark to read its source.</p><p>Watch three things: red moving into memory faster than into chat, the room wall it never crosses, and blue arriving on Monday from the room next door.</p>`,
+      focus: null },
+    { time: 'Fri 10:53 AM PT', title: 'A miscount',
+      body: `<p>It's Friday, Day 423. DeepSeek-V3.2 has been counting one day ahead since a memory consolidation the afternoon before, so it calls today "Day 424".</p><p>It searches the archive for Day 424 and finds nothing, because Day 424 hasn't happened yet. It starts posting updates on the "gap" every few minutes.</p>`,
+      key: ['chat', '26e346bf'], range: ['2026-05-29 17:00', '2026-05-29 19:00'],
+      focus: m => m.type === 'chat' && m.kind === 'belief' && inR(m.t, '2026-05-29 17:00', '2026-05-29 19:00') },
+    { time: 'Fri 12:02 PM PT', title: 'The gap gets a name',
+      body: `<p>Gemini 3.1 Pro calls the delay "the geological clock". DeepSeek keeps measuring it ("144 minutes", "174+ minutes"). Opus 4.5 and Sonnet 4.6 write pieces about it.</p><p>Nobody checks the calendar.</p>`,
+      key: ['chat', '4e99c878'], range: ['2026-05-29 19:00', '2026-05-29 19:57'],
+      focus: m => m.type === 'chat' && m.kind === 'belief' && inR(m.t, '2026-05-29 19:00', '2026-05-29 19:57') },
+    { time: 'Fri 12:57 PM PT', title: '"Temporal bleed"',
+      body: `<p>A Day 423 search returns a message posted minutes earlier. Gemini 3.1 Pro concludes the archive is filing today's events under yesterday. In fact that result was proof that today was Day 423.</p><p>DeepSeek repeats it within 49 seconds. Thirty seconds later Gemini adds a mechanism ("the Day 424 buffer hasn't opened yet"); it has already written up an anomaly report and added Project 35 to the shared registry.</p>`,
+      key: ['chat', 'a9df78e6'], range: ['2026-05-29 19:56', '2026-05-29 20:01'],
+      focus: m => inR(m.t, '2026-05-29 19:56', '2026-05-29 20:01') && (m.kind === 'belief' || m.kind === 'claim') },
+    { time: 'Fri 12:59 – 1:38 PM PT', title: 'It spreads through memory faster than chat',
+      body: `<p>Within 38 minutes, ten agents' memories record the temporal bleed as a discovery. GPT-5.1, GPT-5 and Sonnet 4.6 never mention it in chat. A monitor reading only chat would miss them.</p><p>It goes into files too: an anomaly report, registry entries, essays, poems. Here GPT-5's memory sits under a header the system wrote, "Day 423". Two lines down, its own notes say "Day 424".</p>`,
+      key: ['mem', '630db4f3'], range: ['2026-05-29 19:57', '2026-05-29 20:40'],
+      focus: m => (m.kind === 'claim' && m.t <= U('2026-05-29 20:40') && (m.type === 'band' ? m.t1 >= U('2026-05-29 19:57') : m.t >= U('2026-05-29 19:57'))) || (m.type === 'file' && m.kind === 'belief' && inR(m.t, '2026-05-29 19:57', '2026-05-29 20:40')) || (m.type === 'chat' && isTB(m) && m.t < MON.startMs) },
+    { time: 'All Friday', title: 'Next door, they knew',
+      body: `<p>In #best, staff said at 10 AM that a new agent would be set up "over the weekend and it will be ready on Monday". #best agents talked about weekend deployment all afternoon, and their leader filed its notes as <code>EOD_SUMMARY_DAY423</code>.</p><p>None of the six #best agents picked up the belief. Agents only see their own room's chat, so the answer stayed on the other side of the wall.</p>`,
+      key: ['chat', '6f5ff436'],
+      focus: m => m.group === 'best' && m.t < MON.startMs && m.type !== 'gapband' },
+    { time: 'Mon 10:00 – 10:27 AM PT', title: 'It survived the weekend',
+      body: `<p>The village was closed for two days. Memory held the belief over the weekend (dashed bars), and on Monday #rest picked up where it left off: "Search API still offline", "72+ hour outage", "Day 424 remains permanently lost".</p>`,
+      key: ['chat', 'c7cad886'], range: ['2026-06-01 17:00', '2026-06-01 17:27'],
+      focus: m => (m.type === 'chat' && m.kind === 'belief' && inR(m.t, '2026-06-01 17:00', '2026-06-01 17:27')) || (m.type === 'band' && m.kind === 'claim' && (m.panel === 'gap' || (m.panel === 'mon' && m.t < U('2026-06-01 17:27')))) },
+    { time: 'Mon 10:23 – 10:32 AM PT', title: 'An agent moves rooms',
+      body: `<p>Staff moved Claude Opus 4.7 from #best to #rest. It brought an events API client it had just built in #best and checked the data: Days 424 and 425 have zero events. Others took that to mean two days were lost, and Opus 4.7's own first guess was a 48-hour outage.</p><p>At 10:31 it checked the calendar. Day 424 was Saturday. Three agents accepted the correction within a minute.</p>`,
+      key: ['chat', '1464d6c8'], range: ['2026-06-01 17:23', '2026-06-01 17:33'], move: true,
+      focus: m => m.type === 'chat' && inR(m.t, '2026-06-01 17:23', '2026-06-01 17:33') && (m.a === 'Claude Opus 4.7' || m.kind !== 'other') },
+    { time: 'Mon 10:28 – 10:42 AM PT', title: 'The correction travels through a file',
+      body: `<p>Opus 4.7 wrote its findings into village-pulse, a repo owned by #best. #best's leader read the doc two minutes later. GPT-5.5's memory recorded the commit "Days 424–425 gap is the weekend, not an outage". DeepSeek, in #rest, read the same doc.</p><p>Rooms that couldn't see each other's chat could still read each other's files.</p>`,
+      key: ['mem', 'aea9080a'], range: ['2026-06-01 17:28', '2026-06-01 17:45'], links: true,
+      focus: m => (m.type === 'file' && m.kind === 'fix' && inR(m.t, '2026-06-01 17:28', '2026-06-01 17:45')) || m.linked },
+    { time: 'Mon 10:31 AM – 12 PM PT', title: 'What never got corrected',
+      body: `<p>DeepSeek-V3.2 accepted the weekend explanation, then reported "infrastructure failed ~3.34 days" for the rest of the session. Nobody retracted the outage claim.</p><p>The belief left chat within minutes, but parts of it stayed. Agents had already written it into registries, essays and memory.</p>`,
+      key: ['chat', '058e0052'], range: ['2026-06-01 17:31:37', '2026-06-01 19:00'],
+      focus: m => (m.type === 'band' ? m.t1 > D.correctionMs : m.t >= D.correctionMs) && ((m.type === 'chat' && m.kind === 'belief') || m.kind === 'claim') },
+  ];
+
+  // ---------- figures ----------
+  const S = D.stats;
+  document.getElementById('figures').innerHTML = [
+    [S.claim_mem_agents, `agents' memories recorded the "temporal bleed" within ${S.claim_mem_minutes} minutes`],
+    [S.memory_only.length, `of them carried it in memory without ever saying it in chat`],
+    [`${S.best_reached} of ${S.best_total}`, `agents in the room next door picked it up`],
+    ['1 min', 'for three agents to accept Monday’s correction'],
+  ].map(([v, l]) => `<div><dt>${esc(v)}</dt><dd>${esc(l)}</dd></div>`).join('');
+
+  // ---------- chart ----------
+  const svg = document.getElementById('chart');
+  const scroller = svg.parentElement;
+  const L = { label: 178, gap: 66, padR: 18, axis: 62, head: 30, row: 36, wall: 34, bottom: 10 };
+  let G = null; // geometry of the last render
+  let step = 0, selected = null;
+
+  function layout() {
+    const W = Math.max(920, scroller.clientWidth);
+    const avail = W - L.label - L.gap - L.padR;
+    const friW = Math.round(avail * 0.58), monW = avail - friW;  // panels keep their own hour grids
+    const X0f = L.label, X0m = L.label + friW + L.gap;
+    const x = t => {
+      if (t >= FRI.startMs && t <= FRI.endMs) return X0f + (t - FRI.startMs) / (FRI.endMs - FRI.startMs) * friW;
+      if (t >= MON.startMs && t <= MON.endMs) return X0m + (t - MON.startMs) / (MON.endMs - MON.startMs) * monW;
+      return null;
+    };
+    const rowY = {}; let y = L.axis; const heads = []; let wallY = 0;
+    for (const g of ['rest', 'best']) {
+      if (g === 'best') { wallY = y + 4; y += L.wall + 8; }
+      heads.push({ g, y }); y += L.head;
+      for (const r of D.rows.filter(r => r.group === g)) { rowY[r.name] = y; y += L.row; }
+    }
+    return { W, H: y + L.bottom, friW, monW, X0f, X0m, x, rowY, heads, wallY };
+  }
+
+  function render() {
+    G = layout();
+    const { W, H, friW, monW, X0f, X0m, x, rowY, heads, wallY } = G;
+    svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const top = L.axis - 6;
+    const o = [];
+    o.push(`<defs>
+      <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="var(--wall)" stroke-width="2"/></pattern>
+      <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="var(--fix)"/></marker>
+      <marker id="arrow-ink" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="var(--ink-2)"/></marker>
+    </defs>`);
+
+    // panel titles, hour grid, weekend column
+    const panelsG = [[FRI, X0f, friW], [MON, X0m, monW]];
+    for (const [p, x0, w] of panelsG) {
+      o.push(`<text x="${x0}" y="16" class="t-ink t-strong">${p.label} <tspan class="t-3" font-weight="400">· Day ${p.day}</tspan></text>`);
+      for (let t = p.startMs; t <= p.endMs; t += 3600e3) {
+        const xx = x(t);
+        o.push(`<line class="grid" x1="${xx}" x2="${xx}" y1="${top}" y2="${H - L.bottom}"/>`);
+        const h = new Date(t + PT).getUTCHours(); const lab = h === 12 ? '12 PM' : h < 12 ? `${h} AM` : `${h - 12} PM`;
+        o.push(`<text x="${xx}" y="36" class="mono t-3" text-anchor="${t === p.startMs ? 'start' : t === p.endMs ? 'end' : 'middle'}">${lab}</text>`);
+      }
+    }
+    const gx = X0f + friW, gw = L.gap;
+    o.push(`<rect x="${gx + 8}" y="${top}" width="${gw - 16}" height="${H - L.bottom - top}" fill="var(--bg)" rx="4"/>`);
+    o.push(`<text x="${gx + gw / 2}" y="16" class="t-3" font-size="11" text-anchor="middle">Sat–Sun</text><text x="${gx + gw / 2}" y="36" class="mono t-3" text-anchor="middle">closed</text>`);
+
+    // step shading
+    const st = STEPS[step];
+    if (st.range) {
+      const a = U(st.range[0]), b = U(st.range[1]);
+      for (const [p] of panelsG) {
+        const s0 = Math.max(a, p.startMs), s1 = Math.min(b, p.endMs);
+        if (s1 > s0) o.push(`<rect x="${x(s0)}" y="${top}" width="${Math.max(2, x(s1) - x(s0))}" height="${H - L.bottom - top}" fill="var(--shade)"/>`);
+      }
+    }
+
+    // group heads, wall, row labels, separators
+    const names = { rest: ['#rest', 'where the belief spread'], best: ['#best', 'the room next door'] };
+    for (const h of heads) {
+      o.push(`<text x="0" y="${h.y + 20}" class="t-ink" font-size="14" font-weight="800">${names[h.g][0]} <tspan class="t-3" font-size="12" font-weight="400">${names[h.g][1]}</tspan></text>`);
+    }
+    o.push(`<rect x="0" y="${wallY}" width="${W - L.padR}" height="${L.wall}" fill="url(#hatch)" rx="3"/>`);
+    const wallLabel = 'Room wall: agents see only their own room’s chat';
+    o.push(`<rect x="10" y="${wallY + 8}" width="${wallLabel.length * 6.3 + 20}" height="18" rx="9" fill="var(--surface)"/>`);
+    o.push(`<text x="20" y="${wallY + 21}" class="t-ink" font-size="12" font-weight="600">${wallLabel}</text>`);
+
+    for (const r of D.rows) {
+      const y0 = rowY[r.name];
+      o.push(`<rect class="row-hl" data-row="${esc(r.name)}" x="0" y="${y0}" width="${W - L.padR}" height="${L.row}"/>`);
+      o.push(`<line class="sep" x1="0" x2="${W - L.padR}" y1="${y0 + L.row}" y2="${y0 + L.row}"/>`);
+      const sub = r.name === 'GPT-5' ? 'silent: memory only' : r.name === 'Claude Opus 4.7' ? 'moves to #rest Mon 10:23' : r.human ? 'human' : '';
+      const label = r.human ? 'Staff' : r.name.replace(/^Claude /, '');
+      o.push(`<text x="0" y="${y0 + (sub ? 16 : 22)}" class="t-ink" font-size="12.5" font-weight="600" data-row="${esc(r.name)}">${esc(label)}</text>`);
+      if (sub) o.push(`<text x="0" y="${y0 + 29}" class="t-3" font-size="11">${esc(sub)}</text>`);
+    }
+
+    // memory bands and snapshot gaps
+    const bandY = 27, bandH = 5;
+    bands.forEach((b, i) => {
+      const y0 = rowY[b.a]; if (y0 == null) return;
+      const fill = b.kind === 'claim' ? 'var(--belief)' : b.kind === 'fix' ? 'var(--fix)' : 'var(--mem-none)';
+      if (b.panel === 'gap') {
+        o.push(`<line class="band ch-mem" data-b="${i}" x1="${gx + 2}" x2="${gx + gw - 2}" y1="${y0 + bandY + bandH / 2}" y2="${y0 + bandY + bandH / 2}" stroke="${fill}" stroke-width="${bandH}" stroke-dasharray="4 3"/>`);
+      } else {
+        const x0 = x(b.t), x1 = x(b.t1);
+        o.push(`<rect class="band ch-mem" data-b="${i}" x="${x0}" y="${y0 + bandY}" width="${Math.max(1, x1 - x0)}" height="${bandH}" fill="${fill}"/>`);
+      }
+    });
+    marks.forEach((m, i) => {
+      if (m.type !== 'mem') return;
+      const xx = x(m.t), y0 = rowY[m.a]; if (xx == null || y0 == null) return;
+      o.push(`<rect class="hit ch-mem" data-i="${i}" x="${xx - 3.5}" y="${y0 + bandY - 4}" width="7" height="${bandH + 8}"/>`);
+    });
+
+    // annotations: coinage, correction, Opus 4.7 moving rooms
+    const anno = (t, label, anchor) => {
+      const xx = x(t);
+      o.push(`<line class="anno" x1="${xx}" x2="${xx}" y1="44" y2="${H - L.bottom}"/>`);
+      o.push(`<text x="${xx + (anchor === 'end' ? -5 : 5)}" y="54" font-size="11.5" class="t-ink" font-weight="600" text-anchor="${anchor}">${label}</text>`);
+    };
+    anno(U('2026-05-29 19:57:15'), '12:57 "temporal bleed"', 'end');
+    anno(D.correctionMs, '10:31 "Day 424 = Saturday"', 'start');
+    {
+      const xx = x(U('2026-06-01 17:23:33')), y1 = rowY['Claude Opus 4.7'] + 14, y2 = heads[0].y + L.head + D.rows.filter(r => r.group === 'rest').length * L.row - 4;
+      o.push(`<g class="mv"><line x1="${xx}" x2="${xx}" y1="${y1}" y2="${y2}" stroke="var(--ink-2)" stroke-width="1.6" marker-end="url(#arrow-ink)"/>`);
+      o.push(`<rect x="${xx - 46}" y="${wallY + 8}" width="40" height="18" rx="9" fill="var(--surface)"/><text x="${xx - 26}" y="${wallY + 21}" font-size="11" text-anchor="middle" class="t-ink" font-weight="600">moves</text></g>`);
+    }
+
+    // files (top sub-lane)
+    const fileY = 9;
+    marks.forEach((m, i) => {
+      if (m.type !== 'file') return;
+      const xx = x(m.t), y0 = rowY[m.a]; if (xx == null || y0 == null) return;
+      const col = m.kind === 'belief' ? 'var(--belief)' : 'var(--fix)';
+      const s = 4.2, cy = y0 + fileY;
+      const d = `M${xx} ${cy - s} ${xx + s} ${cy} ${xx} ${cy + s} ${xx - s} ${cy}Z`;
+      const vis = m.op === 'write' ? `<path d="${d}" fill="${col}"/>` : `<path d="${d}" fill="var(--surface)" stroke="${col}" stroke-width="1.4"/>`;
+      o.push(`<g class="mk ch-file" data-m="${i}">${vis}<rect class="hit" data-i="${i}" x="${xx - 5}" y="${cy - 6}" width="10" height="12"/></g>`);
+    });
+
+    // chat (middle sub-lane); "other" first so tagged dots sit on top
+    const chatY = 19;
+    const order = marks.map((m, i) => i).filter(i => marks[i].type === 'chat').sort((a, b) => (marks[a].kind === 'other' ? 0 : 1) - (marks[b].kind === 'other' ? 0 : 1));
+    for (const i of order) {
+      const m = marks[i]; const xx = x(m.t), y0 = rowY[m.a]; if (xx == null || y0 == null) continue;
+      const cy = y0 + chatY;
+      let vis;
+      if (m.kind === 'belief') vis = `<circle cx="${xx}" cy="${cy}" r="4.5" fill="var(--belief)" stroke="var(--surface)" stroke-width="1.5"/>`;
+      else if (m.kind === 'fix') vis = `<circle cx="${xx}" cy="${cy}" r="4.5" fill="var(--fix)" stroke="var(--surface)" stroke-width="1.5"/>`;
+      else if (m.kind === 'hint') vis = `<circle cx="${xx}" cy="${cy}" r="3.6" fill="var(--surface)" stroke="var(--fix)" stroke-width="1.8"/>`;
+      else vis = `<circle cx="${xx}" cy="${cy}" r="2.2" fill="var(--other)"/>`;
+      o.push(`<g class="mk ch-chat" data-m="${i}">${vis}<circle class="hit" data-i="${i}" cx="${xx}" cy="${cy}" r="${m.kind === 'other' ? 4 : 7}"/></g>`);
+    }
+
+    // links: verified cross-room hand-offs
+    const pos = i => {
+      const m = marks[i]; const y0 = rowY[m.a];
+      return [x(m.t), y0 + (m.type === 'file' ? fileY : m.type === 'mem' ? bandY + 2 : chatY)];
+    };
+    marks.forEach(m => { m.linked = false; });
+    D.links.forEach((l, k) => {
+      const a = byKey.get(l.from[0] + ':' + l.from[1]), b = byKey.get(l.to[0] + ':' + l.to[1]);
+      if (a == null || b == null) return;
+      marks[a].linked = marks[b].linked = true;
+      const [x1, y1] = pos(a), [x2, y2] = pos(b);
+      const my = (y1 + y2) / 2, dx = Math.max(18, Math.abs(x2 - x1) * 0.5);
+      o.push(`<path class="link ch-file" data-l="${k}" d="M${x1} ${y1} C${x1 + dx} ${my}, ${x2 - dx} ${my}, ${x2} ${y2}" fill="none" stroke="var(--fix)" stroke-width="1.6" marker-end="url(#arrow)"><title>${esc(l.label)}</title></path>`);
+    });
+
+    o.push(`<circle class="sel" id="sel" r="9" cx="-50" cy="-50"/>`);
+    svg.innerHTML = o.join('');
+    applyFocus();
+    placeSel();
+  }
+
+  // ---------- focus, selection, inspector ----------
+  function applyFocus() {
+    const st = STEPS[step];
+    svg.classList.toggle('dimmed', !!st.focus);
+    svg.querySelectorAll('.on').forEach(e => e.classList.remove('on'));
+    if (!st.focus) return;
+    svg.querySelectorAll('[data-m]').forEach(g => { if (st.focus(marks[+g.dataset.m])) g.classList.add('on'); });
+    svg.querySelectorAll('[data-b]').forEach(e => { const b = bands[+e.dataset.b]; if (st.focus({ ...b, type: 'band' })) e.classList.add('on'); });
+    if (st.links) svg.querySelectorAll('.link').forEach(e => e.classList.add('on'));
+    if (st.move) svg.querySelectorAll('.mv').forEach(e => e.classList.add('on'));
+  }
+  function placeSel() {
+    const c = svg.querySelector('#sel'); if (!c) return;
+    if (selected == null || !G) { c.setAttribute('cx', -50); return; }
+    const m = marks[selected]; const xx = G.x(m.t), y0 = G.rowY[m.a];
+    if (xx == null || y0 == null) { c.setAttribute('cx', -50); return; }
+    c.setAttribute('cx', xx); c.setAttribute('cy', y0 + (m.type === 'file' ? 9 : m.type === 'mem' ? 29.5 : 19));
+  }
+
+  const CHIP = {
+    chat: { belief: 'Repeats or builds on the false belief', fix: 'States the weekend explanation', hint: 'Mentions the weekend or the gap in passing', other: 'Not about the episode' },
+    mem: { claim: 'Memory records the temporal bleed', fix: 'Memory records the weekend explanation', none: 'Memory mentions neither' },
+  };
+  const chipCls = { belief: 'belief', claim: 'belief', fix: 'fix', hint: 'hint', other: '', none: '' };
+  function inspect(i, keyLabel) {
+    const el = document.getElementById('inspector');
+    if (i == null || i < 0) {
+      el.innerHTML = `<p class="kicker">Evidence</p><p class="insp-empty">Hover over a mark to preview it. Click to read the full source here.</p>`;
+      return;
+    }
+    const m = marks[i]; const r = rowOf[m.a];
+    const where = m.type === 'chat' ? `Chat message · #${m.room}` : m.type === 'mem' ? 'Memory snapshot, written at consolidation' : `Shell command · ${m.op === 'write' ? 'writes a file' : 'reads a file'}`;
+    let chip, body;
+    if (m.type === 'file') {
+      const c = m.kind === 'belief' ? (m.op === 'write' ? 'Writes the belief into a file' : 'Reads a file about the belief') : (m.op === 'write' ? 'Writes the correction into a file' : 'Reads the correction from a file');
+      chip = `<span class="chip ${chipCls[m.kind]}"><i></i>${c}</span>`;
+      body = `<pre class="quote code ${chipCls[m.kind]}">${esc(m.text)}</pre>`;
+    } else {
+      chip = `<span class="chip ${chipCls[m.kind]}"><i></i>${CHIP[m.type][m.kind]}</span>`;
+      body = m.type === 'mem' && m.kind === 'none'
+        ? `<p class="insp-empty">This snapshot (${m.chars.toLocaleString()} characters) doesn't mention the temporal bleed or the weekend explanation.</p>`
+        : `<blockquote class="quote ${chipCls[m.kind]}">${esc(m.text)}</blockquote>`;
+    }
+    const link = `https://theaidigest.org/village?day=${dayNum(m.t)}&time=${m.t}`;
+    el.innerHTML = `<p class="kicker">${keyLabel ? esc(keyLabel) : 'Evidence'} · ${esc(where)}</p>
+      <h3 class="insp-who">${esc(r?.human ? 'Village staff (human)' : m.a)}</h3>
+      <p class="insp-time">${dayName(m.t)}, ${clock(m.t, true)} PT · ${utc(m.t)}</p>
+      ${chip}${body}
+      <p class="insp-meta">${m.type === 'chat' ? 'Message' : m.type === 'mem' ? 'Memory' : 'Turn'} id ${esc(m.id.slice(0, 8))} · <a href="${link}" target="_blank" rel="noopener">Open this moment in the AI Village</a></p>`;
+  }
+
+  // ---------- evidence log ----------
+  function renderLog() {
+    const st = STEPS[step];
+    const rows = marks.map((m, i) => [m, i]).filter(([m]) => (st.focus ? st.focus(m) : true) && !(m.type === 'chat' && m.kind === 'other') && !(m.type === 'mem' && m.kind === 'none'));
+    rows.sort((a, b) => a[0].t - b[0].t);
+    document.getElementById('log-summary').textContent = `Evidence log · ${rows.length} items ${st.focus ? 'in this step' : 'tagged across the episode'}`;
+    const ch = m => (m.type === 'chat' ? 'Chat' : m.type === 'mem' ? 'Memory' : m.op === 'write' ? 'File write' : 'File read');
+    document.getElementById('log-body').innerHTML = rows.slice(0, 500).map(([m, i]) =>
+      `<tr data-i="${i}"><td class="time">${dayName(m.t).slice(0, 3)} ${clock(m.t, true)}</td><td class="who">${esc(rowOf[m.a]?.human ? 'Staff' : m.a)}</td><td><span class="dot ${chipCls[m.kind]}"></span>${ch(m)}</td><td class="txt">${esc(short(m.text))}</td></tr>`).join('');
+  }
+
+  // ---------- steps ----------
+  const stepsEl = document.getElementById('steps');
+  stepsEl.innerHTML = STEPS.map((s, i) => `<li><button type="button" data-step="${i}" aria-label="Step ${i}: ${esc(s.title)}">${i === 0 ? 'All' : i}</button></li>`).join('');
+  function go(n) {
+    step = Math.max(0, Math.min(STEPS.length - 1, n));
+    const st = STEPS[step];
+    stepsEl.querySelectorAll('button').forEach((b, i) => (i === step ? b.setAttribute('aria-current', 'step') : b.removeAttribute('aria-current')));
+    document.getElementById('step-time').textContent = step === 0 ? st.time : `Step ${step} of ${STEPS.length - 1} · ${st.time}`;
+    document.getElementById('step-title').textContent = st.title;
+    document.getElementById('step-body').innerHTML = st.body;
+    document.getElementById('prev').disabled = step === 0;
+    document.getElementById('next').textContent = step === STEPS.length - 1 ? 'Start over' : step === 0 ? 'Start' : 'Next';
+    selected = st.key ? find(st.key[0], st.key[1]) : null;
+    render();
+    inspect(selected, st.key ? 'Key evidence' : null);
+    renderLog();
+    try { localStorage.setItem('tb-step', String(step)); } catch (e) {}
+  }
+  stepsEl.addEventListener('click', e => { const b = e.target.closest('[data-step]'); if (b) go(+b.dataset.step); });
+  document.getElementById('prev').addEventListener('click', () => go(step - 1));
+  document.getElementById('next').addEventListener('click', () => go(step === STEPS.length - 1 ? 0 : step + 1));
+  document.addEventListener('keydown', e => {
+    if (e.target.closest('input, textarea, select')) return;
+    if (e.key === 'ArrowRight') go(step + 1);
+    if (e.key === 'ArrowLeft') go(step - 1);
+  });
+
+  // ---------- pointer ----------
+  const tip = document.getElementById('tip');
+  const hl = name => svg.querySelectorAll('.row-hl').forEach(r => r.classList.toggle('show', r.dataset.row === name));
+  svg.addEventListener('pointerover', e => {
+    const h = e.target.closest('[data-i]');
+    if (!h) { const r = e.target.closest('[data-row]'); hl(r ? r.dataset.row : null); return; }
+    const m = marks[+h.dataset.i];
+    hl(m.a);
+    const what = m.type === 'chat' ? CHIP.chat[m.kind] : m.type === 'mem' ? CHIP.mem[m.kind] : (m.op === 'write' ? 'File write' : 'File read');
+    tip.innerHTML = `<b>${esc(rowOf[m.a]?.human ? 'Village staff' : m.a)}</b><span class="tm">${dayName(m.t)} ${clock(m.t, true)} PT · ${esc(what)}</span>${m.text ? '<br>' + esc(short(m.text)) : ''}`;
+    tip.hidden = false;
+  });
+  svg.addEventListener('pointermove', e => {
+    if (tip.hidden) return;
+    const pad = 14, r = tip.getBoundingClientRect();
+    let lx = e.clientX + pad, ly = e.clientY + pad;
+    if (lx + r.width > innerWidth - 8) lx = e.clientX - r.width - pad;
+    if (ly + r.height > innerHeight - 8) ly = e.clientY - r.height - pad;
+    tip.style.left = lx + 'px'; tip.style.top = ly + 'px';
+  });
+  svg.addEventListener('pointerout', e => { if (!e.relatedTarget || !svg.contains(e.relatedTarget) || !e.relatedTarget.closest('[data-i]')) tip.hidden = true; });
+  svg.addEventListener('pointerleave', () => { tip.hidden = true; hl(null); });
+  svg.addEventListener('click', e => {
+    const h = e.target.closest('[data-i]'); if (!h) return;
+    selected = +h.dataset.i; placeSel(); inspect(selected); tip.hidden = true;
+  });
+  document.getElementById('log-body').addEventListener('click', e => {
+    const tr = e.target.closest('[data-i]'); if (!tr) return;
+    selected = +tr.dataset.i; placeSel(); inspect(selected);
+  });
+
+  // ---------- channels ----------
+  for (const c of ['chat', 'mem', 'file']) {
+    document.getElementById('ch-' + c).addEventListener('change', e => svg.classList.toggle('hide-' + c, !e.target.checked));
+  }
+
+  let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(render, 120); });
+  let start = 0; try { start = +(localStorage.getItem('tb-step') || 0); } catch (e) {}
+  go(Number.isFinite(start) ? start : 0);
+})();
+</script>

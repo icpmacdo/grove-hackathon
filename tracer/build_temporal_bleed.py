@@ -59,6 +59,18 @@ FILE_WRITE = re.compile(
 )
 
 
+SECRET = re.compile(
+    r"\b(?:[a-z0-9]+_)?(?:sk|pk|ghp|gho|ghs|github_pat|glpat|xox[abpr])[-_][A-Za-z0-9_\-]{8,}|"
+    r"\bBearer\s+[A-Za-z0-9._\-]{12,}|\beyJ[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{10,}|"
+    r"[A-Za-z0-9+/]{20,}={1,2}|"
+    r"(?i:(?:api[ _-]?key|access[ _-]?token|password|secret|private[ _-]?key)\s*[:=]\s*`?)[^\s`]{6,}",
+)
+
+
+def redact(text):
+    return SECRET.sub("[REDACTED]", text)
+
+
 def ms(ts):
     return int(ts.replace(tzinfo=timezone.utc).timestamp() * 1000)
 
@@ -66,12 +78,12 @@ def ms(ts):
 def snippet(text, m, before=160, length=520):
     a = max(0, m.start() - before)
     s = text[a : a + length].strip()
-    return ("…" if a > 0 else "") + s + ("…" if a + length < len(text) else "")
+    return redact(("…" if a > 0 else "") + s + ("…" if a + length < len(text) else ""))
 
 
 def clip(text, n):
     text = text.strip()
-    return text if len(text) <= n else text[:n].rstrip() + "…"
+    return redact(text if len(text) <= n else text[:n].rstrip() + "…")
 
 
 def main():
@@ -90,11 +102,12 @@ def main():
         name = "Staff (human) · #" + room if stype == "user" else MERGE.get(speaker, speaker)
         a = agents.setdefault(name, {"name": name, "human": stype == "user", "rooms": {}})
         a["rooms"].setdefault(t.strftime("%m-%d"), room)
+        content = redact(content)
         lc = content.lower()
         ts = str(t)
         kind = "other"
         if ts < FIRST_PROBE:
-            if room == "rest" and BELIEF.search(lc):
+            if room == "rest" and BELIEF.search(lc) and name != "Claude Opus 4.7":  # offers to verify; never held it
                 kind = "belief"
             elif FIX.search(lc):
                 kind = "hint"  # the true fact, mentioned in passing
@@ -134,6 +147,7 @@ def main():
     ).fetchall()
     mem = []
     for t, aid, mid, content in mem_rows:
+        content = redact(content)
         lc = content.lower()
         claim, fix = MEM_CLAIM.search(lc), MEM_FIX.search(lc) if str(t) >= CORRECTION else None
         if fix:
@@ -154,6 +168,7 @@ def main():
     ).fetchall()
     files = []
     for t, agent, tid, cmd in turn_rows:
+        cmd = redact(cmd)
         lc = cmd.lower()
         if str(t) < FIRST_PROBE:
             if not FILE_BELIEF.search(lc):
