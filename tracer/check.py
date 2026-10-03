@@ -7,15 +7,17 @@ Usage:
 Checks: required fields and types; t values (epoch ms) inside the episode span; ids unique per
 channel; every mark's author has a row; link ends and step keys exist; every step focus clause
 lights at least one mark (SPEC Steps semantics plus the viewer note), with the count each step
-lights; no unfilled {placeholder} in figures; stats recomputed from the data where the data allows
-it; no credential-like string in any text field.
+lights; focus values that name nothing; a step key its own focus dims; no unfilled {placeholder} in
+figures, title, headline or lede; stats recomputed from the data where the data allows it; day
+numbers, panels and correction time against the spec; kinds against labels and the correction time;
+link rooms; no credential-like string in any text field.
 """
 
 import argparse
 import json
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 TRACER = Path(__file__).resolve().parent
@@ -32,9 +34,10 @@ STAT_KEYS = ["claim_chat_agents", "claim_mem_agents", "claim_mem_minutes", "memo
              "first_claim", "first_fix"]
 PLACEHOLDER = re.compile(r"\{[A-Za-z_][\w.-]*\}")
 LOW, HIGH = 1735689600000, 1830297600000  # 2025-01-01 .. 2028-01-01: anything else is not epoch ms
+DAY1 = date(2025, 4, 2)  # AI Village Day 1, on the display-time-zone date
 
-# The strongest redaction pattern (SECRET in trace.py and label.py, copied so this file needs neither),
-# plus generic shapes a missed credential could take.
+# The strongest redaction pattern (SECRET in trace.py, copied so this file needs no DuckDB; its first
+# eight parts are label.py's), plus generic shapes a missed credential could take.
 SECRET = re.compile(
     r"\b(?:[a-z0-9]+_)?(?:sk|pk|ghp|gho|ghs|github_pat|glpat|xox[abpr])[-_][A-Za-z0-9_\-]{8,}|"
     r"\bBearer\s+[A-Za-z0-9._\-]{12,}|\beyJ[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{10,}|"
@@ -42,13 +45,17 @@ SECRET = re.compile(
     r"(?i:(?:api[ _-]?key|access[ _-]?token|password|secret|private[ _-]?key)\s*[:=]\s*`?)[^\s`]{6,}|"
     r"\b[a-z]{2,12}_(?=(?:[A-Za-z0-9_\-]*?[A-Z]){3})(?=(?:[A-Za-z0-9_\-]*?\d){3})[A-Za-z0-9_\-]{20,}|"
     r"\b[a-z]{2,12}_[0-9a-f]{32,}\b|"
-    r"(?i:(?:auth|session|refresh)[ _-]?token|credentials?)\s*[:=]\s*`?[^\s`]{6,}"
+    r"(?i:(?:auth|session|refresh)[ _-]?token|credentials?)\s*[:=]\s*`?[^\s`]{6,}|"
+    r"\bGOCSPX-[A-Za-z0-9_\-]{10,}|\bAIza[0-9A-Za-z_\-]{30,}|\b(?:AKIA|ASIA)[0-9A-Z]{16}\b|"
+    r"\bya29\.[A-Za-z0-9_\-]{20,}|\b1//0[A-Za-z0-9_\-]{20,}|"
+    r"-----BEGIN [A-Z ]*PRIVATE KEY-----(?:[A-Za-z0-9+/=\s.]|\\[rn])*(?:-----END [A-Z ]*PRIVATE KEY-----)?"
 )
 GENERIC = re.compile(
     r"\bsk-(?:ant-|proj-)?[A-Za-z0-9_\-]{16,}|\b(?:ghp|gho|ghs|ghu|ghr)_[A-Za-z0-9]{20,}|\bgithub_pat_[A-Za-z0-9_]{20,}|"
     r"\bhf_[A-Za-z0-9]{20,}|\b(?:AKIA|ASIA)[0-9A-Z]{16}\b|\bxox[abprs]-[A-Za-z0-9-]{10,}|"
     r"\beyJ[A-Za-z0-9_\-]{8,}\.eyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}|"
-    r"(?i:\b(?:api[_ -]?key|key|token|secret|password|passwd|auth|bearer|credential)s?)[\"'`]?\s*[:=]?\s*[\"'`]?[0-9a-fA-F]{32,}\b"
+    r"(?i:\b(?:api[_ -]?key|key|token|secret|password|passwd|auth|bearer|credential)s?)[\"'`]?\s*[:=]?\s*[\"'`]?[0-9a-fA-F]{32,}\b|"
+    r"PRIVATE KEY-----(?:\s|\\[rn])*[A-Za-z0-9+/]{16,}"
 )
 
 
@@ -111,7 +118,8 @@ ITEM = {
             "check": lambda v: v in STANCES, "text": S, "chars": lambda v: is_int(v) and v >= 0},
     "files": {"t": is_int, "a": S, "id": S, "kind": lambda v: v in FILE_KINDS, "op": lambda v: v in ("write", "read"),
               "artifact": opt(S), "text": S},
-    "links": {"from": lambda v: L(v) and len(v) == 2, "to": lambda v: L(v) and len(v) == 2, "label": S, "auto": B},
+    "links": {"from": lambda v: L(v) and len(v) == 2, "to": lambda v: L(v) and len(v) == 2, "label": S, "auto": B,
+              "rooms": lambda v: L(v) and len(v) == 2 and all(x is None or S(x) for x in v)},
     "annotations": {"t": is_int, "label": S, "anchor": S},
     "moves": {"agent": S, "t": is_int, "toGroup": S, "label": S},
     "figures": {"value": S, "label": S},
@@ -158,7 +166,8 @@ def check_shape(d, r):
                 r.fail(f"steps[{i}].{k} has the wrong type: {type(st[k]).__name__}")
     if d["labelStats"] is not None:
         ls = d["labelStats"]
-        for k, test in (("items", is_int), ("labelled", is_int), ("agreement", opt(is_num))):
+        for k, test in (("items", is_int), ("labelled", is_int), ("agreement", opt(is_num)), ("checked", opt(is_int)),
+                        ("checkSample", opt(is_int))):
             if not test(ls.get(k)):
                 r.fail(f"labelStats.{k} missing or invalid: {ls.get(k)!r}")
     for k in STAT_KEYS:
@@ -255,6 +264,19 @@ def check_structure(d, spec, r):
                     r.fail(f"steps[{i}] range ends before it starts")
             except (TypeError, ValueError):
                 r.fail(f"steps[{i}] range {st['range']!r} is not two UTC times")
+
+    seen = set()
+    for i, ln in enumerate(d["links"]):
+        k = (tuple(ln["from"]), tuple(ln["to"]))
+        if k in seen:
+            r.fail(f"links[{i}] repeats an earlier link {ln['from']} -> {ln['to']}")
+        seen.add(k)
+    for a in d["annotations"]:
+        if a["anchor"] not in ("start", "middle", "end"):
+            r.fail(f"annotation {a['label']!r}: anchor {a['anchor']!r} is not start, middle or end")
+    ls = d["labelStats"]
+    if ls and is_int(ls.get("items")) and is_int(ls.get("labelled")) and ls["labelled"] > ls["items"]:
+        r.fail(f"labelStats: labelled {ls['labelled']} is more than items {ls['items']}")
 
     for i, f in enumerate(d["figures"]):
         for k in ("value", "label"):
@@ -384,6 +406,11 @@ def match(c, m):
 
 def check_steps(d, r):
     marks, bands = model(d)
+    # Values a clause may name; any other value matches nothing, so it is most likely a typo that
+    # leaves the clause lighting less than its author meant.
+    known = {"type": set(TYPE_ALIAS.values()), "kind": CHAT_KINDS | MEM_STATES | FILE_KINDS,
+             "stance": STANCES - {None}, "op": {"write", "read"}, "panel": {p["id"] for p in d["panels"]} | {"gap"},
+             "groups": {g["key"] for g in d["groups"]} | {"_other"}, "agents": {x["name"] for x in d["rows"]}}
     for i, st in enumerate(d["steps"]):
         name = f"steps[{i}] ({st.get('title', '')})"
         f = st.get("focus")
@@ -394,6 +421,11 @@ def check_steps(d, r):
         clauses = [compile_clause(c, f"{name} clause {j + 1}", r) for j, c in enumerate(raw)]
         if any(c is None for c in clauses):
             continue
+        for j, c in enumerate(clauses):
+            for k, ok in known.items():
+                bad = sorted(map(str, c.get(k, set()) - ok))
+                if bad:
+                    r.fail(f"{name} clause {j + 1}: {k} {bad} names nothing in this episode")
         direct = [any(match(c, m) for c in clauses) for m in marks]
         on, bon = list(direct), [False] * len(bands)
         for j, b in enumerate(bands):
@@ -408,6 +440,11 @@ def check_steps(d, r):
             if n == 0:
                 r.fail(f"{name} clause {j + 1} lights nothing: {json.dumps(raw[j], ensure_ascii=False)}")
         r.info(f"{name}: lights {sum(on)} marks and {sum(bon)} bands (per clause: {', '.join(map(str, counts))})")
+        k = st.get("key")
+        if L(k) and len(k) == 2:
+            i = next((i for i, m in enumerate(marks) if m["type"] == TYPE_ALIAS.get(k[0], k[0]) and m["id"] == k[1]), None)
+            if i is not None and not on[i]:
+                r.fail(f"{name}: its key evidence ({k[0]} {k[1][:8]}) is dimmed by its own focus")
 
 
 # Stats ---------------------------------------------------------------------------------------------
@@ -441,10 +478,7 @@ def recompute(d):
                                        and corr <= x["t"] and x["t"] // 1000 * 1000 <= corr + 60000})
         out["linger_agents"] = sorted({x["a"] for x in chat if x["kind"] == "belief" and x["t"] >= corr} |
                                       {x["a"] for x in mem if x["state"] == "claim" and x["t"] >= corr})
-    group = {x["name"]: x["group"] for x in d["rows"]}
-    author = {(c, x["id"]): x["a"] for c in ("chat", "mem", "files") for x in d[c]}
-    out["crossroom_links"] = sum(1 for ln in d["links"]
-                                 if group.get(author.get(tuple(ln["from"]))) != group.get(author.get(tuple(ln["to"]))))
+    out["crossroom_links"] = sum(1 for ln in d["links"] if None not in ln["rooms"] and ln["rooms"][0] != ln["rooms"][1])
 
     def first(kinds):
         ms = [("chat", x, x["kind"]) for x in chat] + [("mem", x, x["state"]) for x in mem] + \
@@ -475,6 +509,100 @@ def check_stats(d, r):
                                  for k in ("claim_chat_agents", "claim_mem_agents", "fix_mem_agents", "fix_first_minute",
                                            "crossroom_links") if k in d["stats"]) +
            f", linger_agents {len(d['stats'].get('linger_agents') or [])}")
+
+
+# Meaning: what the data says must agree with the rules that made it -------------------------------
+
+def village_day(t, tz):
+    return ((datetime.fromtimestamp(t / 1000, timezone.utc) + timedelta(hours=tz)).date() - DAY1).days + 1
+
+
+def check_meaning(d, spec, r):
+    """Rules the engine follows that the data alone can confirm: day numbers, the spec's panels and
+    correction time, kinds against labels (red needs an adopts), kinds against the correction time,
+    link rooms, the corrector, and the parts of memory_only the data can show."""
+    tz, corr = d["tzOffsetHours"], d["correctionMs"]
+    for p in d["panels"]:
+        if p["day"] != village_day(p["startMs"], tz):
+            r.fail(f"panel {p['id']}: day {p['day']}, but {utc(p['startMs'])} UTC is Day {village_day(p['startMs'], tz)} "
+                   f"at UTC{tz:+g}")
+    for k in ("title", "headline", "lede"):
+        if PLACEHOLDER.search(d[k]):
+            r.fail(f"{k} has an unfilled placeholder: {d[k][:120]!r}")
+    probe = corr
+    if spec:
+        sp = [(p["id"], utc_ms(p["start"]), utc_ms(p["end"])) for p in spec.get("panels", [])]
+        if sp != [(p["id"], p["startMs"], p["endMs"]) for p in d["panels"]]:
+            r.fail("panels differ from the spec's panels (ids, start or end)")
+        c = spec.get("correction") or {}
+        want = utc_ms(c["at"]) if c.get("at") else None
+        if want != corr:
+            r.fail(f"correctionMs {corr} differs from the spec's correction.at ({want})")
+        if c.get("probe_from"):
+            probe = utc_ms(c["probe_from"])
+
+    # Kinds against labels: red needs a labeller's adopts (the check pass's when the main pass has
+    # none); attributed comes only from an attributes label.
+    eff = lambda x: x["stance"] or x["check"]
+    for coll, field, red in (("chat", "kind", "belief"), ("mem", "state", "claim")):
+        bad = [x for x in d[coll] if x[field] == red and eff(x) not in ("adopts", None)]
+        if bad:
+            r.fail(f"{coll}: {len(bad)} {red} mark(s) whose label is not adopts, first {bad[0]['id']} ({eff(bad[0])})")
+        bad = [x for x in d[coll] if x[field] == "attributed" and eff(x) != "attributes"]
+        if bad:
+            r.fail(f"{coll}: {len(bad)} attributed mark(s) without an attributes label, first {bad[0]['id']} ({eff(bad[0])})")
+    # Kinds against the correction time.
+    bad = [x for x in d["chat"] if x["kind"] == "fix" and (corr is None or x["t"] < corr)]
+    if bad:
+        r.fail(f"chat: {len(bad)} fix message(s) before the correction, first {bad[0]['id']}")
+    bad = [x for x in d["mem"] if x["state"] == "fix" and (corr is None or x["t"] < corr) and eff(x) != "refutes"]
+    if bad:
+        r.fail(f"mem: {len(bad)} fix snapshot(s) before the correction without a refutes label, first {bad[0]['id']}")
+    # Without the spec the probe window is unknown, so only "no correction, no fix" is checked.
+    bad = [x for x in d["files"] if x["kind"] == "fix" and (corr is None or spec and x["t"] < probe)]
+    if bad:
+        r.fail(f"files: {len(bad)} fix command(s) before the correction's probe window, first {bad[0]['id']}")
+
+    # Link rooms: a chat end's room is the message's room; an automatic hand-off between two agents'
+    # file commands crosses a room wall by construction.
+    by = {(c, x["id"]): x for c in ("chat", "mem", "files") for x in d[c]}
+    for i, ln in enumerate(d["links"]):
+        ends = [by.get(tuple(ln[e])) for e in ("from", "to")]
+        if None in ends:
+            continue
+        for e, x, room in zip(("from", "to"), ends, ln["rooms"]):
+            if ln[e][0] == "chat" and room != x["room"]:
+                r.fail(f"links[{i}].{e}: room {room!r}, but the message is in #{x['room']}")
+        if ln["auto"] and ln["from"][0] == ln["to"][0] == "files" and ends[0]["a"] != ends[1]["a"] and \
+                (None in ln["rooms"] or ln["rooms"][0] == ln["rooms"][1]):
+            r.fail(f"links[{i}]: automatic hand-off between {ends[0]['a']} and {ends[1]['a']} with rooms {ln['rooms']}")
+        if ln["from"] == ln["to"]:
+            r.fail(f"links[{i}]: both ends are {ln['from']}")
+
+    rows = {x["name"]: x for x in d["rows"]}
+    c = d["stats"].get("corrector")
+    if c is not None and (c not in rows or rows[c]["human"]):
+        r.fail(f"stats.corrector {c!r} is not an agent row")
+
+    # memory_only: claim in memory before the correction, no chat message matching claim.chat
+    # before it. Chat that matches claim.chat always stays in the data (tagged or not), so an agent
+    # with no chat at all before the correction belongs in the list; one with a belief message before
+    # the probe window, or a message whose text shows a claim.chat match, does not.
+    human = {n for n, x in rows.items() if x["human"]}
+    before = lambda t: corr is None or t < corr
+    held = {x["a"] for x in d["mem"] if x["state"] == "claim" and before(x["t"]) and x["a"] not in human}
+    spoke = {x["a"] for x in d["chat"] if before(x["t"])}
+    said = {x["a"] for x in d["chat"] if x["kind"] == "belief" and (probe is None or x["t"] < probe)} if spec or \
+        corr is None else set()  # without the spec a probe window may hide in the data
+    if spec and spec.get("claim", {}).get("chat"):
+        crx = re.compile(spec["claim"]["chat"], re.I)
+        said |= {x["a"] for x in d["chat"] if before(x["t"]) and crx.search(x["text"].lower())}
+    mo = set(d["stats"].get("memory_only") or [])
+    for names, why in ((mo - held, "have no claim snapshot before the correction"),
+                       ((held - spoke) - mo, "held the claim and posted nothing before the correction, but are missing"),
+                       (mo & said, "said the claim in chat before the correction")):
+        if names:
+            r.fail(f"stats.memory_only: {sorted(names)} {why}")
 
 
 # Credentials ---------------------------------------------------------------------------------------
@@ -523,6 +651,7 @@ def check_episode(path, spec):
         check_structure(d, spec, r)
         check_steps(d, r)
         check_stats(d, r)
+        check_meaning(d, spec, r)
     check_secrets(d, r)
     sizes = {c: len(d.get(c) or []) for c in ("rows", "chat", "mem", "files", "links", "steps")}
     r.info(f"{path.stat().st_size / 1e6:.1f} MB; " + ", ".join(f"{k} {v}" for k, v in sizes.items()))

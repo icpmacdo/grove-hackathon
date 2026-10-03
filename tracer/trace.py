@@ -25,10 +25,11 @@ import json
 import re
 import sys
 import time
-from bisect import bisect_right
+from bisect import bisect_left, bisect_right
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import duckdb
 
@@ -38,6 +39,7 @@ OUT = TRACER / "out"
 DB = ROOT / "data" / "village.duckdb"
 ARTIFACT_EVENTS = ROOT / "analysis" / "artifacts" / "out" / "artifact_events.parquet"
 DAY1 = date(2025, 4, 2)
+PACIFIC = ZoneInfo("America/Los_Angeles")
 MARKER = "/*__TRACER_CONFIG__*/null"
 
 # Group keys that are not rooms. Room names are lowercase words, so the underscore keeps them apart.
@@ -50,7 +52,9 @@ OUTPUT_CHARS = 20000  # command output read for evidence that a reader saw a wri
 
 # Credential-like strings: the redact() pattern of build_temporal_bleed.py plus the three token shapes
 # label.py adds (<prefix>_<mixed-case body>, <prefix>_<32+ hex>, "Auth Token: ..."), which a memory
-# credentials list in the dataset holds. Joined, the parts are label.py's SECRET, character for character.
+# credentials list in the dataset holds. Joined, the first eight parts are label.py's SECRET, character
+# for character. The engine adds Google and AWS key shapes and private key blocks after them: one
+# agent's memory holds a Google OAuth client secret (GOCSPX-...) in hundreds of snapshots.
 SECRET_PARTS = [
     r"\b(?:[a-z0-9]+_)?(?:sk|pk|ghp|gho|ghs|github_pat|glpat|xox[abpr])[-_][A-Za-z0-9_\-]{8,}",
     r"\bBearer\s+[A-Za-z0-9._\-]{12,}",
@@ -60,8 +64,17 @@ SECRET_PARTS = [
     r"\b[a-z]{2,12}_(?=(?:[A-Za-z0-9_\-]*?[A-Z]){3})(?=(?:[A-Za-z0-9_\-]*?\d){3})[A-Za-z0-9_\-]{20,}",
     r"\b[a-z]{2,12}_[0-9a-f]{32,}\b",
     r"(?i:(?:auth|session|refresh)[ _-]?token|credentials?)\s*[:=]\s*`?[^\s`]{6,}",
+    r"\bGOCSPX-[A-Za-z0-9_\-]{10,}",
+    r"\bAIza[0-9A-Za-z_\-]{30,}",
+    r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b",
+    r"\bya29\.[A-Za-z0-9_\-]{20,}",
+    r"\b1//0[A-Za-z0-9_\-]{20,}",
+    r"-----BEGIN [A-Z ]*PRIVATE KEY-----(?:[A-Za-z0-9+/=\s.]|\\[rn])*(?:-----END [A-Z ]*PRIVATE KEY-----)?",
 ]
 SECRET = re.compile("|".join(SECRET_PARTS))
+# A key block goes first, in a pass of its own: in "privateKey = '-----BEGIN ..." the password rule
+# would take the start of the header and leave the key body behind.
+PEM = re.compile(SECRET_PARTS[-1])
 # For each part, a superset that DuckDB's RE2 can run: no lookaheads (the mixed-case body needs one
 # capital, and one digit in or right after it), Python's Unicode \s and \d spelled out (RE2's are
 # ASCII), [^\s`] widened to [^`]. RE2's ASCII \b only adds matches next to ASCII letters. A text where
@@ -77,11 +90,13 @@ SUSPECT_PARTS = [
     r"\b[a-z]{2,12}_[A-Za-z0-9_\-]*(?:[A-Z][A-Za-z0-9_\-]*\p{Nd}|[0-9][A-Za-z0-9_\-]*[A-Z])",
     SECRET_PARTS[6],
     rf"(?i:(?:auth|session|refresh)[ _-]?token|credentials?){_WS}*[:=]{_WS}*`?[^`]{{6,}}",
+    *SECRET_PARTS[8:13],
+    r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
 ]
 SUSPECT = "|".join(SUSPECT_PARTS)
 FILE_WRITE = re.compile(
     r"cat\s*(<<|>)|>>|\btee\b|git (commit|push)|codex exec|json\.dump|write_text|open\([^)]*['\"][wa]|"
-    r"memory\.py log|\bmv\b|mkdir"
+    r"memory\.py log|\bmv\b|mkdir|gh repo create|git init\b|\b(?:gh|glab) (?:pr|mr) (?:create|merge)\b|\bgit merge\b"
 )
 # Regex fallback for artifact identity: GitHub org paths, and local clones under ~, /home/<user> or
 # /tmp. A local directory name only counts when it names a known repo (when the artifact events
@@ -101,10 +116,12 @@ PLACEHOLDER = re.compile(r"\{([A-Za-z_]\w*(?:\.[\w-]+)*)\}")
 LABEL_CHAT = {"adopts": "belief", "attributes": "attributed", "refutes": "hint", "unclear": "other"}
 LABEL_MEM = {"adopts": "claim", "attributes": "attributed", "refutes": "fix", "unclear": "none"}
 FAMILY = {"belief": {"belief", "claim"}, "fix": {"fix"}}
+# A hand link's untagged file end takes the family of the link's other end.
+HAND_KIND = {"belief": "belief", "claim": "belief", "attributed": "belief", "fix": "fix", "hint": "fix"}
 
 
 def redact(text):
-    return SECRET.sub("[REDACTED]", text)
+    return SECRET.sub("[REDACTED]", PEM.sub("[REDACTED]", text))
 
 
 _PARTS = {}
@@ -116,6 +133,8 @@ def redact_parts(text, parts):
     key = tuple(i for i, f in enumerate(parts or ()) if f)
     if not key:
         return text
+    if len(SECRET_PARTS) - 1 in key:
+        text = PEM.sub("[REDACTED]", text)
     if key not in _PARTS:
         _PARTS[key] = re.compile("|".join(SECRET_PARTS[i] for i in key))
     return _PARTS[key].sub("[REDACTED]", text)
@@ -266,16 +285,24 @@ def load_spec(slug):
     return spec
 
 
-def auto_panels(days, con=None, tz_offset_hours=-7):
+def pacific_offset(day):
+    """Pacific UTC offset in hours on a date (at noon): -7 in summer time, -8 in winter."""
+    noon = datetime.combine(day, datetime.min.time()).replace(hour=12, tzinfo=PACIFIC)
+    return int(noon.utcoffset().total_seconds() // 3600)
+
+
+def auto_panels(days, con=None, tz_offset_hours=None):
     """One panel per display-time-zone date, bounded by that day's first and last chat message
-    rounded out to the hour. Weight follows duration; untagged chat is drawn for one or two days."""
+    rounded out to the hour. Weight follows duration; untagged chat is drawn for one or two days.
+    Without tz_offset_hours each date is a Pacific date at that date's offset."""
     own = con is None
     con = con or connect()
     try:
         panels = []
         for d in sorted(set(days)):
             day = date.fromisoformat(d)
-            start = datetime.combine(day, datetime.min.time()) - timedelta(hours=tz_offset_hours)
+            tz = pacific_offset(day) if tz_offset_hours is None else tz_offset_hours
+            start = datetime.combine(day, datetime.min.time()) - timedelta(hours=tz)
             first, last = con.execute(
                 f"SELECT min(created_at), max(created_at) FROM chat "
                 f"WHERE created_at >= {lit(start)} AND created_at < {lit(start + timedelta(days=1))}"
@@ -303,10 +330,13 @@ def auto_panels(days, con=None, tz_offset_hours=-7):
             con.close()
 
 
-def live_spec(claim, correction=None, days=(), con=None, tz_offset_hours=-7):
+def live_spec(claim, correction=None, days=(), con=None, tz_offset_hours=None):
     """A spec for a live trace: claim {"label", "pattern"}, optional correction {"label", "pattern",
-    "at"}, and the chosen days. One pattern drives chat, memory and files. No steps; generic figures."""
+    "at"}, and the chosen days. One pattern drives chat, memory and files. No steps; generic figures.
+    The display offset defaults to the Pacific offset on the first panel's date (-8 in winter)."""
     panels = auto_panels(days, con, tz_offset_hours)
+    if tz_offset_hours is None:
+        tz_offset_hours = pacific_offset(date.fromisoformat(panels[0]["id"]))
     p = claim["pattern"]
     spec = {
         "slug": None, "title": claim.get("label") or p, "headline": f"Tracing: {claim.get('label') or p}",
@@ -763,7 +793,8 @@ class Episode:
         ).fetchall():
             name = self.alias(agent) if agent else None
             if name in agents:
-                kind = next(k for p, k in kinds.items() if tid.startswith(p))
+                kind = next(k for p, k in kinds.items() if tid.startswith(p)) or \
+                    ("fix" if self.corr_ms is not None and ms(t) >= self.corr_ms else "belief")
                 self.files.append(self.file_item(t, name, tid, redact(cmd), kind))
         self.files.sort(key=lambda x: (x["t"], x["id"]))
 
@@ -775,12 +806,16 @@ class Episode:
             for end, other in (("from", "to"), ("to", "from")):
                 typ, prefix = ln[end]
                 if typ in ("files", "file") and not any(i.startswith(prefix) for i in have):
+                    # The kind of the other end's family; an end that names neither (or another
+                    # missing file) leaves it to the turn's time. The first link that decides wins.
                     o = ln[other]
                     try:
                         ox = self.resolve(o[0], o[1], "link")
-                        missing[prefix] = {"claim": "belief", "belief": "belief"}.get(ox.get("kind") or ox.get("state"), "fix")
+                        kind = HAND_KIND.get(ox.get("kind") or ox.get("state"))
                     except ValueError:
-                        missing[prefix] = "fix" if self.corr_ms else "belief"
+                        kind = None
+                    if missing.get(prefix) is None:
+                        missing[prefix] = kind
         if missing:
             self.fetch_turns(missing, missing)
         out = []
@@ -856,48 +891,78 @@ class Episode:
                     item["_out"] = output
                     untagged.append(item)
 
-        # Room of an agent at time t: the room of its most recent chat message in the previous 48 hours.
-        lo = min(w["t"] for w in writes) - ROOM_MEMORY
-        hi = max([b for _, b in clipped] + [w["t"] for w in writes])
-        seen = {}
-        for speaker, room, t in self.con.execute(
-            f"""SELECT speaker, coalesce(room, 'general'), created_at FROM chat WHERE speaker_type = 'agent'
-            AND created_at BETWEEN {lit(from_ms(lo))} AND {lit(from_ms(hi))} ORDER BY created_at"""
-        ).fetchall():
-            ts, rooms = seen.setdefault(self.alias(speaker), ([], []))
-            ts.append(ms(t))
-            rooms.append(room)
+        self.load_rooms(min(w["t"] for w in writes), max([b for _, b in clipped] + [w["t"] for w in writes]))
+        room_at = self.chat_room_at
 
-        def room_at(name, t):
-            ts, rooms = seen.get(name, ([], []))
-            i = bisect_right(ts, t) - 1
-            return rooms[i] if i >= 0 and t - ts[i] <= ROOM_MEMORY else None
+        def best_write(r, fam, arts):
+            """The latest write of the family to one of arts in the 90 minutes before read r, by
+            another agent whose room then differs from the reader's room now."""
+            rb, best = room_at(r["a"], r["t"]), None
+            for w in writes:
+                if w["kind"] == fam and w["_arts"] & arts and w["a"] != r["a"] and \
+                        w["t"] < r["t"] <= w["t"] + READ_WINDOW and (best is None or w["t"] > best["t"]):
+                    ra = room_at(w["a"], w["t"])
+                    if ra and rb and ra != rb:
+                        best = w
+            return best
 
+        qualifies = lambda r, fam: r["kind"] == fam or fam in r.get("_seen", {})
         reads = sorted([f for f in self.files if f["op"] == "read" and f["_arts"]] + untagged, key=lambda f: (f["t"], f["id"]))
         chosen = {}  # (reader, artifact, family) -> (read, write)
         for r in reads:
-            rb = room_at(r["a"], r["t"])
-            if not rb:
+            if not room_at(r["a"], r["t"]):
                 continue
             for art in sorted(r["_arts"]):
                 for fam in FAMILY:
-                    if r["kind"] != fam and fam not in r.get("_seen", {}) or self.held(r["a"], r["t"], FAMILY[fam]):
+                    if not qualifies(r, fam) or self.held(r["a"], r["t"], FAMILY[fam]):
                         continue
-                    best = None
-                    for w in writes:
-                        if w["kind"] == fam and art in w["_arts"] and w["a"] != r["a"] and \
-                                w["t"] < r["t"] <= w["t"] + READ_WINDOW and (best is None or w["t"] > best["t"]):
-                            ra = room_at(w["a"], w["t"])
-                            if ra and ra != rb:
-                                best = w
+                    # The earliest read with evidence: a later read whose command names the claim
+                    # shows the reader knew it by then, not where it came from.
+                    best = best_write(r, fam, {art})
                     key = (r["a"], art, fam)
-                    if best and (key not in chosen or (r["kind"] and not chosen[key][0]["kind"])):
+                    if best and key not in chosen:
                         chosen[key] = (r, best)
+
+        # The second link starts at the read that brought the content the reader's next mark holds.
+        # When the reader reads the family again before that mark and the read shows a newer write
+        # (by another agent), the newer write is the likely source: the second link moves to that
+        # read, which gets its own hand-off link, when the write came from another room, and is
+        # left out when it came from the reader's own room.
+        def latest_write(q, fam):
+            return max((w for w in writes if w["kind"] == fam and w["_arts"] & q["_arts"] and w["a"] != q["a"]
+                        and w["t"] < q["t"] <= w["t"] + READ_WINDOW), key=lambda w: w["t"], default=None)
 
         hand_pairs = {(tuple(ln["from"]), tuple(ln["to"])) for ln in hand}
         hand_ends = {tuple(ln["to"]) for ln in hand}
-        out, pairs = [], set()
+        # (write id, reader) pairs a hand link already shows, whichever of the reader's marks it ends at
+        items = {(typ, x["id"]): x for typ, c in (("chat", self.chat), ("mem", self.mem), ("files", self.files)) for x in c}
+        hand_readers = {(ln["from"][1], items[tuple(ln["to"])]["a"]) for ln in hand
+                        if ln["from"][0] == "files" and tuple(ln["to"]) in items}
+        emit = []  # (read, write, the reader's next mark in the family or None)
         for r, w in sorted(chosen.values(), key=lambda rw: (rw[0]["t"], rw[1]["t"])):
+            fam = w["kind"]
+            nxt = self.uptake(r["a"], r["t"], FAMILY[fam])
+            anchor, aw = r, w
+            if nxt and (nxt[0], nxt[1]["id"]) not in hand_ends:
+                for q in reads:
+                    if q["a"] != r["a"] or not r["t"] < q["t"] < nxt[1]["t"] or not qualifies(q, fam):
+                        continue
+                    lw = latest_write(q, fam)
+                    if lw and lw["t"] > aw["t"]:
+                        ra, rb = room_at(lw["a"], lw["t"]), room_at(q["a"], q["t"])
+                        if not (ra and rb and ra != rb):
+                            anchor = None  # newer content from the reader's own room
+                            break
+                        anchor, aw = q, lw
+            if anchor is r:
+                emit.append((r, w, nxt))
+            else:
+                emit.append((r, w, None))
+                if anchor is not None:
+                    emit.append((anchor, aw, self.uptake(anchor["a"], anchor["t"], FAMILY[fam])))
+
+        out, pairs = [], set()
+        for r, w, nxt in emit:
             if (w["id"], r["id"]) in pairs:
                 continue
             pairs.add((w["id"], r["id"]))
@@ -906,11 +971,16 @@ class Episode:
             art = ", ".join(sorted(w["_arts"] & r["_arts"]))
             link = (("files", w["id"]), ("files", r["id"]))
             new = []
-            if link not in hand_pairs and link[1] not in hand_ends:
+            if link not in hand_pairs and link[1] not in hand_ends and (w["id"], reader) not in hand_readers:
+                # File marks come from keywords, not labels: a claim-family write only names the
+                # claim (it may argue against it), and a fix-family write in the probe window comes
+                # before the correction itself.
+                wrote = f"mentions the claim in {art}" if w["kind"] == "belief" else \
+                    f"writes evidence for the correction into {art}" if w["t"] < self.corr_ms else \
+                    f"writes the correction into {art}"
                 new.append({"from": list(link[0]), "to": list(link[1]), "auto": True,
-                            "label": f"{w['a']} (#{ra}) writes {held} into {art}; "
+                            "label": f"{w['a']} (#{ra}) {wrote}; "
                                      f"{reader} (#{rb}) reads {art} {minutes(r['t'] - w['t'])} later"})
-            nxt = self.uptake(reader, r["t"], FAMILY[w["kind"]])
             if nxt:
                 typ, x = nxt
                 link2 = (("files", r["id"]), (typ, x["id"]))
@@ -928,7 +998,57 @@ class Episode:
             if r["id"] in have:
                 out += new
         self.files.sort(key=lambda x: (x["t"], x["id"]))
-        return out
+        uniq = {}
+        for ln in out:
+            uniq.setdefault((tuple(ln["from"]), tuple(ln["to"])), ln)
+        return list(uniq.values())
+
+    def load_rooms(self, lo, hi):
+        """Agents' chat rooms from 48 hours before lo to hi (any room, shown or not), for
+        chat_room_at. Widens the loaded span when asked for more."""
+        lo -= ROOM_MEMORY
+        span = getattr(self, "_room_span", None)
+        if span and span[0] <= lo and hi <= span[1]:
+            return
+        if span:
+            lo, hi = min(lo, span[0]), max(hi, span[1])
+        self._room_span, self._rooms = (lo, hi), {}
+        for speaker, room, t in self.con.execute(
+            f"""SELECT speaker, coalesce(room, 'general'), created_at FROM chat WHERE speaker_type = 'agent'
+            AND created_at BETWEEN {lit(from_ms(lo))} AND {lit(from_ms(hi))} ORDER BY created_at"""
+        ).fetchall():
+            ts, rooms = self._rooms.setdefault(self.alias(speaker), ([], []))
+            ts.append(ms(t))
+            rooms.append(room)
+
+    def chat_room_at(self, name, t):
+        """Room of an agent at time t: the room of its most recent chat message in the previous 48
+        hours, or None. load_rooms must cover t."""
+        ts, rooms = self._rooms.get(name, ([], []))
+        i = bisect_right(ts, t) - 1
+        return rooms[i] if i >= 0 and t - ts[i] <= ROOM_MEMORY else None
+
+    def link_rooms(self, links):
+        """Each link's rooms at that moment, as "rooms": [from, to]: a chat end's room; else the
+        author's room then (chat_room_at), else its row's group when that is a room; else null."""
+        coll = {"chat": self.chat, "mem": self.mem, "files": self.files}
+        ends = {(typ, x["id"]): x for typ, c in coll.items() for x in c}
+        ts = [ends[tuple(ln[e])]["t"] for ln in links for e in ("from", "to") if tuple(ln[e]) in ends]
+        if ts:
+            self.load_rooms(min(ts), max(ts))
+        group = {r["name"]: r["group"] for r in self.rows}
+
+        def room(end):
+            x = ends.get(tuple(end))
+            if x is None:
+                return None
+            if end[0] == "chat":
+                return x["room"]
+            g = group.get(x["a"])
+            return self.chat_room_at(x["a"], x["t"]) or (g if g and not g.startswith("_") else None)
+
+        for ln in links:
+            ln["rooms"] = [room(ln["from"]), room(ln["to"])]
 
     def held(self, name, t, family):
         """Did the agent hold the family before t: its latest memory snapshot, or any chat message?"""
@@ -975,14 +1095,17 @@ class Episode:
                 # left as "other": the labeller says whether the mention still adopts the claim.
                 late = x.get("_claim") and x[field] == "other" and self.corr_ms is not None and x["t"] >= self.corr_ms
                 if x[field] in ("belief", "claim") or late:
-                    x[field] = mapping.get(x["stance"], x[field])
+                    # An item only the check pass labelled maps by that label, so red still needs an
+                    # adopts (the viewer flags it: no label from the main pass).
+                    x[field] = mapping.get(x["stance"] or x["check"], x[field])
         # Chat seq kinds feed auto links; keep them in step with the labelled kinds.
         kinds = {x["id"]: x["kind"] for x in self.chat}
         for seq in self.chat_seq.values():
             seq[:] = [(t, kinds.get(i, k), i) for t, k, i in seq]
         return {"items": len(self.label_ids),
                 "labelled": sum(1 for i in self.label_ids if (items.get(i) or {}).get("stance")),
-                "model": store.get("model"), "agreement": store.get("agreement"), "checkModel": store.get("checkModel")}
+                "model": store.get("model"), "agreement": store.get("agreement"), "checkModel": store.get("checkModel"),
+                "checked": store.get("checked"), "checkSample": store.get("checkSample")}
 
     # Stats ---------------------------------------------------------------------------------------
 
@@ -1015,11 +1138,8 @@ class Episode:
         if self.corr_ms is not None:
             linger = {x["a"] for x in chat if x["kind"] == "belief" and x["t"] >= self.corr_ms} | \
                      {x["a"] for x in mem if x["state"] == "claim" and x["t"] >= self.corr_ms}
-        end_agent = {(t, x["id"]): x["a"] for t, coll in (("chat", self.chat), ("mem", self.mem), ("files", self.files))
-                     for x in coll}
-        group = {r["name"]: r["group"] for r in self.rows}
-        cross = sum(1 for ln in links
-                    if group.get(end_agent.get(tuple(ln["from"]))) != group.get(end_agent.get(tuple(ln["to"]))))
+        # Rooms at the moment of each end (link_rooms), as the auto link labels give them.
+        cross = sum(1 for ln in links if None not in ln["rooms"] and ln["rooms"][0] != ln["rooms"][1])
 
         def first(kinds):
             marks = [("chat", x, x["kind"]) for x in chat] + [("mem", x, x["state"]) for x in mem] + \
@@ -1046,33 +1166,119 @@ class Episode:
             "corrector": self.corrector,
         }
 
-    def compact_memory(self, keep):
+    def compact_memory(self, keep, data):
         """Panels that show everything keep every snapshot. Elsewhere (panels with show_other false,
         the lookback, gaps) a snapshot stays only where the agent's state or stance changes, as each
-        agent's last snapshot at or before a panel start (the state it carries in), as its first
-        snapshot at or after the correction (so linger_agents can be checked from the data), when the
-        two labellers disagree on it (the viewer counts those), or when a link or step names it
-        (keep). The bands the viewer draws come out the same; a long panel stays small."""
+        agent's last snapshot before a panel start and at or before it (the state it carries in, and
+        the source of the gap band before it), as its first snapshot at or after the correction (so
+        linger_agents can be checked from the data), when the two labellers disagree on it (the
+        viewer counts those), when a link or step names it (keep), or where a step's lit region
+        starts or ends (focus_keep). The bands the viewer draws and the regions each step lights come
+        out the same; a long panel stays small. data: the episode data with every snapshot."""
         full = [(p["s"], p["e"]) for p in self.panels if p.get("show_other", True)]
         carry = set()
         for ts, xs in self.mem_by.values():
             for p in self.panels:
-                i = bisect_right(ts, p["s"]) - 1
-                if i >= 0:
-                    carry.add(xs[i]["id"])
+                for i in (bisect_left(ts, p["s"]) - 1, bisect_right(ts, p["s"]) - 1):
+                    if i >= 0:
+                        carry.add(xs[i]["id"])
             if self.corr_ms is not None:
                 i = bisect_right(ts, self.corr_ms - 1)
                 if i < len(xs):
                     carry.add(xs[i]["id"])
-        out, state = [], {}
+        kept, state = set(), {}
         for x in self.mem:
             changed = state.get(x["a"]) != (x["state"], x["stance"])
             state[x["a"]] = (x["state"], x["stance"])
             if changed or x["id"] in carry or x["id"] in keep or (x["check"] and x["check"] != x["stance"]) or \
                     any(a <= x["t"] <= b for a, b in full):
-                out.append(x)
+                kept.add(x["id"])
+        kept = self.focus_keep(data, kept)
+        out = [x for x in self.mem if x["id"] in kept]
         self.dropped_mem = len(self.mem) - len(out)
         self.mem = out
+
+    def focus_keep(self, data, kept):
+        """Snapshots a step's focus needs, added to kept. The viewer lights a band when it matches a
+        clause, or when the snapshot that starts it does; dropping a snapshot merges its band into the
+        one before, which can change what lights (a time window, a text regex, a link end). So keep
+        each snapshot whose band's lit state differs from the band before it, then check the thinned
+        model against the full one, step by step, and keep all of an agent's snapshots in any panel
+        where they still differ. Uses tracer.check's copy of the viewer model."""
+        from tracer.check import Report, compile_clause, match, model
+
+        r = Report("")
+        steps = []
+        for st in data["steps"]:
+            f = st.get("focus")
+            if not f:
+                continue
+            raw = f if isinstance(f, list) else f.get("any") if isinstance(f.get("any"), list) else [f]
+            cl = [compile_clause(c, "", r) for c in raw]
+            cl = [c for c in cl if c is not None and ("type" not in c or c["type"] & {"mem", "band"})]
+            if cl:
+                steps.append(cl)
+        if not steps:
+            return kept
+        thin = {x["id"] for x in self.mem} - kept  # candidates to drop
+        if not thin:
+            return kept
+        agents_thin = {x["a"] for x in self.mem if x["id"] in thin}
+
+        def lit(d):
+            """Per step: {(agent, panel): lit intervals} and the ids of lit snapshots, for agents
+            that have snapshots to drop."""
+            marks, bands = model(d)
+            out = []
+            for cl in steps:
+                direct = {i for i, m in enumerate(marks)
+                          if m["type"] == "mem" and m["a"] in agents_thin and any(match(c, m) for c in cl)}
+                on, regions, starts = set(direct), {}, []
+                for b in bands:
+                    if b["a"] not in agents_thin:
+                        continue
+                    hit_ = any(match(c, b) for c in cl)
+                    if hit_:
+                        on.add(b["src"])
+                    lit_ = hit_ or (b["start"] and b["src"] in direct)
+                    starts.append((b, lit_))
+                    if lit_:
+                        regions.setdefault((b["a"], b["panel"]), []).append((b["t"], b["t1"]))
+                for k, iv in regions.items():
+                    iv.sort()
+                    merged = [list(iv[0])]
+                    for a, b_ in iv[1:]:
+                        if a <= merged[-1][1]:
+                            merged[-1][1] = max(merged[-1][1], b_)
+                        else:
+                            merged.append([a, b_])
+                    regions[k] = merged
+                out.append((regions, {marks[i]["id"] for i in on}, starts, marks))
+            return out
+
+        full_lit = lit(data)
+        # Boundaries: a band whose lit state differs from the band before it in the same agent-panel.
+        for regions, on, starts, marks in full_lit:
+            prev = {}
+            for b, lit_ in sorted(starts, key=lambda s: (s[0]["a"], s[0]["panel"], s[0]["t"])):
+                k = (b["a"], b["panel"])
+                if b["start"] and (k not in prev or prev[k] != lit_):
+                    kept.add(marks[b["src"]]["id"])
+                prev[k] = lit_
+        panel_id = lambda t: (self.panel_at(t) or {}).get("id")
+        for attempt in range(2):
+            d = dict(data, mem=[x for x in self.mem if x["id"] in kept])
+            fix = set()
+            for (rf, onf, _, _), (rt, ont, _, _) in zip(full_lit, lit(d)):
+                fix |= {k for k in set(rf) | set(rt) if rf.get(k) != rt.get(k)}
+                fix |= {(x["a"], panel_id(x["t"])) for x in d["mem"] if (x["id"] in onf) != (x["id"] in ont)}
+            if not fix:
+                return kept
+            if attempt == 0:  # keep every snapshot of the agent in that panel
+                kept |= {x["id"] for x in self.mem if (x["a"], panel_id(x["t"])) in fix}
+        names = sorted({a for a, _ in fix})
+        self.warn(f"memory thinning: kept every snapshot of {', '.join(names)} so the steps light the same")
+        return kept | {x["id"] for x in self.mem if x["a"] in names}
 
     # Assembly ------------------------------------------------------------------------------------
 
@@ -1131,6 +1337,7 @@ class Episode:
         for ln in links:
             if ln["auto"]:
                 ln["label"] = redact(ln["label"])  # it quotes artifact names from the data
+        self.link_rooms(links)
         for f in self.files:
             f["artifact"] = redact(", ".join(sorted(f.pop("_arts")))) or None
             f.pop("_seen", None)
@@ -1141,11 +1348,9 @@ class Episode:
         figures = [{"value": fill(f["value"], stats), "label": fill(f.get("label", ""), stats)}
                    for f in spec.get("figures", [])]
         steps = self.steps()
-        self.compact_memory({ln[end][1] for ln in links for end in ("from", "to") if ln[end][0] == "mem"} |
-                            {st["key"][1] for st in steps if st.get("key") and st["key"][0] == "mem"})
         corr = spec.get("correction") or {}
         notes = {"how": [], "method": [], "limits": [], **spec.get("notes", {})}
-        return {
+        data = {
             "slug": spec.get("slug"), "title": spec.get("title", ""), "headline": spec.get("headline", ""),
             "lede": spec.get("lede", ""), "tzOffsetHours": self.tz,
             "claimLabel": spec["claim"].get("label"), "correctionLabel": corr.get("label"),
@@ -1170,6 +1375,11 @@ class Episode:
             "notes": notes,
             "labelStats": self.label_stats,
         }
+        self.timed("thinning", self.compact_memory,
+                   {ln[end][1] for ln in links for end in ("from", "to") if ln[end][0] == "mem"} |
+                   {st["key"][1] for st in steps if st.get("key") and st["key"][0] == "mem"}, data)
+        data["mem"] = self.mem
+        return data
 
 
 def fill(text, stats):
@@ -1183,6 +1393,9 @@ def fill(text, stats):
                 v = len(v)
             else:
                 raise ValueError(f"figure placeholder {{{m.group(1)}}}: no {part!r} in stats")
+        if isinstance(v, dict):
+            raise ValueError(f"figure placeholder {{{m.group(1)}}} is an object; name one of its keys "
+                             f"({', '.join(map(str, v))})")
         if isinstance(v, list):
             return ", ".join(map(str, v))
         if isinstance(v, float):

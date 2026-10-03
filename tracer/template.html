@@ -29,6 +29,8 @@
   --chip-warn: #fdf1dc;
   --ch-chat: #4a3aa7;
   --ch-mem: #1baf7a;
+  --shadow: rgba(20, 23, 28, 0.18);
+  color-scheme: light;
   --font-ui: "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: "Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
@@ -40,6 +42,7 @@
     --shade: rgba(57, 135, 229, 0.12); --sel: rgba(57, 135, 229, 0.24);
     --chip-belief: #3a2324; --chip-fix: #1d2c40; --chip-none: #262b31;
     --warn: #f0b45a; --chip-warn: #3a2d17; --ch-chat: #9085e9; --ch-mem: #199e70;
+    --shadow: rgba(0, 0, 0, 0.5);
     color-scheme: dark;
   }
 }
@@ -50,6 +53,7 @@
   --shade: rgba(57, 135, 229, 0.12); --sel: rgba(57, 135, 229, 0.24);
   --chip-belief: #3a2324; --chip-fix: #1d2c40; --chip-none: #262b31;
   --warn: #f0b45a; --chip-warn: #3a2d17; --ch-chat: #9085e9; --ch-mem: #199e70;
+  --shadow: rgba(0, 0, 0, 0.5);
   color-scheme: dark;
 }
 
@@ -70,6 +74,7 @@ code { font-family: var(--font-mono); font-size: 0.92em; overflow-wrap: anywhere
 .tab { display: inline-flex; align-items: center; flex: none; }
 .tabs a { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px 9px; color: var(--ink-2); text-decoration: none; font-weight: 600; font-size: 14px; white-space: nowrap; max-width: 280px; overflow: hidden; text-overflow: ellipsis; border-bottom: 2px solid transparent; margin-bottom: -1px; }
 .tabs a:hover { color: var(--ink); }
+.tabs.more-r { -webkit-mask-image: linear-gradient(to left, transparent, var(--ink) 40px); mask-image: linear-gradient(to left, transparent, var(--ink) 40px); }
 .tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--ink); }
 .tab-x { border: 0; background: none; color: var(--ink-3); cursor: pointer; padding: 2px 6px; margin-left: -6px; border-radius: 4px; font-size: 15px; line-height: 1; }
 .tab-x:hover { color: var(--ink); background: var(--grid); }
@@ -109,16 +114,21 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
 .panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; }
 .rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); display: grid; gap: 14px; max-height: calc(100vh - 24px); overflow: auto; }
 @media (max-width: 1120px) {
-  .workbench { grid-template-columns: minmax(0, 1fr); }
-  .rail { position: static; display: contents; max-height: none; }
-  .story { order: -1; }
+  .workbench { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .rail, .chart-col { position: static; display: contents; max-height: none; }
+  .story { order: -1; margin-bottom: 8px; }
+  .chart-wrap { order: 1; }
+  .inspector { order: 2; }
+  .log { order: 3; }
 }
 
 /* Toolbar + legend */
-.toolbar { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; padding: 10px 14px; }
-.lg { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 13px; color: var(--ink-2); }
+.toolbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; padding: 10px 14px; }
+.lg { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 13px; color: var(--ink-2); }
+.lg > label, .lg > b { min-width: 88px; }
 .lg label { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ink); cursor: pointer; }
 .lg b { font-weight: 600; color: var(--ink); }
+.lg-note { font-size: 12.5px; color: var(--ink-3); }
 .lg input { accent-color: var(--fix); margin: 0; }
 .lg span.k { display: inline-flex; align-items: center; gap: 5px; }
 .lg svg { overflow: visible; flex: none; }
@@ -133,6 +143,12 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
 .swim .mono { font-family: var(--font-mono); font-size: 11px; }
 /* Sticky lane names: a copy of the label column that appears once the chart scrolls sideways. */
 .chart-frame { position: relative; }
+.chart-frame::after { content: ""; position: absolute; top: 0; bottom: 0; right: 0; width: 44px; pointer-events: none; background: linear-gradient(to left, var(--surface), transparent); opacity: 0; transition: opacity 0.15s ease; }
+.chart-frame.more-r::after { opacity: 1; }
+.pan { position: absolute; top: 3px; z-index: 2; display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); font-size: 14px; line-height: 1; cursor: pointer; box-shadow: 0 1px 4px var(--shadow); }
+.pan:hover { border-color: var(--ink-3); }
+.pan-r { right: 6px; }
+.pan-l { left: 6px; }
 #chart-labels { position: absolute; left: 0; top: 0; pointer-events: none; opacity: 0; visibility: hidden; transition: opacity 0.15s ease, visibility 0.15s; font-family: var(--font-ui); }
 .chart-frame.scrolled #chart-labels { opacity: 1; visibility: visible; }
 #chart .grid { stroke: var(--grid); stroke-width: 1; }
@@ -147,12 +163,13 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
 #chart.dimmed .band { opacity: 0.22; }
 #chart.dimmed .link { opacity: 0.1; }
 #chart.dimmed .mv { opacity: 0.3; }
-#chart.dimmed .on { opacity: 1 !important; }
+#chart.dimmed .on, #chart.dimmed .cur { opacity: 1 !important; }
 #chart.hide-chat .ch-chat, #chart.hide-mem .ch-mem, #chart.hide-file .ch-file { display: none; }
 #chart .row-hl { fill: var(--shade); opacity: 0; }
+.swim .halo { paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
 #chart .row-hl.show { opacity: 1; }
 #chart .sel { fill: none; stroke: var(--ink); stroke-width: 2; pointer-events: none; }
-@media (prefers-reduced-motion: reduce) { #chart.anim .mk, #chart.anim .band, #chart.anim .link, #chart.anim .mv, #chart-labels { transition: none; } }
+@media (prefers-reduced-motion: reduce) { #chart.anim .mk, #chart.anim .band, #chart.anim .link, #chart.anim .mv, #chart-labels, .chart-frame::after { transition: none; } }
 
 /* Rail cards */
 .story, .inspector { padding: 16px 18px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }
@@ -280,7 +297,7 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
 .top td:first-child { overflow-wrap: anywhere; }
 .muted { color: var(--ink-3); }
 
-.tip { position: fixed; z-index: 10; max-width: 320px; padding: 8px 10px; border-radius: 8px; background: var(--ink); color: var(--surface); font-size: 12.5px; line-height: 1.4; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,0.18); overflow-wrap: anywhere; }
+.tip { position: fixed; z-index: 10; max-width: 320px; padding: 8px 10px; border-radius: 8px; background: var(--ink); color: var(--surface); font-size: 12.5px; line-height: 1.4; pointer-events: none; box-shadow: 0 4px 16px var(--shadow); overflow-wrap: anywhere; }
 .tip b { display: block; font-size: 12.5px; }
 .tip .tm { font-family: var(--font-mono); font-size: 11px; opacity: 0.75; }
 .tip .v { font-weight: 600; }
@@ -352,6 +369,8 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
           <div class="chart-frame" id="chart-frame">
             <div class="chart-scroll" id="chart-scroll"><svg id="chart" class="swim" role="img"></svg></div>
             <svg id="chart-labels" class="swim" aria-hidden="true"></svg>
+            <button type="button" class="pan pan-l" id="pan-l" title="Scroll to earlier times" aria-label="Scroll to earlier times" hidden>←</button>
+            <button type="button" class="pan pan-r" id="pan-r" title="Scroll to later times" aria-label="Scroll to later times" hidden>→</button>
           </div>
         </div>
         <details class="panel log" id="log">
@@ -615,12 +634,17 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
 
   // ---------- masthead, legend, notes ----------
   const KIND = {
-    chat: { belief: 'Asserts or builds on the claim', attributed: 'Mentions the claim as someone else’s view', hint: 'Questions the claim or hints at the correction', fix: 'States the correction', other: 'Not about the episode' },
+    chat: { belief: 'Asserts or builds on the claim', attributed: 'Mentions the claim as someone else’s view', hint: 'Questions the claim or hints at the correction', fix: 'States the correction', other: 'Counted as neither claim nor correction' },
     mem: { claim: 'Memory holds the claim as true', attributed: 'Memory records the claim as someone else’s view', fix: 'Memory holds the correction', none: 'Memory mentions neither' },
   };
   const chipCls = m => (m.type === 'mem' && m.kind === 'attributed' ? 'attributed mem-attributed' : { belief: 'belief', claim: 'belief', attributed: 'attributed', fix: 'fix', hint: 'hint', none: 'none' }[m.kind] || '');
   const who = r => (r?.human && /\(human\)/.test(r.name) ? 'Village staff (human)' : r?.name ?? '');
   const whoShort = (r, a) => (r?.human ? r.name.replace(' (human) · ', ' · ') : a);
+  // A neutral item that still carries a stance matched the claim wording, but the labeller did not
+  // read it as adopting, reporting or refuting the claim.
+  const kindText = m => (m.type === 'mem' && m.kind === 'none' && m.stance
+    ? (m.stance === 'unclear' ? 'Mentions the claim, stance unclear' : 'Counted as neither claim nor correction')
+    : KIND[m.type][m.kind] || m.kind);
   const isTagged = m => !(m.type === 'chat' && m.kind === 'other') && !(m.type === 'mem' && m.kind === 'none');
 
   function renderHead() {
@@ -661,11 +685,18 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
       has('mem', 'attributed') && k(bar('var(--belief-soft)'), 'as someone else’s view'),
       has('mem', 'fix') && k(bar('var(--fix)'), 'holds the correction'),
       has('mem', 'none') && k(bar('var(--mem-none)'), 'neither'),
+      V.panels.length > 1 && marks.some(m => m.type === 'mem') && k('<svg width="18" height="6"><path d="M0 3H18" stroke="var(--ink-3)" stroke-width="5" stroke-dasharray="4 3"/></svg>', 'dashed across the gaps between panels'),
     ];
-    const files = [
-      k('<svg width="10" height="10"><path d="M5 0.5 9.5 5 5 9.5 0.5 5Z" fill="var(--ink-2)"/></svg>', 'write'),
-      k('<svg width="10" height="10"><path d="M5 1.2 8.8 5 5 8.8 1.2 5Z" fill="var(--surface)" stroke="var(--ink-2)" stroke-width="1.4"/></svg>', 'read'),
-    ];
+    // file diamonds take the colour of what the command touches: red the claim, blue the correction
+    const fk = ['belief', 'fix'].filter(c => has('file', c)).map(c => (c === 'fix' ? 'var(--fix)' : 'var(--belief)'));
+    const dia = filled => `<svg width="${fk.length * 12 - 2}" height="10">${fk.map((col, j) => filled
+      ? `<path d="M${5 + j * 12} 0.5 ${9.5 + j * 12} 5 ${5 + j * 12} 9.5 ${0.5 + j * 12} 5Z" fill="${col}"/>`
+      : `<path d="M${5 + j * 12} 1.2 ${8.8 + j * 12} 5 ${5 + j * 12} 8.8 ${1.2 + j * 12} 5Z" fill="var(--surface)" stroke="${col}" stroke-width="1.4"/>`).join('')}</svg>`;
+    const files = fk.length ? [
+      k(dia(true), 'writes a file'),
+      k(dia(false), 'reads one'),
+      fk.length > 1 && '<span class="lg-note">red: about the claim, blue: about the correction</span>',
+    ] : [];
     const arrow = dash => `<svg width="22" height="10"><path d="M1 5H17" stroke="var(--ink-2)" stroke-width="1.6"${dash ? ' stroke-dasharray="4 3"' : ''}/><path d="M16 1.5 21 5 16 8.5Z" fill="var(--ink-2)"/></svg>`;
     const arrows = [
       links.some(l => !l.auto) && k(arrow(false), 'hand-off, checked by hand'),
@@ -703,8 +734,19 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
   const svg = $('chart');
   const scroller = $('chart-scroll');
   const labels = $('chart-labels');
-  const onScroll = () => $('chart-frame').classList.toggle('scrolled', scroller.scrollLeft > L.label - 40);
+  // The lane names stick once the chart scrolls; a fade and a button say when more lies to the right.
+  const onScroll = () => {
+    const sl = scroller.scrollLeft, max = scroller.scrollWidth - scroller.clientWidth;
+    const f = $('chart-frame');
+    f.classList.toggle('scrolled', sl > 2);
+    f.classList.toggle('more-r', sl < max - 4);
+    $('pan-r').hidden = !(sl < max - 4);
+    $('pan-l').hidden = !(sl > 4);
+  };
   scroller.addEventListener('scroll', onScroll, { passive: true });
+  const pan = dir => scroller.scrollBy({ left: dir * Math.max(160, (scroller.clientWidth - L.label) * 0.8), behavior: reduced() ? 'auto' : 'smooth' });
+  $('pan-r').addEventListener('click', () => pan(1));
+  $('pan-l').addEventListener('click', () => pan(-1));
   const L = { label: 178, gap: 66, padR: 18, axis: 62, head: 30, row: 36, wall: 34, bottom: 10 };
   const Y = { file: 9, chat: 19, band: 27, bandH: 5 };
   const CW = 6.4;  // average glyph width at 11.5–12px, for fitting labels
@@ -729,17 +771,29 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
     return { items, rows: rowsUsed.length };
   }
 
+  // Gap text between panels: the spec's label split at " · " into two lines, else the time span.
+  const gapText = (a, b) => {
+    const g = (V.D.gaps || []).find(z => z.after === a.id);
+    return g && g.label ? g.label.split(' · ') : [span(b.startMs - a.endMs), 'gap'];
+  };
   function layout() {
     const { panels, groups, rows } = V;
     const n = panels.length;
-    const W = Math.max(920, L.label + L.padR + (n - 1) * L.gap + n * 200, scroller.clientWidth);
-    const avail = W - L.label - L.padR - (n - 1) * L.gap;
+    L.label = scroller.clientWidth < 560 ? 136 : 184;
+    // each gap is wide enough for its label, within limits
+    const gw = panels.slice(0, -1).map((p, i) => {
+      const [l1, l2] = gapText(p, panels[i + 1]);
+      return Math.round(Math.min(124, Math.max(L.gap, l1.length * 6 + 14, (l2 || '').length * 6.6 + 14)));
+    });
+    const gsum = gw.reduce((s, v) => s + v, 0);
+    const W = Math.max(920, L.label + L.padR + gsum + n * 200, scroller.clientWidth);
+    const avail = W - L.label - L.padR - gsum;
     const wt = p => (p.weight > 0 ? p.weight : 1);
     const wsum = panels.reduce((s, p) => s + wt(p), 0);
     let x0 = L.label, used = 0;
     const P = panels.map((p, i) => {
       const w = i === n - 1 ? avail - used : Math.round(avail * wt(p) / wsum);
-      const o = { p, x0, w }; x0 += w + L.gap; used += w; return o;
+      const o = { p, x0, w, gap: gw[i] || 0 }; x0 += w + (gw[i] || 0); used += w; return o;
     });
     const x = t => {
       for (const o of P) if (t >= o.p.startMs && t <= o.p.endMs) return o.x0 + (t - o.p.startMs) / Math.max(1, o.p.endMs - o.p.startMs) * o.w;
@@ -787,24 +841,44 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
     for (const { p, x0, w } of P) {
       const day = p.day ?? dayNum(p.startMs);
       const full = `${p.label} · Day ${day}`;
-      o.push(full.length * 6.8 <= w
+      o.push(full.length * 7.2 <= w
         ? `<text x="${x0}" y="16" class="t-ink t-strong">${esc(p.label)} <tspan class="t-3" font-weight="400">· Day ${day}</tspan><title>${esc(dayName(p.startMs, true))}</title></text>`
-        : `<text x="${x0}" y="16" class="t-ink t-strong">${esc(fit(p.label, w, 6.8))}<title>${esc(full)}</title></text>`);
+        : `<text x="${x0}" y="16" class="t-ink t-strong">${esc(fit(p.label, w, 7.2))}<title>${esc(full)}</title></text>`);
       const len = Math.max(1, p.endMs - p.startMs), DAY = 864e5;
-      const stepMs = [15, 30, 60, 120, 180, 360, 720, 1440, 2880, 10080, 20160, 40320].map(m => m * 60e3).find(s => (s / len) * w >= 64) || 40320 * 60e3;
-      const grain = Math.min(stepMs, DAY);  // day-scale ticks start at local midnight, then step
-      for (let t = Math.ceil((p.startMs + OFF) / grain) * grain - OFF; t <= p.endMs; t += stepMs) {
+      const stepMs = [15, 30, 60, 120, 180, 360, 720, 1440, 2880, 10080, 20160].map(m => m * 60e3).find(s => (s / len) * w >= 64);
+      const ticks = [];
+      if (stepMs) {
+        const grain = Math.min(stepMs, DAY);  // day-scale ticks start at local midnight, then step
+        for (let t = Math.ceil((p.startMs + OFF) / grain) * grain - OFF; t <= p.endMs; t += stepMs) {
+          ticks.push([t, stepMs >= DAY ? `${local(t).getUTCDate()} ${MO[local(t).getUTCMonth()]}` : hourLabel(t)]);
+        }
+      } else {
+        // long panels: month starts, every k months
+        const k = [1, 2, 3, 6, 12].find(k => w / (len / (30.4 * DAY) / k) >= 48) || 12;
+        const d0 = local(p.startMs);
+        for (let y = d0.getUTCFullYear(), m = d0.getUTCMonth() + 1; ; m++) {
+          if (m > 11) { y++; m = 0; }
+          const t = Date.UTC(y, m, 1) - OFF;
+          if (t > p.endMs) break;
+          if (m % k === 0) ticks.push([t, m === 0 ? `${MO[0]} ${y}` : MO[m]]);
+        }
+      }
+      let lastHi = -Infinity;
+      for (const [t, lab] of ticks) {
         const xx = x(t);
         o.push(`<line class="grid" x1="${xx}" x2="${xx}" y1="${top}" y2="${H - L.bottom}"/>`);
-        const lab = stepMs >= DAY ? `${local(t).getUTCDate()} ${MO[local(t).getUTCMonth()]}` : hourLabel(t), half = lab.length * 3.4;
+        const half = lab.length * 3.4;
         const anchor = xx - half < x0 ? 'start' : xx + half > x0 + w ? 'end' : 'middle';
+        const lo = anchor === 'start' ? xx : anchor === 'end' ? xx - 2 * half : xx - half;
+        if (lo < lastHi + 8) continue;  // a label that would touch the last one is left out; its grid line stays
+        lastHi = lo + 2 * half;
         o.push(`<text x="${xx}" y="36" class="mono t-3" text-anchor="${anchor}">${lab}</text>`);
       }
     }
     P.slice(0, -1).forEach((a, i) => {
       const b = P[i + 1]; const gx = a.x0 + a.w, gw = b.x0 - gx;
       const g = (V.D.gaps || []).find(z => z.after === a.p.id);
-      const [l1, l2] = g && g.label ? g.label.split(' · ') : [span(b.p.startMs - a.p.endMs), 'gap'];
+      const [l1, l2] = gapText(a.p, b.p);
       o.push(`<rect x="${gx + 8}" y="${top}" width="${gw - 16}" height="${H - L.bottom - top}" fill="var(--bg)" rx="4"/>`);
       o.push(`<text x="${gx + gw / 2}" y="16" class="t-3" font-size="11" text-anchor="middle">${esc(fit(l1, gw - 6, 6))}<title>${esc(g?.label || l1)}</title></text>`);
       if (l2) o.push(`<text x="${gx + gw / 2}" y="36" class="mono t-3" text-anchor="middle">${esc(fit(l2, gw - 6, 6.6))}</text>`);
@@ -812,11 +886,12 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
     o.push('<g id="shade"></g>');
 
     // group heads, room walls, row labels, separators (lab: the sticky copy of the label column)
-    const LW = scroller.clientWidth < 560 ? 112 : L.label - 8, ly = heads.length ? heads[0].y - 4 : top;
+    const LW = L.label - 8, ly = heads.length ? heads[0].y - 4 : top;
+    const LX = 10, LT = L.label - LX - 12;  // lane names sit inset from the panel edge, at the same x in the sticky copy
     const lab = [`<rect x="0" y="${ly}" width="${LW}" height="${H - ly}" fill="var(--surface)"/><line x1="${LW + 0.5}" x2="${LW + 0.5}" y1="${ly}" y2="${H}" stroke="var(--rule)"/>`];
     for (const h of heads) {
-      o.push(`<text x="0" y="${h.y + 20}" class="t-ink" font-size="14" font-weight="800">${esc(h.g.label)} <tspan class="t-3" font-size="12" font-weight="400">${esc(fit(h.g.note, W - 200))}</tspan></text>`);
-      lab.push(`<text x="8" y="${h.y + 20}" class="t-ink" font-size="14" font-weight="800">${esc(fit(h.g.label, LW - 12, 8.4))}</text>`);
+      o.push(`<text x="${LX}" y="${h.y + 20}" class="t-ink halo" font-size="14" font-weight="800">${esc(h.g.label)} <tspan class="t-3" font-size="12" font-weight="400">${esc(fit(h.g.note, W - 200))}</tspan></text>`);
+      lab.push(`<text x="${LX}" y="${h.y + 20}" class="t-ink" font-size="14" font-weight="800">${esc(fit(h.g.label, LT, 8.4))}</text>`);
     }
     const wallBoxes = [];
     walls.forEach((wy, i) => {
@@ -838,10 +913,10 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
       o.push(`<line class="sep" x1="0" x2="${W - L.padR}" y1="${y0 + L.row}" y2="${y0 + L.row}"/>`);
       const sub = r.note || (r.human && /\(human\)/.test(r.name) ? 'human' : r.silent ? 'silent' : '');
       const label = r.human ? r.name.replace(/ \(human\).*$/, '') : r.name.replace(/^Claude /, '');
-      o.push(`<text x="0" y="${y0 + (sub ? 16 : 22)}" class="t-ink" font-size="12.5" font-weight="600" data-row="${esc(r.name)}">${esc(fit(label, L.label - 10, 7))}<title>${esc(r.name)}</title></text>`);
-      if (sub) o.push(`<text x="0" y="${y0 + 29}" class="t-3" font-size="11" data-row="${esc(r.name)}">${esc(fit(sub, L.label - 10, 5.9))}<title>${esc(sub)}</title></text>`);
-      lab.push(`<line x1="0" x2="${LW}" y1="${y0 + L.row}" y2="${y0 + L.row}" stroke="var(--grid)"/><text x="8" y="${y0 + (sub ? 16 : 22)}" class="t-ink" font-size="12.5" font-weight="600">${esc(fit(label, LW - 14, 7))}</text>`);
-      if (sub) lab.push(`<text x="8" y="${y0 + 29}" class="t-3" font-size="11">${esc(fit(sub, LW - 14, 5.9))}</text>`);
+      o.push(`<text x="${LX}" y="${y0 + (sub ? 16 : 22)}" class="t-ink" font-size="12.5" font-weight="600" data-row="${esc(r.name)}">${esc(fit(label, LT, 7))}<title>${esc(r.name)}</title></text>`);
+      if (sub) o.push(`<text x="${LX}" y="${y0 + 29}" class="t-3" font-size="11" data-row="${esc(r.name)}">${esc(fit(sub, LT, 5.9))}<title>${esc(sub)}</title></text>`);
+      lab.push(`<line x1="0" x2="${LW}" y1="${y0 + L.row}" y2="${y0 + L.row}" stroke="var(--grid)"/><text x="${LX}" y="${y0 + (sub ? 16 : 22)}" class="t-ink" font-size="12.5" font-weight="600">${esc(fit(label, LT, 7))}</text>`);
+      if (sub) lab.push(`<text x="${LX}" y="${y0 + 29}" class="t-3" font-size="11">${esc(fit(sub, LT, 5.9))}</text>`);
     }
 
     // memory bands: hover anywhere along a bar to read the snapshot behind it
@@ -851,7 +926,7 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
       const fill = fillOf[b.kind] || 'var(--mem-none)';
       if (b.panel === 'gap') {
         const a = P.find(q => q.p.endMs === b.t); if (!a) return;
-        const gx = a.x0 + a.w, gw = L.gap, cy = y0 + Y.band + Y.bandH / 2;
+        const gx = a.x0 + a.w, gw = a.gap, cy = y0 + Y.band + Y.bandH / 2;
         o.push(`<g class="band ch-mem" data-b="${j}" data-i="${b.src}"><line x1="${gx + 2}" x2="${gx + gw - 2}" y1="${cy}" y2="${cy}" stroke="${fill}" stroke-width="${Y.bandH}" stroke-dasharray="4 3"/><rect class="hit" x="${gx}" y="${cy - 7}" width="${gw}" height="14"/></g>`);
       } else {
         const x0 = x(b.t), x1 = x(b.t1); if (x0 == null || x1 == null) return;
@@ -863,7 +938,7 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
     // annotations
     for (const a of annos.items) {
       o.push(`<line class="anno" x1="${a.xx}" x2="${a.xx}" y1="44" y2="${H - L.bottom}"/>`);
-      o.push(`<text x="${a.xx + (a.anchor === 'end' ? -5 : a.anchor === 'start' ? 5 : 0)}" y="${54 + a.row * 13}" font-size="11.5" class="t-ink" font-weight="600" text-anchor="${a.anchor}">${esc(a.label)}</text>`);
+      o.push(`<text x="${a.xx + (a.anchor === 'end' ? -5 : a.anchor === 'start' ? 5 : 0)}" y="${54 + a.row * 13}" font-size="11.5" class="t-ink halo" font-weight="600" text-anchor="${a.anchor}">${esc(a.label)}</text>`);
     }
 
     // room moves: an arrow from the agent's lane into the room it joined
@@ -966,17 +1041,56 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
       sh.innerHTML = out.join('');
     }
   }
+  // Where the selection ring goes. A memory snapshot written before a panel starts has no mark of its
+  // own: the ring goes on the start of the bar it draws in the next panel ('own'), or, when a later
+  // snapshot came first, on the start of the bar that enters that panel ('carried').
+  const anchor = i => {
+    if (i == null || i < 0 || !G) return null;
+    const p = pos(i); if (p) return { p, how: 'mark' };
+    const m = V.marks[i]; if (m.type !== 'mem') return null;
+    let b = V.bands.find(z => z.src === i && z.panel !== 'gap'), how = 'own';
+    if (!b) {
+      const nx = V.panels.find(q => q.startMs > m.t);
+      b = nx && V.bands.find(z => z.a === m.a && z.panel === nx.id && !z.start && z.t === nx.startMs);
+      how = 'carried';
+    }
+    const xx = b ? G.x(b.t) : null, y0 = b ? G.rowY[b.a] : null;
+    return xx == null || y0 == null ? null : { p: [xx, y0 + Y.band + Y.bandH / 2], how, same: b.kind === m.kind };
+  };
+  const selPos = i => anchor(i)?.p || null;
   function placeSel() {
     const c = svg.querySelector('#sel'); if (!c) return;
-    const p = V.selected != null && V.selected >= 0 ? pos(V.selected) : null;
+    // the selected mark (and the bars its snapshot draws) stays at full strength in a dimmed step
+    svg.querySelectorAll('.cur').forEach(e => e.classList.remove('cur'));
+    if (V.selected != null && V.selected >= 0) svg.querySelectorAll(`[data-m="${V.selected}"], .band[data-i="${V.selected}"]`).forEach(e => e.classList.add('cur'));
+    const p = selPos(V.selected);
     if (!p) { c.setAttribute('cx', -50); c.setAttribute('cy', -50); return; }
     c.setAttribute('cx', p[0]); c.setAttribute('cy', p[1]);
   }
-  function reveal(i) {
-    const p = i != null && i >= 0 && G ? pos(i) : null; if (!p) return;
+  const revealX = xx => {
     const sl = scroller.scrollLeft, w = scroller.clientWidth;
-    const lo = sl + (sl > L.label - 40 ? L.label : 0) + 24;
-    if (p[0] < lo || p[0] > sl + w - 24) scroller.scrollTo({ left: Math.max(0, p[0] - (w + L.label) / 2), behavior: reduced() ? 'auto' : 'smooth' });
+    if (xx < sl + L.label + 16 || xx > sl + w - 48) scroller.scrollTo({ left: Math.max(0, xx - (w + L.label) / 2), behavior: reduced() ? 'auto' : 'smooth' });
+  };
+  function reveal(i) { const p = selPos(i); if (p) revealX(p[0]); }
+  // Bring the evidence card into view. On wide screens the rail is sticky: scroll the chart and its rail
+  // to the top of the window, then further when the step's key mark (index k) would sit off screen.
+  // On narrow screens scroll the card itself into view.
+  const wide = () => matchMedia('(min-width: 1121px)').matches;
+  function bringEvidence(k) {
+    const behavior = reduced() ? 'auto' : 'smooth';
+    const ins = $('inspector').getBoundingClientRect(), seen = ins.top >= 0 && ins.top < innerHeight - 120;
+    if (!wide()) { if (!seen) $('inspector').scrollIntoView({ block: 'nearest', behavior }); return; }
+    const wb = document.querySelector('.workbench').getBoundingClientRect();
+    const dy0 = !seen && wb.top > 12 ? wb.top - 12 : 0;
+    let dy = dy0;
+    const p = k != null ? selPos(k) : null;
+    if (p) {
+      const y = svg.getBoundingClientRect().top + p[1] - dy;
+      if (y > innerHeight - 80 || y < 80) dy += y - Math.round(innerHeight / 2);
+      // stop before the rail would scroll away with the end of the chart
+      dy = Math.min(dy, Math.max(dy0, wb.bottom - 12 - document.querySelector('.rail').getBoundingClientRect().height));
+    }
+    if (Math.abs(dy) > 4) scrollBy({ top: dy, behavior });
   }
 
   function stanceChip(m) {
@@ -1002,12 +1116,18 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
       chip = `<span class="chip ${chipCls(m)}"><i></i>${c}</span>`;
       body = `<pre class="quote code ${chipCls(m)}">${esc(m.text)}</pre>`;
     } else {
-      chip = `<span class="chip ${chipCls(m)}"><i></i>${KIND[m.type][m.kind] || esc(m.kind)}</span>`;
-      body = m.type === 'mem' && m.kind === 'none'
+      chip = `<span class="chip ${chipCls(m)}"><i></i>${esc(kindText(m))}</span>`;
+      body = m.type === 'mem' && m.kind === 'none' && !m.stance
         ? `<p class="insp-empty">This snapshot${m.chars ? ` (${num(m.chars)} characters)` : ''} doesn’t mention the claim or the correction.</p>`
         : m.text ? `<blockquote class="quote ${chipCls(m)}">${esc(m.text)}</blockquote>` : '';
     }
-    const reason = m.reason ? `<p class="insp-meta">Labeller’s reason: ${esc(m.reason)}</p>` : '';
+    const reason = (m.reason ? `<p class="insp-meta">Labeller’s reason: ${esc(m.reason)}</p>` : '') +
+      ((m.kind === 'fix' || m.kind === 'hint') && m.stance === 'adopts' ? `<p class="insp-meta">Drawn blue because it ${m.kind === 'fix' ? 'states the correction' : 'uses the correction’s wording'}. The labeller rated how it treats the claim, which it also mentions.</p>` : '');
+    const an = anchor(i);
+    const off = an?.how === 'mark' ? '' : `<p class="insp-meta">${!an ? 'Outside the time windows shown, so it has no mark on the chart.'
+      : an.how === 'own' ? 'Written before the panel starts, so it has no mark of its own. It draws the bar at the start of this lane.'
+      : `Written before the panel starts, so it has no mark of its own. The ring marks where this lane enters the panel${an.same ? ', still in the same state' : ''}.`}</p>`;
+    const excerpt = m.type === 'mem' && (m.kind !== 'none' || m.stance) && m.chars ? ` · Excerpt from a ${num(m.chars)}-character snapshot` : '';
     const own = links.map((l, k) => [l, k]).filter(([l]) => l.a === i || l.b === i);
     const linkList = own.length ? `<ul class="insp-links">${own.map(([l]) => {
       const other = l.a === i ? l.b : l.a, om = marks[other];
@@ -1017,8 +1137,8 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
     el.innerHTML = `<p class="kicker">${keyLabel ? esc(keyLabel) + ' · ' : ''}${esc(where)}</p>
       <h3 class="insp-who">${esc(who(r) || m.a)}</h3>
       <p class="insp-time">${dayName(m.t, true)}, ${clock(m.t, true)} ${TZ} · ${utc(m.t)}</p>
-      <div class="chips">${chip}${stanceChip(m)}</div>${reason}${body}${linkList}
-      <p class="insp-meta">${m.type === 'chat' ? 'Message' : m.type === 'mem' ? 'Memory' : 'Turn'} id <code>${esc(m.id)}</code> · <a href="${link}" target="_blank" rel="noopener">Open this moment in the AI Village</a></p>`;
+      <div class="chips">${chip}${stanceChip(m)}</div>${off}${reason}${body}${linkList}
+      <p class="insp-meta">${m.type === 'chat' ? 'Message' : m.type === 'mem' ? 'Memory' : 'Turn'} id <code>${esc(m.id)}</code>${excerpt} · <a href="${link}" target="_blank" rel="noopener">Open this moment in the AI Village</a></p>`;
   }
   function inspectLink(k) {
     const l = V.links[k], { marks } = V;
@@ -1063,7 +1183,7 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
       return `<li><button type="button" data-step="${i}" aria-label="Step ${n}: ${esc(s.title)}">${overview && i === 0 ? 'All' : n}</button></li>`;
     }).join('');
   }
-  function go(n) {
+  function go(n, user) {
     const { steps, overview } = V;
     V.step = Math.max(0, Math.min(steps.length - 1, n));
     const st = steps[V.step];
@@ -1080,17 +1200,19 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
     if (G) { applyStep(); placeSel(); }
     inspect(V.selected, st.keyIdx >= 0 ? 'Key evidence' : null);
     renderLog();
-    reveal(V.selected);
+    // show the key mark; without one, the start of the step's window, or the start of the chart
+    if (G) { if (selPos(V.selected)) reveal(V.selected); else if (st.rangeMs) { const xs = G.x(st.rangeMs[0]); if (xs != null) revealX(xs); } else scroller.scrollTo({ left: 0, behavior: reduced() ? 'auto' : 'smooth' }); }
+    if (user && wide()) bringEvidence(V.selected);
     if (!V.adhoc) store.set('bt-step:' + V.D.slug, String(V.step));
   }
-  stepsEl.addEventListener('click', e => { const b = e.target.closest('[data-step]'); if (b) go(+b.dataset.step); });
-  $('prev').addEventListener('click', () => go(V.step - 1));
-  $('next').addEventListener('click', () => go(V.step === V.steps.length - 1 ? 0 : V.step + 1));
+  stepsEl.addEventListener('click', e => { const b = e.target.closest('[data-step]'); if (b) go(+b.dataset.step, true); });
+  $('prev').addEventListener('click', () => go(V.step - 1, true));
+  $('next').addEventListener('click', () => go(V.step === V.steps.length - 1 ? 0 : V.step + 1, true));
   document.addEventListener('keydown', e => {
     if (!V || $('episode').hidden || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
     if (e.target.closest('input, textarea, select, [contenteditable]')) return;
-    if (e.key === 'ArrowRight') { e.preventDefault(); go(V.step + 1); }
-    if (e.key === 'ArrowLeft') { e.preventDefault(); go(V.step - 1); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); go(V.step + 1, true); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); go(V.step - 1, true); }
   });
 
   // ---------- pointer ----------
@@ -1118,9 +1240,9 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
     if (!h) { const r = e.target.closest('[data-row]'); hl(r ? r.dataset.row : null); return; }
     const m = V.marks[+h.dataset.i];
     hl(m.a);
-    const what = m.type === 'file' ? (m.op === 'write' ? 'File write' : 'File read') : KIND[m.type][m.kind] || m.kind;
+    const what = m.type === 'file' ? (m.op === 'write' ? 'File write' : 'File read') : kindText(m);
     const flag = m.check && m.stance !== m.check ? `<span class="warn">Labellers disagree: ${esc(m.stance || 'no label')} · ${esc(m.check)}</span>` : '';
-    const body = m.type === 'mem' && m.kind === 'none' ? '' : m.text ? '<br>' + esc(short(m.text)) : '';
+    const body = m.type === 'mem' && m.kind === 'none' && !m.stance ? '' : m.text ? '<br>' + esc(short(m.text)) : '';
     tip.innerHTML = `<b>${esc(whoShort(V.rowOf[m.a], m.a))}</b><span class="tm">${dayName(m.t)} ${clock(m.t, true)} ${TZ} · ${esc(what)}</span>${flag}${body}`;
     tip.hidden = false;
   });
@@ -1132,11 +1254,11 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
   svg.addEventListener('pointerleave', () => { tip.hidden = true; hl(null); });
   svg.addEventListener('click', e => {
     const lk = e.target.closest('[data-l]');
-    if (lk) { tip.hidden = true; V.selected = null; placeSel(); inspectLink(+lk.dataset.l); return; }
+    if (lk) { tip.hidden = true; V.selected = null; placeSel(); inspectLink(+lk.dataset.l); bringEvidence(); return; }
     const h = e.target.closest('[data-i]'); if (!h) return;
-    tip.hidden = true; select(+h.dataset.i);
+    tip.hidden = true; select(+h.dataset.i); bringEvidence();
   });
-  $('log-body').addEventListener('click', e => { const tr = e.target.closest('tr[data-i]'); if (tr) select(+tr.dataset.i, { reveal: true }); });
+  $('log-body').addEventListener('click', e => { const tr = e.target.closest('tr[data-i]'); if (tr) { select(+tr.dataset.i, { reveal: true }); bringEvidence(); } });
   $('inspector').addEventListener('click', e => { const b = e.target.closest('[data-goto]'); if (b) select(+b.dataset.goto, { reveal: true }); });
 
   // ---------- channels ----------
@@ -1158,8 +1280,11 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
     tabs.hidden = !(live || S.list.length > 1);
     tabs.innerHTML = S.list.map(e => `<span class="tab"><a href="#${encodeURIComponent(e.slug)}" data-slug="${esc(e.slug)}" title="${esc(e.title)}">${esc(e.title)}</a>${e.adhoc ? `<button type="button" class="tab-x" data-close="${esc(e.slug)}" aria-label="Close ${esc(e.title)}">×</button>` : ''}</span>`).join('') +
       (live ? `<span class="tab tab-trace"><a href="#trace" data-slug="trace">${ICON_SEARCH}Trace a claim</a></span>` : '');
-    markTabs();
+    markTabs(); tabsFade();
   }
+  // fade the right edge of the tab strip while more tabs lie past it
+  const tabsFade = () => tabs.classList.toggle('more-r', tabs.scrollLeft + tabs.clientWidth < tabs.scrollWidth - 4);
+  tabs.addEventListener('scroll', tabsFade, { passive: true });
   let current = null;
   function markTabs() {
     tabs.querySelectorAll('a[data-slug]').forEach(a => (a.dataset.slug === current ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
@@ -1230,7 +1355,7 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
   let rz;
   addEventListener('resize', () => {
     clearTimeout(rz);
-    rz = setTimeout(() => { if (V && !$('episode').hidden) render(); if (TR.scan && !$('tracer').hidden) renderDays(); }, 120);
+    rz = setTimeout(() => { tabsFade(); if (V && !$('episode').hidden) render(); if (TR.scan && !$('tracer').hidden) renderDays(); }, 120);
   });
 
   // ---------- trace a claim (live mode) ----------

@@ -53,6 +53,21 @@ command text when absent.
 >   Python's `re` would match. Memory regexes run on the raw text in SQL; Python decides on the
 >   redacted text. A spec regex that only matches the literal `[REDACTED]` would be missed.
 
+> **Note (trace.py, review 3 Oct): redaction and time zones.**
+> - The engine's `SECRET` adds six parts after label.py's eight: Google OAuth client secrets
+>   (`GOCSPX-…`), Google API keys (`AIza…`), AWS key ids, Google access and refresh tokens, and
+>   private key blocks. One agent's memory holds an OAuth client secret in about 850 snapshots, and
+>   label.py's pattern misses it. A key block is redacted in a pass of its own, before the other
+>   parts, from its BEGIN line through its body (to the END line, or to the first character a key
+>   body cannot hold). Otherwise `privateKey = '-----BEGIN …` loses only its header to the password
+>   rule. check.py uses the same pattern. label.py should take the new parts too.
+> - `live_spec` and `auto_panels` without `tz_offset_hours` use the Pacific zone: each chosen date
+>   runs from its own Pacific midnight, and the episode's `tz_offset_hours` is the offset on the
+>   first panel's date (-8 in winter). Before, live traces always used -7, so winter times showed one
+>   hour late. An episode still has one offset, so a panel that crosses a daylight-saving change
+>   shows the times on the far side one hour off (divergent-reality's `after` panel, December to
+>   June, at -8).
+
 ## Episode spec (`tracer/episodes/<slug>.json`)
 
 ```jsonc
@@ -198,6 +213,30 @@ the inspector still shows its stance. (Changed 2026-10-03; it used to keep the r
 > - After `correctionMs` a `linger` match is belief in any room: `claim.rooms` limits `claim.chat`
 >   belief only.
 
+> **Note (trace.py, review 3 Oct): additions to episode data, labels and thinning.**
+> - Each link has `"rooms": [from, to]`: the room of each end at that moment. A chat end's room is
+>   the message's room. Otherwise it is the author's room then (its most recent chat message in the
+>   previous 48 hours, any room), else its row's group when that is a room, else null.
+> - `labelStats` also passes through the labels file's `checked` and `checkSample` (null when
+>   absent), so the viewer can say how many items the agreement figure covers.
+> - Labels: when the main pass has no stance for an item, the check pass's stance maps it, and
+>   `stance` stays null (the viewer flags the pair). Red still needs a labeller's adopts.
+> - A hand link's file end that no file regex tagged takes the family of the link's other end
+>   (belief, claim or attributed → belief; fix or hint → fix). When the other end names neither, the
+>   turn's time decides (fix from `correctionMs`). Before, any other end that was not belief or claim
+>   made the file a fix, and the last link listed won.
+> - File `op`: creating a repo (`gh repo create`, `git init`), creating or merging a pull or merge
+>   request, and `git merge` are writes. Text typed through the GUI (`type` actions) stays a read: it
+>   is as often a URL typed into a browser as text typed into a file.
+> - Thinning: the regions each step lights do not change either, not only the bands. Thinning also
+>   keeps each agent's last snapshot strictly before a panel start (the gap band's source) and every
+>   snapshot whose band lights differently from the band before it in some step. The engine then
+>   compares the thinned and full models step by step (tracer.check's copy of the viewer model), and
+>   where an agent's lit region in a panel still differs it keeps all that agent's snapshots in that
+>   panel. Before, a step with a time window on bands in a `show_other: false` panel lit the whole
+>   merged band: watch-is-unbroken's step 9 lit GPT-5.5 from 29 June to 17 July instead of 16 July
+>   18:43 to 20:06.
+
 ## Steps
 
 ```jsonc
@@ -257,6 +296,26 @@ Figures may use `{stat_name}` and `{stat_name.length}` placeholders.
 >   `group_reach`, `fix_mem_agents`, `fix_first_minute`, `linger_agents`, `crossroom_links`,
 >   `first_claim`, `first_fix`.
 
+> **Note (trace.py, review 3 Oct): `crossroom_links` counts rooms at the moment.** This replaces the
+> row-group bullet above. A link counts when both ends have a room in `links[].rooms` and the two
+> rooms differ. Rows put each agent in one group for the whole episode. So an agent that moved made
+> the old count disagree with the auto link labels, which name each agent's room at that time. In
+> temporal-bleed, Opus 4.7's row is in #best, but on Monday it wrote from #rest: the count goes from
+> 1 to 7. An arrow can now count as cross-room while both rows sit in one group; the moves arrow
+> shows why. Auto links still need a chat-based room at both ends; only the count falls back to a
+> row's group.
+
+> **Note (check.py, review 3 Oct): more checks.** Panel `day` against the start date in the display
+> zone. Panels and `correctionMs` against the spec. Kinds against labels: belief and claim need
+> adopts or no label, attributed needs attributes, and the check stance stands in for a missing
+> stance. Fix chat only from `correctionMs`; fix memory before it only with a refutes label; fix
+> files only from `probe_from` (with the spec). Link rooms: a chat end's room is its message's room,
+> and an automatic hand-off between two agents' commands has two different rooms; `crossroom_links`
+> is recomputed from them. `corrector` is an agent row. The parts of `memory_only` the data can show.
+> Focus values that name nothing in the episode. A step key that its own focus dims. Repeated or
+> self links, annotation anchors, `labelled` above `items`, placeholders in title, headline and
+> lede, and key bodies left after a broken key header.
+
 ## Auto links (cross-room hand-offs through files)
 
 Room of an agent at time t = the room of its most recent chat message in the previous 48 hours.
@@ -284,6 +343,26 @@ comes from `artifact_events.parquet` when present; otherwise from repo-like name
 >   uses its artifacts. Otherwise the regexes run outside heredoc bodies, and a local directory
 >   name counts only when the events file knows it as a repo (or, without the file, when it does
 >   not look like a file or a common folder).
+
+> **Note (trace.py, review 3 Oct): which read a link uses.** These replace the "one read is kept"
+> and "second link" bullets above.
+> - Per reader, artifact and family, the earliest read with evidence is kept, tagged or not. A later
+>   read whose command names the claim shows that the reader knew it by then, not where it came
+>   from.
+> - The second link starts at the read that brought the content the reader's next mark holds. When
+>   the reader reads the family again before that mark, and that read shows a newer write by another
+>   agent, the second link moves to it. That read gets its own hand-off link when the write came from
+>   another room. When the newer write came from the reader's own room, the second link is left out.
+>   In temporal-bleed, Fine-Tuned Leader's 17:40 memory was linked to a 17:30 read of the doc, which
+>   did not hold the correction yet. It now links to the 17:32 pull, whose log shows the "weekend"
+>   commit.
+> - The mark is the earliest of the reader's next memory snapshot and next chat message within 45
+>   minutes that is in the family, as the code always did.
+> - An auto hand-off is also left out when a hand link already links the same write to the same
+>   reader, at any of the reader's marks.
+> - File kinds come from keywords, not labels, so a claim-family write is labelled "mentions the
+>   claim in X": the text may argue against it. A fix-family write before `correctionMs` (the probe
+>   window) "writes evidence for the correction".
 
 ## Labels (`tracer/labels/<slug>.json`)
 
@@ -407,6 +486,31 @@ POST /api/trace                body {"claim": {"label", "pattern"}, "correction"
 >   `calls`, `distinct` and `sent`. A usage-limit or CLI error keeps the labels returned so far and
 >   adds a warning.
 
+> **Note (serve.py, review 3 Oct): changes to the note above.** The viewer needs no changes.
+> - Patterns: besides the checks above, a scan, claim or correction pattern is refused (400) when
+>   it has a shape that makes Python's backtracking `re` run for hours: a repeat whose body can
+>   split the same text in more than one way (`(\w+\s?)+`, `(.|\s)*`, `(a|ab)+`), or repeats in a
+>   row that take the same characters (`.*.*`, `\w+\w+\w+`). RE2 runs these fast, so SQL found
+>   the texts and then one Python search held the GIL and froze the whole server.
+> - Freshness: when the spec or labels file changes while a build runs, the out file is dated
+>   back to the sources the build read, so the next request builds again. A request that waited
+>   for a build gets that build. Out files and live labels files are written through a temporary
+>   file and a rename.
+> - Build guard (replaces the guard sentence above): the claim's memory matches come from a cached
+>   scan of the same pattern; without one, every memory snapshot from the day before the first day
+>   to the end of the last counts. With a correction and a scanned claim, the correction's matches
+>   from its time to the end count too (a cached scan of the correction pattern, else every snapshot
+>   in that window), up to the window's total. Over 15,000 in all: 400.
+> - Live labels use sonnet (the curated episodes' primary labeller). A labels file already under
+>   the same slug, with the same model, claim and correction labels, is reused, so the same request
+>   after a restart or cache eviction makes no CLI call. `labelStats.sent` counts the distinct
+>   mentions sent in this build; extra field `reused` counts items labelled in an earlier build.
+> - Requests: a `Host` header must name 127.0.0.1, localhost or ::1, and an `Origin` header, when
+>   present, one of those (403). `POST /api/trace` needs `Content-Type: application/json` (415).
+>   A bad or negative `Content-Length`, a short body or nested-too-deep JSON is a 400; a body that
+>   has not arrived in 30 s is a 408. Idle connections close after 30 s. Warnings and 500 messages
+>   are redacted like excerpts. An unknown `trace-<hash>` slug gets a 404 that says to build again.
+
 ## Viewer (`template.html`)
 
 One self-contained page (inline CSS and JS, Google Fonts only), written body-level (no doctype, html,
@@ -444,3 +548,18 @@ Episode tabs switch between curated episodes; `#<slug>` selects one.
 >   Error bodies `{"error": "..."}` (any status) are shown to the user as written.
 > - The current step is remembered per episode in `localStorage` key `bt-step:<slug>` (not for ad-hoc
 >   traces). Ad-hoc traces get tabs `#trace-<n>`; `#trace` opens the "Trace a claim" panel.
+
+> **Note (template.html, visual review 3 Oct).** No data contract changes; producers need nothing new.
+> - Gaps between panels widen to fit their label (66 to 124 px). A gap label longer than about 17
+>   characters per line is cut with an ellipsis, so keep each side of `" · "` short.
+> - Long panels (no hour or week step fits) get month ticks. Tick labels that would touch are left
+>   out; their grid lines stay.
+> - A key memory snapshot written before a panel starts has no mark. The selection ring goes on the
+>   start of the bar it draws, or of the bar that enters the next panel, and the inspector says so.
+>   A key outside every panel gets a note instead of a ring.
+> - The selected mark stays at full strength in a dimmed step. On wide screens a step change or a
+>   click scrolls the chart and the rail to the top of the window when the evidence card is below
+>   the fold; on narrow screens a click scrolls the evidence card into view. Below 1120 px the
+>   evidence card sits right under the chart, before the evidence log.
+> - Item `chars` (memory) shows as "Excerpt from a N-character snapshot". A blue item whose stance
+>   is `adopts` gets a line saying the colour follows the correction wording.

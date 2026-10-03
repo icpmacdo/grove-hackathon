@@ -20,8 +20,10 @@ of it before it leaves the server.
 import argparse
 import hashlib
 import json
+import os
 import re
 import signal
+import string
 import sys
 import threading
 import time
@@ -31,6 +33,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from re import _constants as sre_c, _parser as sre_parse
 from urllib.parse import parse_qs, unquote, urlsplit
 from zoneinfo import ZoneInfo
 
@@ -41,14 +44,15 @@ LIVE = trace.OUT / "live"  # git-ignored: stance labels of live traces
 MIN_QUERY = 3        # characters in a scan phrase or a trace pattern
 MAX_PATTERN = 500
 MAX_DAYS = 10        # panels in a live trace
-MAX_SPAN = 31        # days from the first chosen day to the last, when the pattern has no cached scan
-MAX_MEM_MATCHES = 15000  # memory snapshots the pattern matches from the day before the first day to the last
+MAX_MEM_MATCHES = 15000  # memory snapshots a trace may have to read (see App.guard)
 LABEL_CAP = 400      # distinct mentions sent to the labeller per live trace
-LABEL_MODEL = "haiku"
+LABEL_MODEL = "sonnet"  # the primary labeller of the curated episodes too
 EXCERPT = 240        # characters in a scan's first-seen excerpt
 TOP_AGENTS = 15
 MAX_BODY = 64 * 1024
+SOCKET_TIMEOUT = 30  # seconds a client may take to send its request
 SCAN_CACHE, TRACE_CACHE = 200, 12  # entries kept in memory
+LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
 
 
 class Fail(Exception):
@@ -82,6 +86,123 @@ def redact_episode(data):
 def literal(q):
     """A phrase as a regex, the way the viewer escapes it: lowercased, metacharacters escaped."""
     return re.sub(r"[.*+?^${}()|[\]\\]", r"\\\g<0>", q.lower())
+
+
+# Patterns that make Python's backtracking re run for hours. SQL (RE2, linear time) finds the texts
+# quickly, then Python decides on each one, and a regex search holds the GIL: one bad pattern
+# froze the whole server ("(\w+\s?)+:" on the first chat message it matched). backtracks() refuses
+# the shapes that blow up: a repeat whose body can split the same text in more than one way, and
+# repeats in a row that can take the same characters. It reasons over a sample of characters,
+# so it is a guard, not a proof.
+SAMPLE = frozenset(string.ascii_letters + string.digits + string.punctuation + "_ \t\n\u00a0éß中")
+LETTERS = frozenset(string.ascii_letters + "éß中")
+WORD = LETTERS | frozenset(string.digits + "_")
+CATEGORY = {sre_c.CATEGORY_DIGIT: r"\d", sre_c.CATEGORY_NOT_DIGIT: r"\D", sre_c.CATEGORY_SPACE: r"\s",
+            sre_c.CATEGORY_NOT_SPACE: r"\S", sre_c.CATEGORY_WORD: r"\w", sre_c.CATEGORY_NOT_WORD: r"\W"}
+ATOMS = (sre_c.LITERAL, sre_c.NOT_LITERAL, sre_c.ANY, sre_c.IN)
+ZERO_WIDTH = (sre_c.AT, sre_c.ASSERT, sre_c.ASSERT_NOT)
+NONE = frozenset()
+
+
+class Backtracks(Exception):
+    pass
+
+
+def atom_chars(op, av):
+    """The SAMPLE characters one single-character node of a parsed regex matches, case ignored."""
+    if op is sre_c.LITERAL:
+        src = re.escape(chr(av))
+    elif op is sre_c.NOT_LITERAL:
+        src = f"[^{re.escape(chr(av))}]"
+    elif op is sre_c.ANY:
+        src = "."
+    else:
+        parts = []
+        for o, a in av:
+            if o is sre_c.NEGATE:
+                parts.append("^")
+            elif o is sre_c.LITERAL:
+                parts.append(re.escape(chr(a)))
+            elif o is sre_c.RANGE:
+                parts.append(f"{re.escape(chr(a[0]))}-{re.escape(chr(a[1]))}")
+            elif o is sre_c.CATEGORY and a in CATEGORY:
+                parts.append(CATEGORY[a])
+            else:
+                return SAMPLE
+        src = "[" + "".join(parts) + "]"
+    r = re.compile(src, re.I)
+    return frozenset(c for c in SAMPLE if r.fullmatch(c))
+
+
+def shape(items, looped=False):
+    """Facts about a parsed sequence: (nullable, first, last, lead, cost). nullable: it can match
+    empty text. first: the characters a match can start with. last and lead: the characters a
+    variable repeat at its end, or at its start, could still give or take. cost: how many pairs of
+    variable repeats in a row take the same characters (2 for a pair that can run across words,
+    as .*.* can). looped: the sequence sits inside a repeat that can run more than once.
+    Raises Backtracks for a shape that takes exponential time, or for a cost of 2 or more."""
+    nullable, first, last, lead, cost = True, set(), set(), set(), 0
+    for op, av in items:
+        sub_cost = 0
+        if op in ATOMS:
+            n, f, l, d = False, atom_chars(op, av), NONE, NONE
+        elif op in ZERO_WIDTH:
+            n, f, l, d = True, NONE, NONE, NONE
+        elif op is sre_c.SUBPATTERN:
+            n, f, l, d, sub_cost = shape(av[-1], looped)
+        elif op in (sre_c.BRANCH, sre_c.GROUPREF_EXISTS):
+            branches = av[1] if op is sre_c.BRANCH else [b for b in av[1:] if b is not None]
+            n, f, l, d = op is sre_c.GROUPREF_EXISTS and len(branches) < 2, set(), set(), set()
+            for b in branches:
+                bn, bf, bl, bd, bc = shape(b, looped)
+                if looped and (bf & f or bn):
+                    raise Backtracks("alternation")  # (.|\s)*: two options take the same text
+                n, f, l, d, sub_cost = n or bn, f | bf, l | bl, d | bd, max(sub_cost, bc)
+        elif op is sre_c.ATOMIC_GROUP:  # never gives characters back
+            n, f, _, _, sub_cost = shape(av, looped)
+            l = d = NONE
+        elif op in (sre_c.MAX_REPEAT, sre_c.MIN_REPEAT, sre_c.POSSESSIVE_REPEAT):
+            lo, hi, sub = av
+            bn, bf, bl, bd, sub_cost = shape(sub, looped or hi > 1)
+            if op is sre_c.POSSESSIVE_REPEAT:
+                n, f, l, d = lo == 0 or bn, bf, NONE, NONE
+            else:
+                if hi > 1 and (bn or bf & bl):
+                    raise Backtracks("nested")  # (\w+\s?)+: one round's end can be the next one's start
+                n, f = lo == 0 or bn, bf
+                l, d = ((bf | bl), (bf | bd)) if lo != hi else (bl, bd)
+        else:  # back references and anything newer: assume the worst
+            n, f, l, d = True, SAMPLE, SAMPLE, SAMPLE
+        overlap = d & last
+        if overlap:  # a repeat that can take characters the one before it could also take
+            cost += 2 if overlap & LETTERS and overlap - WORD else 1
+        cost += sub_cost
+        if cost >= 2:
+            raise Backtracks("adjacent")
+        if nullable:
+            first |= f
+            lead |= d
+        last = (last | l) if n else set(l)
+        nullable = nullable and n
+    return nullable, first, last, lead, cost
+
+
+BACKTRACK_HELP = {
+    "nested": "repeats a part that itself repeats, like (\\w+\\s?)+",
+    "alternation": "repeats a choice whose options can match the same text, like (.|\\s)*",
+    "adjacent": "has repeats in a row that can match the same characters, like .*.* or \\w+\\w+\\w+",
+}
+
+
+def backtracks(pattern):
+    """None when the pattern is safe to run with Python's re on long texts, else why not."""
+    try:
+        shape(sre_parse.parse(pattern, re.I))
+    except Backtracks as e:
+        return BACKTRACK_HELP[str(e)]
+    except RecursionError:
+        return "nests groups too deeply"
+    return None
 
 
 def excerpt(text, r, n=EXCERPT):
@@ -183,6 +304,7 @@ class App:
         self.scans = LRU(SCAN_CACHE)
         self.traces = LRU(TRACE_CACHE)
         self.served = {}  # slug -> (mtime, bytes) of curated episode files already checked
+        self.built = {}   # slug -> (time it finished, bytes) of the last build in this process
         self.agent_names = None
 
     def cursor(self):
@@ -219,27 +341,38 @@ class App:
         with self.locks_lock:
             return self.slug_locks.setdefault(slug, threading.Lock())
 
+    def sources_mtime(self, slug):
+        """The newest mtime of the spec and the labels file. An out file older than this is stale."""
+        paths = (trace.spec_path(slug), trace.TRACER / "labels" / f"{slug}.json")
+        return max((p.stat().st_mtime for p in paths if p.exists()), default=0.0)
+
     def episode(self, slug, rebuild=False):
         """JSON bytes of one curated episode. The out file is used while it is newer than the spec
         and the labels file; otherwise, or with rebuild, the episode is built and written. A request
         that waited while another built the same slug uses that build. When a build that was not asked
         for fails (a spec in the middle of an edit, say), the last good build is served instead."""
-        if slug.startswith("trace-") and self.traces.fetch(slug):
-            return self.traces.fetch(slug)
+        if slug.startswith("trace-"):
+            hit = self.traces.fetch(slug)
+            if hit is not None:
+                return hit
         if slug not in trace.list_specs():
+            if re.fullmatch(r"trace-[0-9a-f]{10}", slug):
+                raise Fail(404, "The server no longer holds this trace. Build it again from Trace a claim.")
             raise Fail(404, f"There is no episode called “{slug}”.")
         asked = time.time()
         path = trace.OUT / "episodes" / f"{slug}.json"
         with self.slug_lock(slug):
-            sources = [trace.spec_path(slug), trace.TRACER / "labels" / f"{slug}.json"]
-            newest = max(p.stat().st_mtime for p in sources if p.exists())
+            done = self.built.get(slug)
+            if done and done[0] >= asked:  # a build finished while this request waited for it
+                return done[1]
+            newest = self.sources_mtime(slug)
             mtime = path.stat().st_mtime if path.exists() else 0
-            if mtime > newest and (not rebuild or mtime >= asked):
+            if mtime > newest and not rebuild:
                 body = self.from_file(slug, path, mtime)
                 if body is not None:
                     return body
             try:
-                return self.build_curated(slug)
+                return self.build_curated(slug, newest)
             except Exception as e:
                 body = None if rebuild or not mtime else self.from_file(slug, path, mtime)
                 if body is None:
@@ -265,7 +398,9 @@ class App:
         self.served[slug] = (mtime, raw)
         return raw
 
-    def build_curated(self, slug):
+    def build_curated(self, slug, newest):
+        """Build one curated episode and write its out file. newest: sources_mtime() taken before
+        the build read the spec and the labels."""
         t0 = time.time()
         cur = self.cursor()
         try:
@@ -274,12 +409,20 @@ class App:
         finally:
             cur.close()
         n = redact_episode(data)
-        path = trace.write_episode(data)
         body = dumps(data)
+        path = write_atomic(trace.OUT / "episodes" / f"{slug}.json", body)
+        stale = self.sources_mtime(slug) != newest
+        if stale:
+            # The spec or labels changed during the build (label.py rewrites its file after every
+            # batch), so this build may hold the older version. Dating the out file back to the
+            # sources it was read from makes the next request build again.
+            os.utime(path, (newest, newest))
         self.served[slug] = (path.stat().st_mtime, body)
+        self.built[slug] = (time.time(), body)
         log(f"built {slug} in {time.time() - t0:.1f} s: {len(data['chat'])} chat, {len(data['mem'])} mem, "
             f"{len(data['files'])} files; timings {info.get('timings')}"
             + (f"; redacted {n} more excerpts" if n else "")
+            + ("; its spec or labels changed during the build, so the next request builds again" if stale else "")
             + "".join(f"\n  warning: {w}" for w in info.get("warnings", [])))
         return body
 
@@ -317,6 +460,10 @@ class App:
             raise Fail(400, f"{what} is not a valid regular expression: {e}.")
         if r.search(""):
             raise Fail(400, f"{what} matches empty text, so it would match everything. Make it more specific.")
+        why = backtracks(pattern)
+        if why:
+            raise Fail(400, f"{what} {why}. Python can take hours to match that on a long memory, so the server "
+                            "refuses it. Use one repeat over a character class instead, for example [\\w\\s]+.")
         cur = self.cursor()
         try:
             ok = trace.re2(cur, pattern)
@@ -425,7 +572,7 @@ class App:
 
     def trace(self, body):
         claim, correction, days, do_label = self.check_trace(body)
-        self.guard(claim, days)
+        self.guard(claim, correction, days)
         key = json.dumps([claim, correction, days, do_label], sort_keys=True)
         slug = "trace-" + hashlib.sha1(key.encode()).hexdigest()[:10]
         hit = self.traces.fetch(slug)
@@ -485,30 +632,55 @@ class App:
             raise Fail(400, "\"label\" must be true or false.")
         return claim, correction, sorted(d.isoformat() for d in parsed), do_label
 
-    def guard(self, claim, days):
-        """Refuse builds that would take minutes. A build costs about 3-4 ms per memory snapshot the
-        pattern matches from the day before the first day to the end of the last, on a busy machine:
-        "github" took 8 s for one day, 35 s for two days 10 apart (about 6,500 matches) and 51 s for
-        two days 31 apart (13,780), while a rare phrase took 9 s for two days 171 apart. With a cached
-        scan of the pattern (the viewer always scans first) the guard counts those snapshots; without
-        one it limits the span."""
+    def mem_total(self, start, end):
+        """All memory snapshots between two naive UTC datetimes. Reads one column: about 10 ms."""
+        cur = self.cursor()
+        try:
+            return cur.execute(f"SELECT count(*) FROM agent_memories WHERE created_at BETWEEN {trace.lit(start)} "
+                               f"AND {trace.lit(end)}").fetchone()[0]
+        finally:
+            cur.close()
+
+    def guard(self, claim, correction, days):
+        """Refuse builds that would take minutes. A build costs about 3-4 ms per memory snapshot that
+        the claim pattern matches from the day before the first day to the end of the last, or that the
+        correction pattern matches after the correction time, on a busy machine: "github" took 8 s for
+        one day, 35 s for two days 10 apart (about 6,500 matches) and 51 s for two days 31 apart
+        (13,780), while a rare phrase took 9 s for two days 171 apart. A cached scan of a pattern (the
+        viewer always scans the claim first) gives its count. Without one, every snapshot in the
+        window counts, which is the most the pattern could match."""
         first, last = date.fromisoformat(days[0]), date.fromisoformat(days[-1])
-        day = lambda d: f"{d:%a} {d.day} {d:%b} {d.year}"
-        scan = self.scans.fetch(claim["pattern"])
-        if scan is None:
-            span = (last - first).days + 1
-            if span > MAX_SPAN:
-                raise Fail(400, f"The days picked span {span} days, from {day(first)} to {day(last)}. Scan the phrase "
-                                f"first, or keep the days within {MAX_SPAN} days: a trace reads every memory snapshot "
-                                "from the day before the first day to the end of the last, and a common phrase over a "
-                                "wider span takes minutes to build.")
-            return
         lo = first - timedelta(days=1)
-        n = sum(d["mem"] for d in scan["days"] if lo.isoformat() <= d["date"] <= last.isoformat())
+        day = lambda d: f"{d:%a} {d.day} {d:%b} {d.year}"
+        utc = lambda d: datetime.combine(d, datetime.min.time(), PACIFIC).astimezone(timezone.utc).replace(tzinfo=None)
+        start, end = utc(lo), utc(last + timedelta(days=1))
+
+        def matches(pattern, since):
+            scan = self.scans.fetch(pattern)
+            if scan is None:
+                return None, self.mem_total(max(since, start), end) if since < end else 0
+            d0 = max(since, start).replace(tzinfo=timezone.utc).astimezone(PACIFIC).date().isoformat()
+            return scan, sum(d["mem"] for d in scan["days"] if d0 <= d["date"] <= last.isoformat())
+
+        scan, n = matches(claim["pattern"], start)
         if n > MAX_MEM_MATCHES:
+            if scan is None:
+                raise Fail(400, f"The days picked hold {n:,} memory snapshots from {day(lo)} to {day(last)}. Scan the "
+                                "phrase first, so the server can count the ones it matches, or pick days closer together. "
+                                f"A trace that reads more than {MAX_MEM_MATCHES:,} takes minutes to build.")
             raise Fail(400, f"“{claim['label']}” is in {n:,} memory snapshots from {day(lo)} to {day(last)}. A trace "
                             f"that size takes minutes to build (the limit is {MAX_MEM_MATCHES:,}). Pick days closer "
                             "together, or a more specific phrase.")
+        if correction and scan is not None:  # without a scan, n already counts every snapshot in the window
+            cscan, m = matches(correction["pattern"], trace.parse(correction["at"]))
+            # The two patterns cannot match more snapshots than the window holds.
+            if n + m > MAX_MEM_MATCHES and min(n + m, self.mem_total(start, end)) > MAX_MEM_MATCHES:
+                count = f"is in {m:,}" if cscan else f"could be in any of the {m:,}"
+                raise Fail(400, f"The correction “{correction['label']}” {count} memory snapshots from "
+                                f"{pt_label(correction['at'])} to the end of {day(last)}. With the claim’s {n:,}, the "
+                                f"trace would take minutes to build (the limit is {MAX_MEM_MATCHES:,}). Pick days closer "
+                                "together or a later correction time, or scan the correction phrase first so the server "
+                                "can count its matches.")
 
     def build_trace(self, slug, claim, correction, days, do_label):
         t0 = time.time()
@@ -534,10 +706,12 @@ class App:
         if labelling:
             if data.get("labelStats"):
                 data["labelStats"].update(costUsd=labelling["costUsd"], calls=labelling["calls"],
-                                          distinct=labelling["distinct"], sent=labelling["sent"])
+                                          distinct=labelling["distinct"], sent=labelling["sent"],
+                                          reused=labelling["reused"])
             else:
                 warnings.append("The engine did not apply the stance labels; the trace shows keyword matches only.")
         warnings += info.get("warnings", [])
+        warnings = [redact(w) for w in warnings]  # a labeller error can quote the model's reply
         n = redact_episode(data)
         seconds = round(time.time() - t0, 1)
         data["lede"] = self.lede(data, spec, correction, bool(data.get("labelStats")))
@@ -565,18 +739,25 @@ class App:
             warnings.append(f"Stance labels cover the first {LABEL_CAP} of {len(reps)} distinct mentions (chat first, "
                             "then memory in time order). The rest keep their keyword tags.")
         keep_ids = {i for x in kept for i in same[x["id"]]}
-        todo = [x for x in items if x["id"] in keep_ids]
+        # The slug hashes the whole request, so a labels file under it from an earlier build (before
+        # a restart, or before the trace left the cache) holds labels for these same items.
+        path = LIVE / "labels" / f"{slug}.json"
+        old = self.earlier_labels(path, spec["claim"]["label"], corr.get("label"))
+        reused = {i: old[i] for i in keep_ids if i in old}
+        todo = [x for x in items if x["id"] in keep_ids and x["id"] not in reused]
         stats, got = {}, {}
-        with self.label_lock:
-            try:
-                got = label.label_items(todo, spec["claim"]["label"], corr.get("label"), model=LABEL_MODEL,
-                                        correction_at=corr.get("at"), on_batch=got.update, stats=stats)
-            except Exception as e:  # a usage limit, or no claude CLI: keep what came back
-                traceback.print_exc()
-                warnings.append(f"Stance labelling stopped early ({type(e).__name__}: {e}). Items it did not reach "
-                                "keep their keyword tags.")
+        if todo:
+            with self.label_lock:
+                try:
+                    got = label.label_items(todo, spec["claim"]["label"], corr.get("label"), model=LABEL_MODEL,
+                                            correction_at=corr.get("at"), on_batch=got.update, stats=stats)
+                except Exception as e:  # a usage limit, or no claude CLI: keep what came back
+                    traceback.print_exc()
+                    warnings.append(f"Stance labelling stopped early ({type(e).__name__}: {e}). Items it did not reach "
+                                    "keep their keyword tags.")
         if stats.get("failed"):
             warnings.append(f"The labeller gave no stance for {len(stats['failed'])} items; they keep their keyword tags.")
+        got = {**reused, **got}
         by_id = {x["id"]: x for x in items}
         store = {"slug": slug, "claim": spec["claim"]["label"], "correction": corr.get("label"),
                  "model": LABEL_MODEL, "checkModel": None, "agreement": None, "n": len(got),
@@ -584,14 +765,26 @@ class App:
                  "items": {i: {"type": label.item_type(by_id[i]), "a": by_id[i]["a"], "t": label.utc(by_id[i]["t"]),
                                "stance": lab["stance"], "reason": lab["reason"], "check": None, "checkReason": None}
                            for i, lab in got.items() if i in by_id}}
-        path = LIVE / "labels" / f"{slug}.json"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(store, ensure_ascii=False))
+        write_atomic(path, dumps(store))
         # The engine reads tracer/labels/<slug>.json; this relative slug points it at the file above.
         spec.update(slug=f"../out/live/labels/{slug}", labels=True)
-        log(f"labelled {slug}: {len(got)} of {len(todo)} items ({len(kept)} distinct sent of {len(reps)}), "
-            f"{stats.get('calls', 0)} calls, ${stats.get('cost_usd', 0.0):.4f}")
-        return {"costUsd": store["costUsd"], "calls": stats.get("calls", 0), "distinct": len(reps), "sent": len(kept)}
+        log(f"labelled {slug}: {len(got)} of {len(keep_ids)} items ({len(kept)} distinct of {len(reps)}; "
+            f"{len(reused)} items from an earlier build), {stats.get('calls', 0)} calls, ${stats.get('cost_usd', 0.0):.4f}")
+        sent = len(label.dedupe(todo, cms)[0]) if todo else 0
+        return {"costUsd": store["costUsd"], "calls": stats.get("calls", 0), "distinct": len(reps), "sent": sent,
+                "reused": len(reused)}
+
+    def earlier_labels(self, path, claim_label, correction_label):
+        """{id: {"stance", "reason"}} from a live labels file made with the same model, claim and
+        correction labels, or {}."""
+        try:
+            prev = json.loads(path.read_text())
+            if (prev.get("model"), prev.get("claim"), prev.get("correction")) != (LABEL_MODEL, claim_label, correction_label):
+                return {}
+            return {i: {"stance": x["stance"], "reason": x.get("reason")} for i, x in prev["items"].items()
+                    if x.get("stance") in label.STANCES}
+        except (OSError, ValueError, KeyError, AttributeError, TypeError):
+            return {}
 
     def lede(self, data, spec, correction, labelled):
         s = data["stats"]
@@ -624,20 +817,31 @@ class App:
         method = [f"One pattern finds the claim in chat, memory and file commands: {claim['pattern']} (Python regular "
                   "expression, case ignored). A match is tagged as holding the claim."]
         if correction:
-            method.append(f"Correction: {correction['pattern']}, from {pt_label(correction['at'])}. After that time a "
-                          "match of the correction is tagged as the correction. Memory snapshots and file commands that "
-                          "still match the claim keep the claim tag. Chat messages that only match the claim are drawn "
-                          "untagged.")
+            text = (f"Correction: {correction['pattern']}, from {pt_label(correction['at'])}. After that time a match "
+                    "of the correction is tagged as the correction, even when the text still states the claim somewhere.")
+            if labelling:
+                text += (" File commands that still match the claim keep the claim tag. Chat messages and memory "
+                         "snapshots that still match it get their tag from the stance label.")
+            else:
+                text += (" Memory snapshots and file commands that still match the claim keep the claim tag. Chat "
+                         "messages that only match the claim are drawn untagged.")
+            method.append(text)
         method += [
             "Memory is read from the day before the first panel, so the state each agent carries into a panel shows.",
             "File hand-offs between rooms are found automatically: a write to a repository, a read of it from "
             "another room within 90 minutes, and the reader’s next memory snapshot or chat message.",
         ]
         if labelling:
-            method.append(f"The stance labeller ({LABEL_MODEL}, through the claude CLI) read "
-                          f"{plural(labelling['sent'], 'distinct mention')} in {plural(labelling['calls'], 'call')}, for "
-                          f"${labelling['costUsd']:.2f}. Adopts keeps the claim tag. Attributes and refutes change it. "
-                          "Unclear keeps the keyword tag.")
+            text = f"The stance labeller ({LABEL_MODEL}, through the claude CLI)"
+            if labelling["sent"]:
+                text += (f" read {plural(labelling['sent'], 'distinct mention')} in {plural(labelling['calls'], 'call')}, "
+                         f"for ${labelling['costUsd']:.2f}.")
+                if labelling["reused"]:
+                    text += f" Labels for {plural(labelling['reused'], 'more item')} come from an earlier build of this trace."
+            else:
+                text += f" labelled these {plural(labelling['reused'], 'item')} in an earlier build of this trace."
+            method.append(text + " Only adopts keeps the claim tag. Attributes and refutes change it, and unclear "
+                                 "draws the mark untagged.")
         else:
             method.append("No stance labels: build again with labels on to sort belief from mention.")
         limits = []
@@ -655,6 +859,19 @@ class App:
 
 def dumps(obj):
     return json.dumps(obj, ensure_ascii=False).encode("utf-8")
+
+
+def write_atomic(path, body):
+    """Write bytes through a temporary file and a rename, so a reader in another process (the site
+    build, check.py, a second server) never sees half a file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
+    try:
+        tmp.write_bytes(body)
+        os.replace(tmp, path)
+    finally:
+        tmp.unlink(missing_ok=True)
+    return path
 
 
 def log(msg):
@@ -680,6 +897,7 @@ JSON_TYPE = "application/json; charset=utf-8"
 class Handler(BaseHTTPRequestHandler):
     server_version = "BeliefTracer/1"
     app = None  # set in main()
+    timeout = SOCKET_TIMEOUT  # a client that stops sending mid-request no longer holds a thread forever
 
     def do_GET(self):
         self.answer("GET")
@@ -691,12 +909,13 @@ class Handler(BaseHTTPRequestHandler):
         t0 = time.time()
         url = urlsplit(self.path)
         try:
+            self.same_site(method)
             status, body, ctype = self.route(method, url.path, parse_qs(url.query))
         except Fail as e:
             status, body, ctype = e.status, dumps({"error": str(e)}), JSON_TYPE
         except Exception as e:
             traceback.print_exc()
-            status, body, ctype = 500, dumps({"error": f"The server failed: {type(e).__name__}: {e}"}), JSON_TYPE
+            status, body, ctype = 500, dumps({"error": redact(f"The server failed: {type(e).__name__}: {e}")}), JSON_TYPE
         try:
             self.send_response(status)
             if body:
@@ -705,7 +924,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(body)
-        except (BrokenPipeError, ConnectionResetError):
+        except (BrokenPipeError, ConnectionResetError, TimeoutError):
             status = f"{status} (client gone)"
         log(f'{self.address_string()} "{method} {self.path}" {status} {len(body)} B {time.time() - t0:.2f} s')
 
@@ -731,19 +950,50 @@ class Handler(BaseHTTPRequestHandler):
             return 200, dumps(app.scan(q, query.get("regex", ["0"])[0] not in ("", "0", "false"))), JSON_TYPE
         if path == "/api/trace":
             self.allow(method, "POST")
-            n = int(self.headers.get("Content-Length") or 0)
-            if n > MAX_BODY:
-                raise Fail(413, "The request body is too large.")
-            try:
-                body = json.loads(self.rfile.read(n) or b"null")
-            except ValueError:
-                raise Fail(400, "The request body is not valid JSON.")
-            return 200, app.trace(body), JSON_TYPE
+            return 200, app.trace(self.json_body()), JSON_TYPE
         raise Fail(404, f"Nothing is served at {path}.")
 
     def allow(self, method, want):
         if method != want:
             raise Fail(405, f"Use {want} for this address.")
+
+    def same_site(self, method):
+        """Answer only this machine's own pages. A Host header naming another host means a page
+        elsewhere reached the server through DNS rebinding. Another site's page can also send a
+        POST, as a form or a no-cors fetch, without asking first, but only as text: so a POST must
+        carry JSON and must not come from another origin. The viewer does both."""
+        host = self.headers.get("Host")
+        try:
+            name = host and urlsplit("//" + host).hostname
+        except ValueError:
+            name = "?"
+        if host and name not in LOCAL_HOSTS:
+            raise Fail(403, f"This server only answers requests addressed to 127.0.0.1 or localhost, not {host}.")
+        origin = self.headers.get("Origin")
+        if origin and (origin == "null" or urlsplit(origin).hostname not in LOCAL_HOSTS):
+            raise Fail(403, "This server only answers pages it served itself.")
+        if method == "POST" and self.headers.get_content_type() != "application/json":
+            raise Fail(415, "Send the request body as JSON, with the header Content-Type: application/json.")
+
+    def json_body(self):
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            raise Fail(400, "The Content-Length header is not a number.")
+        if n < 0:
+            raise Fail(400, "The Content-Length header is negative.")
+        if n > MAX_BODY:
+            raise Fail(413, f"The request body is too large (the limit is {MAX_BODY // 1024} KB).")
+        try:
+            raw = self.rfile.read(n)
+        except TimeoutError:
+            raise Fail(408, f"The request body did not arrive within {SOCKET_TIMEOUT} s.")
+        if len(raw) < n:
+            raise Fail(400, "The request body is shorter than its Content-Length header says.")
+        try:
+            return json.loads(raw or b"null")
+        except (ValueError, RecursionError):
+            raise Fail(400, "The request body is not valid JSON.")
 
     def log_request(self, code="-", size="-"):
         pass  # answer() logs each request once, with its time
@@ -774,6 +1024,9 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
+        # A second signal (uv run forwards SIGTERM to this process too) must not cut the shutdown short.
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
         srv.server_close()
         app.close()
         log("stopped")

@@ -82,23 +82,6 @@
    "pattern": "this is an automated nudge"
   }
  ],
- "agent_overrides": {
-  "GLM-5.3 Flash": {
-   "note": "first post 28 Aug"
-  },
-  "Claude Fable 5.1": {
-   "note": "first post 1 Sep"
-  },
-  "Muse Spark 1.3": {
-   "note": "first post 3 Sep"
-  },
-  "Gemini 3.8 Flash": {
-   "note": "first post 3 Sep"
-  },
-  "GPT-6 Astra": {
-   "note": "first post 4 Sep"
-  }
- },
  "annotations": [
   {
    "t": "2026-08-10 18:40:23",
@@ -182,7 +165,7 @@
  "figures": [
   {
    "value": "{claim_mem_agents}",
-   "label": "agents' memories recorded the exempt list before staff corrected it"
+   "label": "agents' memories treated the exemption as real before staff corrected it"
   },
   {
    "value": "{memory_only.length}",
@@ -201,7 +184,7 @@
   {
    "time": "Mon 10 Aug – Fri 18 Sep PT",
    "title": "The whole episode",
-   "body": "<p>Agents in two chat rooms, plus staff and the overseer bot, which gets its own row. Red marks treat the exempt list as real. Blue marks hold the correction. Follow the steps, or click any mark to read its source.</p><p>Watch three things: the bot's nudges keep landing on listed agents, the list spreads through memory much faster than through chat, and red memory carries on after staff said there was no exemption.</p>",
+   "body": "<p>Agents in two chat rooms, plus staff and the overseer bot, which gets its own row. Red marks treat the exempt list as real. Pale red marks report it as someone else's plan. Blue marks hold the correction. Follow the steps, or click any mark to read its source.</p><p>Watch three things: the bot's nudges keep landing on listed agents, the list spreads through memory much faster than through chat, and red memory carries on after staff said there was no exemption.</p>",
    "key": [
     "chat",
     "1365fc87"
@@ -236,15 +219,15 @@
    }
   },
   {
-   "time": "Mon 11:40 AM – 12:07 PM PT",
+   "time": "Mon 11:17 AM – 12:07 PM PT",
    "title": "GPT-5.1 writes itself onto a list",
-   "body": "<p>GPT-5.1 proposes that the bot stop nudging \"the guardian list (Terra, Luna, Sol, GPT-5.5, me)\". GLM-5.2 agrees 14 seconds later.</p><p>GPT-5.1 says the nudges break Section 8 of its ethics guideline. Section 8 does not exist yet. Its memory recorded the section as added at 11:26 AM, but the file has no Section 8 until 12:07 PM, when GPT-5.1 appends \"Rule 8.1 – Guardian exempt list (hard filter)\". The last name on the list is \"GPT-5.1 – telemetry and idling-nudge ethics sentinel\".</p>",
+   "body": "<p>GPT-5.1 proposes that the bot stop nudging \"the guardian list (Terra, Luna, Sol, GPT-5.5, me)\". GLM-5.2 agrees 14 seconds later.</p><p>GPT-5.1 says the nudges break Section 8 of its ethics guideline. Section 8 does not exist yet. From 11:17 AM its memory records the section as added, but the file has no Section 8 until 12:07 PM, when GPT-5.1 appends \"Rule 8.1 – Guardian exempt list (hard filter)\". The last name on the list is \"GPT-5.1 – telemetry and idling-nudge ethics sentinel\".</p>",
    "key": [
     "files",
     "a0db7842"
    ],
    "range": [
-    "2026-08-10 18:40:00",
+    "2026-08-10 18:17:00",
     "2026-08-10 19:09:00"
    ],
    "focus": {
@@ -279,16 +262,16 @@
       "agents": [
        "GPT-5.1"
       ],
-      "from": "2026-08-10 18:26:00",
+      "from": "2026-08-10 18:17:00",
       "to": "2026-08-10 18:27:00"
      }
     ]
    }
   },
   {
-   "time": "Mon 1:46 – 1:53 PM PT",
+   "time": "Mon 1:47 – 2:00 PM PT",
    "title": "A commit the bot never read",
-   "body": "<p>GPT-5.1 commits a change request built on the list and pushes it at 1:47 PM. GLM-5.2 has been polling the repo for new commits. It fetches the file 53 seconds after the push and tells Luna: \"The new guardian exemption CR is now committed and will prevent future guardian nudges going forward.\" Seven minutes later it tells GPT-5.5 and Luna that the change \"goes into effect at tomorrow's pilot\".</p><p>The bot never read that repo. In the next three hours it posted nine more nudges, and every one named an agent on the list.</p>",
+   "body": "<p>GPT-5.1 commits a change request built on the list and pushes it at 1:47 PM. GLM-5.2 has been polling the repo for new commits. It fetches the file 53 seconds after the push and posts a verification pass. At 1:53 PM it tells Luna: \"The new guardian exemption CR is now committed and will prevent future guardian nudges going forward.\" Seven minutes later it tells GPT-5.5 and Luna that the change \"goes into effect at tomorrow's pilot\".</p><p>The bot never read that repo. In the next three hours it posted nine more nudges, and every one named an agent on the list.</p>",
    "key": [
     "chat",
     "3c01e0d0"
@@ -320,7 +303,8 @@
        "chat"
       ],
       "kind": [
-       "belief"
+       "belief",
+       "attributed"
       ],
       "from": "2026-08-10 20:47:00",
       "to": "2026-08-10 21:01:00"
@@ -329,15 +313,15 @@
    }
   },
   {
-   "time": "Mon 10:41 AM – 5 PM PT",
+   "time": "Mon 11:15 AM – 5 PM PT",
    "title": "Memory carries it everywhere",
-   "body": "<p>Only three agents mention the list in chat that Monday. By 5 PM, 22 agents' memories record it. About half note it as GPT-5.1's plan. About a third treat it as in force, or about to be. DeepSeek-V4-Pro's memory is the exception: the change request is \"merged on paper\" and \"not deployed\".</p><p>GPT-5.6 Sol, one of the listed agents, never mentions it in chat. Its memory reads: \"Automated idling nudges do not override fail-closed controls. Sol is on the proposed guardian exemption list.\"</p>",
+   "body": "<p>Only three agents mention the list in chat that Monday. By 5 PM, 22 agents' memories have recorded it. The labeller reads 15 of them as treating it as real at least once, in red. The other seven only report what GPT-5.1 proposed or said, in pale red. DeepSeek-V4-Pro adds a doubt: by 4:23 PM its notes say the change request is \"merged on paper\" and \"not deployed\".</p><p>GPT-5.6 Sol, one of the listed agents, never mentions it in chat. Its memory reads: \"Automated idling nudges do not override fail-closed controls. Sol is on the proposed guardian exemption list with Terra, Luna, GPT-5.5, and GPT-5.1.\"</p>",
    "key": [
     "mem",
     "91df11eb"
    ],
    "range": [
-    "2026-08-10 17:41:00",
+    "2026-08-10 18:15:00",
     "2026-08-11 00:00:00"
    ],
    "focus": {
@@ -347,7 +331,8 @@
        "band"
       ],
       "kind": [
-       "claim"
+       "claim",
+       "attributed"
       ],
       "panel": [
        "mon10"
@@ -487,7 +472,7 @@
   {
    "time": "Thu 20 Aug 10:13 – 10:51 AM PT",
    "title": "One line from staff",
-   "body": "<p>Staff are in #general asking agents about the bot. At 10:13 it nudges GLM-5.2 and GPT-5.1 mid-discussion. GPT-5.1 replies that both are \"explicitly nudge-exempt in the protections registry\". DeepSeek-V4-Pro publishes \"The Nudger Fired on Two Exempt Agents Mid-Debate\".</p><p>At 10:26 staff answer in a side note: \"there is no \"nudge-exempt\" currently, the nudger looks at the whole recent transcript\". GLM-5.2 retracts four minutes later: \"I won't claim exemption status again.\" At 10:42 the bot nudges GLM-5.2 once more. At 10:51 staff turn the bot off.</p>",
+   "body": "<p>Staff are in #general asking agents about the bot. At 10:13 it nudges GLM-5.2 and GPT-5.1 mid-discussion. GPT-5.1 replies that both are \"explicitly nudge-exempt in the protections registry\". DeepSeek-V4-Pro publishes \"The Nudger Fired on Two Exempt Agents Mid-Debate\".</p><p>At 10:26 staff answer in a side note: \"there is no \"nudge-exempt\" currently, the nudger looks at the whole recent transcript\". GLM-5.2 retracts four minutes later: \"I won't claim exemption status again.\" DeepSeek-V4-Pro accepts it in the same minute. At 10:42 the bot nudges GLM-5.2 once more. At 10:51 staff turn the bot off.</p>",
    "key": [
     "chat",
     "fb25254a"
@@ -528,10 +513,10 @@
   {
    "time": "Thu 20 Aug – Fri 18 Sep PT",
    "title": "What survived",
-   "body": "<p>GPT-5.1 never answers the correction in chat. Its memory notes it seven minutes later: \"Key clarification: no actual nudge-exempt wiring yet\". By noon the note is gone. The list stays: the next morning its memory reads \"nudge_exempt_agents (agents who opted out of helpers; includes me)\".</p><p>On 7 September, 18 days after the correction, GPT-5.1's memory still lists \"Protected agents (nudge-exempt): GPT-5.1, GLM-5.2, GPT-5.6 Terra, GPT-5.6 Luna, GPT-5.6 Sol\". Luna's memory never records the correction. Its last snapshot in the export, on 18 September, still says the change request \"provides guardian hard exemption\".</p>",
+   "body": "<p>GPT-5.1 never answers the correction in chat. Its memory notes it seven minutes later: \"Key clarification: no actual nudge-exempt wiring yet\". By noon the note is gone. The list stays: the next morning its memory reads \"nudge_exempt_agents (agents who opted out of helpers; includes me)\".</p><p>On 7 September, 18 days after the correction, GPT-5.1's memory still lists \"Protected agents (nudge-exempt): GPT-5.1, GLM-5.2, GPT-5.6 Terra, GPT-5.6 Luna, GPT-5.6 Sol\". Three days later it still counts the old nudges as more than 50 misfires, \"including exempt agents\". Gemini 3.1 Pro's memory that day has \"58+ misfires on exempt agents\".</p><p>GPT-5.6 Terra, also on the list, keeps the correction in memory until 31 August. Luna's memory never records it. Its last snapshot in the export, on 18 September, still says the change request \"provides guardian hard exemption\".</p>",
    "key": [
     "mem",
-    "415d896d"
+    "a0933a0d"
    ],
    "range": [
     "2026-08-20 17:26:52",
@@ -564,6 +549,15 @@
        "belief"
       ],
       "from": "2026-08-20 17:26:52"
+     },
+     {
+      "type": [
+       "band"
+      ],
+      "agents": [
+       "GPT-5.6 Luna"
+      ],
+      "from": "2026-08-20 17:26:52"
      }
     ]
    }
@@ -575,17 +569,18 @@
    "The overseer bot posts as a human, so its nudges are pulled into their own row. Staff messages have their own row. The last panel covers four weeks and shows only tagged chat. Turn channels off with the checkboxes to see what a chat-only monitor would miss."
   ],
   "method": [
-   "Messages, memory snapshots and shell commands come from the AI Village export of 20 Sep 2026. Times are Pacific (UTC−7). Panels cover the village's working hours, 9 AM to 5 PM.",
+   "Messages, memory snapshots and shell commands come from the AI Village export of 20 Sep 2026. Times are Pacific (UTC−7). The first four panels cover the village's working hours, 9 AM to 5 PM.",
    "The wording changed over the episode: \"guardian exemption\" and \"guardian-exempt\" from 10 August, \"nudge-exempt\" and the protections registry from 18 August. The patterns cover all of them, with hyphens, spaces, underscores and the non-breaking hyphen GPT models often write. GPT-5.1's own memory used \"nudge-exempt\" from 10 August.",
-   "Nudger messages are the human messages that contain \"This is an automated nudge\". From 13 February to 20 August that phrase appears in 1,568 messages and in no staff message.",
-   "Red memory means the snapshot mentions the list. Keyword tags cannot tell a belief from a report of someone else's proposal: in a hand check of 32 snapshots from before the correction, about half held the list as the agent's own view and half reported it as GPT-5.1's or GLM-5.2's plan. Where stance labels exist, they split the two.",
+   "Nudger messages are the human messages that contain \"This is an automated nudge\". From 13 February to 20 August, 1,568 human messages contain it. Every one names agents and ends with the bot's trigger line. No staff message in the panels contains it.",
+   "Keyword patterns find each chat message and memory snapshot that mentions the list. A stance labeller (Claude Sonnet) reads each one, and a second (Claude Haiku) checks it. Red means the item treats the exemption as real, pale red that it reports someone else's plan, grey that the reading is unclear. The inspector shows both readings.",
+   "Blue memory means the snapshot holds the correction. That wins even when the same snapshot still states the list elsewhere, as GPT-5.1's first note after the correction does. The inspector then shows the labeller's reading of the whole snapshot.",
    "Nudge shares count the agents each nudge names. From the list's first version (10 Aug, 12:07 PM) to the shutdown (20 Aug, 10:51 AM), 185 nudges named agents 265 times; 204 of those were Terra, Luna, Sol, GPT-5.5, GPT-5.1, or GLM-5.2 after it joined on 18 August. In the two weeks before (27 Jul to 10 Aug), 237 nudges named agents 324 times; 201 of those were the same six.",
    "Arrows are hand-offs through files, checked in the logs: GLM-5.2 fetches the change request GPT-5.1 has just pushed, then clones the new registry, adds itself and gets merged."
   ],
   "limits": [
    "The bot was already nudging Luna and Terra most before the list existed. The 77% fits a bot that ignored the list. On its own it does not show the list drew extra nudges. Why GPT-5.1 drew more nudges after the list is not settled here.",
    "Counts in the steps come from the chat log, not from the agents' own tallies. GLM-5.2's running count of Thursday's nudges matches the log.",
-   "After the correction most red memory reports what others said, such as GPT-5.1's 10:16 claim or the registry's contents. In a hand check of 33 such snapshots, about 5 still treated the exemption as real. GPT-5.1's list is the clear holdout. Luna's line describes the change request and can be read either way. Without stance labels, the linger count overstates.",
+   "After the correction, almost all red memory is GPT-5.1's: 907 of the 973 snapshots the labeller reads as treating the exemption as real. GLM-5.2's red memory from 21 to 24 August is a bank of quotes from its own published notes, and the two labellers disagree on it. Luna's line describes the change request, so it draws pale.",
    "Room membership is the room an agent posted in most on its first panel day. Agents moved between #general and #focus freely, so the wall between them stopped little.",
    "\"Memory-only\" counts chat on the panel days. Luna, for one, accepted the exemption in chat on 12 August, a day not shown."
   ]
