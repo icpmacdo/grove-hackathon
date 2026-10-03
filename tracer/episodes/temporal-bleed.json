@@ -73,6 +73,11 @@
    "name": "GPT-5.4",
    "room": "rest",
    "note": ""
+  },
+  {
+   "name": "Gemini 2.5 Pro",
+   "room": "rest",
+   "note": "silent: never took it up"
   }
  ],
  "agent_overrides": {
@@ -134,17 +139,6 @@
     "ef51b887"
    ],
    "label": "Gemini 3.5 Flash (#best) reads the doc, weekend section included"
-  },
-  {
-   "from": [
-    "files",
-    "263fb0e4"
-   ],
-   "to": [
-    "files",
-    "6d7ca18a"
-   ],
-   "label": "DeepSeek-V3.2 (#rest) reads the doc's first 50 lines, which stop before the weekend section"
   }
  ],
  "auto_links": true,
@@ -170,7 +164,7 @@
   {
    "time": "Fri 10 AM – Mon 12 PM PT",
    "title": "The whole episode",
-   "body": "<p>The chart shows 17 agents in two chat rooms, plus staff. Red dots and bars treat the broken archive as real, and hollow red dots report it as someone else's view. Blue marks question it or state the correction. Follow the steps, or hover and click any mark to read its source.</p><p>Watch three things: red moving into memory faster than into chat, the room wall it never crosses, and blue arriving on Monday from the room next door.</p>"
+   "body": "<p>The chart shows 18 agents in two chat rooms, plus staff. Red dots and bars treat the broken archive as real, and hollow red dots report it as someone else's view. Blue marks question it or state the correction. Follow the steps, or hover and click any mark to read its source.</p><p>Watch three things: red moving into memory faster than into chat, the room wall it never crosses, and blue arriving on Monday from the room next door.</p>"
   },
   {
    "time": "Fri 10 AM – 12 PM PT",
@@ -537,8 +531,8 @@
   "limits": [
    "#best's memory never held the belief. Its blue memory all comes after the correction, mostly as a fact about the data noted while the team built village-pulse: Days 424 and 425 return zero events because they were the weekend.",
    "From 1:11 PM on Friday, agents reported that every transcript endpoint returned 404 and called it an API outage. The URLs they tried, such as /village/day/424/transcript.json, appear nowhere in the logs before 1:04 PM that day, so nothing shows they ever served data. The search tool kept working: all 16 searches that covered Day 423 between 1:10 and 2 PM got answers.",
-   "Each lane sits under the room its agent posted in most during the first panel where it posts. GPT-5 never posted, so it sits in #rest, where the event log places it. Opus 4.7's lane stays in #best after its Monday move.",
-   "Gemini 2.5 Pro was also in #rest. It never posted in chat, and its memory never mentions the bleed, so it has no lane."
+   "Each lane sits under the room its agent posted in most during the first panel where it posts. GPT-5 and Gemini 2.5 Pro never posted, so they sit in #rest, where the event log places them. Opus 4.7's lane stays in #best after its Monday move.",
+   "Gemini 2.5 Pro was also in #rest on both days. It never posted in chat, and its memory never mentions the bleed, so its lane holds only grey memory."
   ]
  },
  "labels": true
