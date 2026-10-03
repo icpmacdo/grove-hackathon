@@ -80,6 +80,7 @@ command text when absent.
   "pin_first": {"best": ["Claude Opus 4.7"]},       // optional: rows placed first in their group (next to the wall above)
   "room_notes": {"rest": "where the belief spread", "best": "the room next door"},
   "aliases": {"[Temporary] Fine-tuned Leader": "Fine-Tuned Leader"},
+  "human_rows": [{"name": "Nudger (automated)", "pattern": "<regex on content>"}],  // optional: human messages matching go to this one row (not per room)
   "extra_agents": [{"name": "GPT-5", "room": "rest", "note": "silent: memory only"}],
   "agent_overrides": {"Claude Opus 4.7": {"never_belief_before": "2026-06-01 17:27:00", "note": "moves to #rest Mon 10:23"}},
   "moves": [{"agent": "Claude Opus 4.7", "t": "2026-06-01 17:23:33", "to": "rest", "label": "moves"}],
@@ -106,8 +107,8 @@ command text when absent.
   "correctionMs": 1780335097000,                    // or null
   "groups": [{"key": "rest", "label": "#rest", "note": "where the belief spread"}],
   "rows": [{"name", "group", "human": false, "silent": false, "note": ""}],
-  "chat":  [{"t", "a", "room", "id", "kind", "stance", "text"}],
-  "mem":   [{"t", "a", "id", "state", "stance", "text", "chars"}],
+  "chat":  [{"t", "a", "room", "id", "kind", "stance", "check", "text"}],
+  "mem":   [{"t", "a", "id", "state", "stance", "check", "text", "chars"}],
   "files": [{"t", "a", "id", "kind", "op", "artifact", "text"}],
   "links": [{"from": ["files", "<full id>"], "to": ["mem", "<full id>"], "label", "auto": false}],
   "annotations": [{"t", "label", "anchor"}],
@@ -139,7 +140,8 @@ Kinds and states:
 | file `kind` | `belief`, `fix` | the command touches the claim or the correction |
 | file `op` | `write`, `read` | |
 
-`stance` is `adopts`, `attributes`, `refutes`, `unclear`, or null (unlabelled). Without labels the
+`stance` is `adopts`, `attributes`, `refutes`, `unclear`, or null (unlabelled). `check` is the second
+labeller's stance (same values, or null); the viewer flags items where `stance` and `check` differ. Without labels the
 engine uses regexes alone: matches become `belief` / `claim`. With labels, a claim match maps by stance:
 adopts → belief / claim, attributes → attributed, refutes → hint (chat) or fix (memory), unclear →
 keep the regex result.
@@ -238,9 +240,11 @@ POST /api/trace                body {"claim": {"label", "pattern"}, "correction"
 
 ## Viewer (`template.html`)
 
-One self-contained page (inline CSS and JS, Google Fonts only). It reads
-`window.TRACER_CONFIG = {"mode": "static" | "live", "episodes": [{"slug", "title", "url"}]}`
-injected at build time, then fetches episode data by relative URL (static) or from the API (live).
+One self-contained page (inline CSS and JS, Google Fonts only), written body-level (no doctype, html,
+head or body tags: the artifact host wraps it; `serve.py` and `site/preview.html` add a skeleton for
+local use). It contains `<script>window.TRACER_CONFIG = /*__TRACER_CONFIG__*/null;</script>`; builders
+replace the marker with `{"mode": "static" | "live", "episodes": [{"slug", "title", "url"}]}`. With
+null, the page uses `window.TRACER_INLINE` ({slug: episode data}) if present. It reads that config then fetches episode data by relative URL (static) or from the API (live).
 It renders: masthead (headline, lede, figures), the swimlane chart (lanes per agent grouped by room,
 room walls, N panels with gaps, chat dots, memory bands, file diamonds, links, moves, annotations),
 the walkthrough with declarative focus, an inspector showing the source of any mark with a deep link,
