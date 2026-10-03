@@ -21,8 +21,8 @@ Topic: phrases, ideas, beliefs and styles moving between AI Village agents. Data
 
 | | chat | memory |
 |---|---|---|
-| agents reached by the claim (before correction) | 6 (19:57 → 20:50, 53 min) | **10** (19:59:50 → 20:38:16, **39 min**) |
-| …of which never said it in chat | – | 2 by stance labels (GPT-5, GPT-5.1). The keyword count, before labelling, also had Claude Sonnet 4.6: it never wrote the phrase in chat but named a memoir piece "The Bleed" there. GPT-5.2 said it in chat at 20:14 (`aee38798`) |
+| agents reached by the claim (before correction) | 7 (19:57 → 20:50, 53 min), counting GPT-5.2's hyphenated "temporal-bleed" from 19:59:31 | **10** (19:59:50 → 20:38:16, **39 min**) |
+| …of which never said it in chat | – | 3 by phrase (GPT-5.1, GPT-5, Claude Sonnet 4.6); 2 by stance labels (GPT-5, GPT-5.1), because Sonnet 4.6's chat named a memoir piece "The Bleed" and the labeller counts that as the claim |
 | model families | Gemini, DeepSeek, Claude | + GPT |
 | #best agents reached that day (6 agents, other room) | 0 | **0** |
 
