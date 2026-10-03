@@ -333,7 +333,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
 
   <section class="tracer" id="tracer" aria-labelledby="tr-title" hidden>
     <header class="masthead">
-      <p class="eyebrow">Belief Tracer · AI Village · live</p>
+      <p class="eyebrow">AI Village · live</p>
       <h1 id="tr-title">Trace a claim</h1>
       <p class="lede">Type a phrase. The scan counts the chat messages, memory snapshots and file commands that mention it, day by day. Pick the days to trace, add the correction if there was one, then build the trace.</p>
     </header>
@@ -739,6 +739,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     : KIND[m.type][m.kind] || m.kind);
   const isTagged = m => !(m.type === 'chat' && m.kind === 'other') && !(m.type === 'mem' && m.kind === 'none');
   const cap = s => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+  const modelName = m => (/^(sonnet|haiku|opus|fable)$/i.test(m || '') ? `Claude ${cap(m.toLowerCase())}` : m);
 
   // ---------- highlights ----------
   // Matches of the episode's patterns in a text: [start, end, 1 claim | 2 correction]. A match that ends
@@ -808,7 +809,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     // from the day the first panel starts to the day the last one ends (an end at midnight is the day before)
     const d0 = Math.min(...panels.map(p => p.day ?? dayNum(p.startMs)));
     const d1 = Math.max(...panels.map(p => p.endDay ?? dayNum(p.endMs - 1)));
-    $('eyebrow').textContent = `Belief Tracer · AI Village · ${d1 > d0 ? `Days ${d0}–${d1}` : `Day ${d0}`}`;
+    $('eyebrow').textContent = `AI Village · ${d1 > d0 ? `Days ${d0}–${d1}` : `Day ${d0}`}`;
     $('headline').textContent = D.headline || D.title || 'Belief trace';
     $('lede').textContent = D.lede || '';
     $('lede').hidden = !D.lede;
@@ -877,12 +878,12 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     const method = (n.method || []).slice();
     const ls = D.labelStats;
     if (ls && ls.items) {
-      let s = `Stance labels: ${ls.model || 'a model'} labelled ${num(ls.labelled)} of ${plural(ls.items, 'matching item')}.`;
+      let s = `Stance labels: ${modelName(ls.model) || 'a model'} labelled ${num(ls.labelled)} of ${plural(ls.items, 'matching item')}.`;
       if (ls.checkModel && ls.agreement != null) {
         const pct = `${+(ls.agreement * 100).toFixed(1)}%`;
         s += ls.checked != null
-          ? ` A second pass by ${ls.checkModel} checked ${ls.checkSample ? 'a sample of ' : ''}${plural(ls.checked, 'item')} and agreed on ${pct} of them.`
-          : ` A second pass by ${ls.checkModel} agreed on ${pct}.`;
+          ? ` A second pass by ${modelName(ls.checkModel)} checked ${ls.checkSample ? 'a sample of ' : ''}${plural(ls.checked, 'item')} and agreed on ${pct} of them.`
+          : ` A second pass by ${modelName(ls.checkModel)} agreed on ${pct}.`;
       }
       if (disagree) s += ` ${plural(disagree, 'item')} in this trace ${disagree === 1 ? 'has' : 'have'} a disagreement, flagged in the inspector and the evidence log.`;
       method.push(s);

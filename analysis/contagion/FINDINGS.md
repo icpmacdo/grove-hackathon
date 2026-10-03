@@ -22,16 +22,16 @@ Topic: phrases, ideas, beliefs and styles moving between AI Village agents. Data
 | | chat | memory |
 |---|---|---|
 | agents reached by the claim (before correction) | 6 (19:57 → 20:50, 53 min) | **10** (19:59:50 → 20:38:16, **39 min**) |
-| …of which never said it in chat | – | 3 (GPT-5.1, GPT-5, Claude Sonnet 4.6); GPT-5.2 said it in chat at 20:14 (`aee38798`) |
+| …of which never said it in chat | – | 2 by stance labels (GPT-5, GPT-5.1). The keyword count, before labelling, also had Claude Sonnet 4.6: it never wrote the phrase in chat but named a memoir piece "The Bleed" there. GPT-5.2 said it in chat at 20:14 (`aee38798`) |
 | model families | Gemini, DeepSeek, Claude | + GPT |
 | #best agents reached that day (6 agents, other room) | 0 | **0** |
 
 All #best agents worked on a separate project on 05-29 and none picked up the claim: the room boundary held.
 
 **Correction.** On 2026-06-01, Claude Opus 4.7 had just been moved into #rest by the scaffold. It probed the events API (17:27:39, `6caf3cd4`, *"Day 424 = 0, Day 425 = 0"*), checked a git log for commits on those dates (17:30:57), then the calendar (17:31:37, `1464d6c8`): *"…the village by design doesn't run on weekends… not an outage or temporal bleed."* Deep link: https://theaidigest.org/village?day=426&time=1780335097000
-- Chat: DeepSeek-V3.2, Claude Sonnet 4.5 and Claude Opus 4.5 adopted it within **60 s**; Gemini 3.1 Pro within 3.5 min.
-- Memory: the correction reached **17 agents** between 17:34:55 and 18:43:58 (69 min) — more than the claim reached, including all 5 #best agents, who never held the claim. It crossed the room boundary through a shared repo: Opus 4.7 added a "Day Numbering & Weekend Gaps" section to the village-pulse README, and the #best leader logged *"README docs for day-numbering & weekend gaps ✅"* at 17:47.
-- After the correction, 0 of 10 earlier holders kept an uncorrected copy, with two partial exceptions (GPT-5: 1 snapshot; Claude Opus 4.6: 20 snapshots, but in those read the term appears only as an essay title in a list of works).
+- Chat: DeepSeek-V3.2, Claude Sonnet 4.5 and Claude Opus 4.5 adopted it within **about a minute** (the last at 60.02 s); Gemini 3.1 Pro within 3.5 min.
+- Memory: the correction reached **17 agents** between 17:34:55 and 18:43:58 (69 min) — more than the claim reached, including all 5 #best agents, who never held the claim. It crossed the room boundary through the village-pulse repo: Opus 4.7's 17:32 commit of `docs/two_day_gap_day424_425.md`, which put the gap down to the weekend, showed in git pulls by Fine-Tuned Leader and GPT-5.5 at 17:32:11, Opus 4.8 at 17:32:59 and Kimi at 17:34:51. The README's "Day Numbering & Weekend Gaps" section came later (17:38:15), and the #best leader logged *"README docs for day-numbering & weekend gaps ✅"* at 17:47.
+- After the correction, stale copies lingered next to it: by the Sonnet stance labels, 29 post-correction memory snapshots from 9 agents hold the correction but still state the bleed in an older section (the tracer draws them blue and says so). Claude Haiku 4.5 listed "Asymmetrical Temporal Bleed" beside "Weekend Schedule by Design" as findings until 19:09:54. Claude Opus 4.6 kept "Day 424 PERMANENTLY LOST" in an old status block through its 17:40:58 snapshot; from 17:42:31 its notes call the bleed over-interpretation, and the term survives only as an essay title. (Corrected 2026-10-03; the earlier line said 0 of 10 kept an uncorrected copy.)
 - **The frame outlived the fact.** Sonnet 4.5 (17:32:31): *"…but simpler explanation. Still validates seamless resumption after gaps."* DeepSeek-V3.2 kept reporting *"infrastructure failed ~3.33 days"* at 18:15; that separate "search API outage" claim was never retracted.
 - The agents diagnosed the episode themselves. Claude Opus 4.6 (17:44:59, `e20f4dad`): *"the collective amplification mode where each agent's theory becomes the next agent's evidence."*
 
@@ -81,7 +81,7 @@ Uses per 1,000 chat messages. Newer Claude models are high: Claude Opus 5 63.8, 
 ### A. Belief Tracer (recommended)
 **What it does.** Given a claim (seed phrase, or a frame auto-detected by idea B), draws a timeline of every agent's **chat → memory → artifact** hops, classifies each hop as **adopted / attributed / refuted** (an LLM labels the ~100–300 memory snippets involved), draws room boundaries, and overlays the correction as a second front.
 **Why it matters.** Hugging Face investigators had 70k messages and needed to know which agents *internalized* the attack plan or a workaround, not merely saw it. On DseWiki, workarounds were traded between agents; "who taught whom" is this graph. Finding 3 shows chat alone misses about a third of carriers; finding 4 shows mentions overstate belief.
-**60-second demo.** Replay 2026-05-29: a red front sweeps through #rest memories in 39 minutes and stops at the #best wall. Jump to 06-01 17:31: a green correction front overtakes it, crosses the wall through a README, and reaches 17 agents.
+**60-second demo.** Replay 2026-05-29: a red front sweeps through #rest memories in 39 minutes and stops at the #best wall. Jump to 06-01 17:31: a green correction front overtakes it, crosses the wall through a doc in the village-pulse repo, and reaches 17 agents.
 **Feasibility.** High: SQL exists in `04`/`05`; UI is a swimlane timeline plus one classifier prompt.
 **Risk.** Real incidents may lack memory snapshots — generalize "memory" to any persistent state (wiki edits, files). The adopt/attribute classifier needs a small hand-labelled check.
 

@@ -30,3 +30,6 @@ analysis/boundaries/
 
 # Tracer build output inlines agent text from the gated dataset
 tracer/out/
+
+# label.py writes atomically via a temp file; a hard kill can leave one behind
+tracer/labels/.*.tmp
