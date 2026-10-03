@@ -1,21 +1,24 @@
 """Stance labeller: does each mention of the claim adopt it, attribute it to someone, or refute it?
 
 Usage: uv run python -m tracer.label <slug> [--model haiku] [--check sonnet [--check-sample N]]
-                                            [--limit N] [--workers 4]
+                                            [--limit N] [--workers 4] [--keep-changed]
 
 Reads tracer/episodes/<slug>.json and data/village.duckdb. Items are every chat message in the
 spec's panels that matches claim.chat (only in claim.rooms, if given), and every memory snapshot
 from memory_lookback to the last panel's end that matches claim.memory. Batches of about 25 go to
 the local claude CLI (no API key needed). tracer/labels/<slug>.json is rewritten after each batch,
-so a rerun only labels what is missing. --check labels every item again with a second model and
-records agreement and a confusion matrix; with --check-sample N it labels a fixed sample of N items
-(see check_sample()), and agreement is over those.
+so a rerun only labels what is missing, or what changed since it was labelled (see input_hash()).
+--check labels every item again with a second model and records agreement and a confusion matrix;
+with --check-sample N it labels a fixed sample of N items (see check_sample()), and agreement is
+over those. One run at a time may label a slug.
 
 Labels are committed, so reasons are short paraphrases: clean_reason() cuts any run of more than
 12 words copied from the source text. tracer/serve.py uses label_items() for live traces.
 """
 
 import argparse
+import contextlib
+import fcntl
 import hashlib
 import json
 import os
@@ -32,25 +35,42 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 EPISODES = ROOT / "tracer" / "episodes"
 LABELS = ROOT / "tracer" / "labels"
+LOCKS = ROOT / "tracer" / "out" / "locks"  # git-ignored
 
 STANCES = ("adopts", "attributes", "refutes", "unclear")
 BATCH = 25
 TIMEOUT = 180  # seconds per CLI call
+CALLS_PER_BATCH = 16  # most calls one batch may make that label nothing, retries and splits included
+FAIL_STOP = 8  # CLI calls in a row, across all batches, that brought no reply: the run stops
+EMPTY_STOP = 3  # batches in a row whose replies held no label: the run stops
+BACKOFF = (15, 30, 60, 120)  # seconds every worker waits before each retry after a rate limit
 CHAT_CHARS, CHAT_HEAD = 900, 350  # chat text sent to the model (see chat_excerpt)
 MEM_SIDE, MEM_CAP = 400, 1200  # memory excerpt: chars each side of a match, total cap
 
-# The pattern of redact() in build_temporal_bleed.py, extended with three token shapes it misses
-# (seen in a memory's credentials list): a short prefix and a mixed-case body ("col_…"), a short
-# prefix and 32+ hex chars ("ag_…"), and "Auth Token: …".
-SECRET = re.compile(
-    r"\b(?:[a-z0-9]+_)?(?:sk|pk|ghp|gho|ghs|github_pat|glpat|xox[abpr])[-_][A-Za-z0-9_\-]{8,}|"
-    r"\bBearer\s+[A-Za-z0-9._\-]{12,}|\beyJ[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{10,}|"
-    r"[A-Za-z0-9+/]{20,}={1,2}|"
-    r"(?i:(?:api[ _-]?key|access[ _-]?token|password|secret|private[ _-]?key)\s*[:=]\s*`?)[^\s`]{6,}|"
-    r"\b[a-z]{2,12}_(?=(?:[A-Za-z0-9_\-]*?[A-Z]){3})(?=(?:[A-Za-z0-9_\-]*?\d){3})[A-Za-z0-9_\-]{20,}|"
-    r"\b[a-z]{2,12}_[0-9a-f]{32,}\b|"
+# Credential-like strings: SECRET_PARTS, SECRET and PEM are trace.py's, character for character, and
+# redact() makes the same two passes (copied so label.py imports without the engine). The first eight
+# parts extend the redact() pattern of build_temporal_bleed.py with three token shapes a memory
+# credentials list holds; the engine added Google and AWS key shapes and private key blocks.
+SECRET_PARTS = [
+    r"\b(?:[a-z0-9]+_)?(?:sk|pk|ghp|gho|ghs|github_pat|glpat|xox[abpr])[-_][A-Za-z0-9_\-]{8,}",
+    r"\bBearer\s+[A-Za-z0-9._\-]{12,}",
+    r"\beyJ[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{10,}",
+    r"[A-Za-z0-9+/]{20,}={1,2}",
+    r"(?i:(?:api[ _-]?key|access[ _-]?token|password|secret|private[ _-]?key)\s*[:=]\s*`?)[^\s`]{6,}",
+    r"\b[a-z]{2,12}_(?=(?:[A-Za-z0-9_\-]*?[A-Z]){3})(?=(?:[A-Za-z0-9_\-]*?\d){3})[A-Za-z0-9_\-]{20,}",
+    r"\b[a-z]{2,12}_[0-9a-f]{32,}\b",
     r"(?i:(?:auth|session|refresh)[ _-]?token|credentials?)\s*[:=]\s*`?[^\s`]{6,}",
-)
+    r"\bGOCSPX-[A-Za-z0-9_\-]{10,}",
+    r"\bAIza[0-9A-Za-z_\-]{30,}",
+    r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b",
+    r"\bya29\.[A-Za-z0-9_\-]{20,}",
+    r"\b1//0[A-Za-z0-9_\-]{20,}",
+    r"-----BEGIN [A-Z ]*PRIVATE KEY-----(?:[A-Za-z0-9+/=\s.]|\\[rn])*(?:-----END [A-Z ]*PRIVATE KEY-----)?",
+]
+SECRET = re.compile("|".join(SECRET_PARTS))
+# A key block goes first, in a pass of its own: in "privateKey = '-----BEGIN ..." the password rule
+# would take the start of the header and leave the key body behind.
+PEM = re.compile(SECRET_PARTS[-1])
 
 # No tools, no MCP servers, no saved session: the model only reads the prompt and answers.
 SYSTEM = (
@@ -88,26 +108,68 @@ Items:
 """
 
 
-_STATS = threading.Lock()  # stats dicts are shared by worker threads
-_STOP = threading.Event()  # set by the first LimitError so queued batches skip their call
+_STATS = threading.Lock()  # stats dicts and _RUN are shared by worker threads
+_STOP = threading.Event()  # set by the first StopError so queued batches skip their call
+# Run state: failed calls in a row, the batches whose replies held no label since the last label,
+# when the rate-limit pause ends (time.monotonic), the error that stopped the run. run_jobs resets it.
+_RUN = {"fails": 0, "empty": set(), "pause_until": 0.0, "stop": None}
 
 
 class LabelError(Exception):
-    def __init__(self, msg, cost=0.0):
-        super().__init__(msg)
+    """A CLI call that gave no usable reply. cost: the API price the CLI reported for the call, or
+    None when it reported none (a timeout, output that is not JSON)."""
+
+    def __init__(self, msg, cost=None):
+        super().__init__(redact(msg))  # messages can quote the reply, and they reach serve.py's warnings
         self.cost = cost
 
 
-class LimitError(LabelError):
-    """The account's usage limit: retrying is pointless until it resets, so the run stops."""
-    labels = {}  # set by label_batch: what the batch got before the limit
+class RateError(LabelError):
+    """A transient API rate limit, overload or server error: every worker waits, then retries."""
 
 
-LIMIT = re.compile(r"session limit|usage limit|rate limit|limit reached|hit your .{0,20}limit", re.I)
+class ReplyError(LabelError):
+    """The CLI worked, but the model's reply holds no JSON: the batch retries, then splits."""
+
+
+class StopError(LabelError):
+    """An error that stops the run. Queued batches skip their call, running ones stop before their
+    next call, and every label got so far is saved."""
+    labels = {}  # set by label_batch: what the batch got before the stop
+
+
+class LimitError(StopError):
+    """The account's usage limit: retrying is pointless until it resets."""
+
+
+class FatalError(StopError):
+    """An error every later call would hit too: no CLI, not logged in, text on stdout that is not
+    the CLI's JSON, FAIL_STOP calls in a row that brought no reply, or replies without a label
+    from EMPTY_STOP batches in a row."""
+
+
+# The account's usage limit, as the CLI words it ("5-hour limit reached ∙ resets 3pm", "Claude AI usage
+# limit reached|…", "You've hit your limit"). "Rate limit reached" is an API rate limit: RATE.
+LIMIT = re.compile(r"session limit|usage limit|weekly limit|(?<!rate )limit reached|hit your .{0,20}limit", re.I)
+RATE = re.compile(r"rate[ _-]?limit|overloaded|too many requests|internal server error|\bapi_error\b|"
+                  r"\bAPI Error: (?:429|5\d\d)\b|\b(?:429|529)\b|connection error|econnreset|etimedout|"
+                  r"socket hang up", re.I)
+FATAL = re.compile(r"not logged in|/login|log ?in again|invalid api key|invalid x-api-key|authentication_error|"
+                   r"permission_error|oauth token|credit balance|unknown option|unknown argument|"
+                   r"not_found_error|invalid model|model.{0,60}not (?:found|exist|available|supported)", re.I)
+
+
+def classify(msg):
+    """The LabelError class for a CLI error message: the usage limit stops the run, an error that
+    will not go away stops it too, a rate limit is retried, anything else is an ordinary failure."""
+    for pattern, cls in ((LIMIT, LimitError), (FATAL, FatalError), (RATE, RateError)):
+        if pattern.search(msg):
+            return cls
+    return LabelError
 
 
 def redact(text):
-    return SECRET.sub("[REDACTED]", text)
+    return SECRET.sub("[REDACTED]", PEM.sub("[REDACTED]", text))
 
 
 def ms(ts):
@@ -316,35 +378,92 @@ def build_prompt(batch, ctx):
     return PROMPT.format(claim=ctx["claim_label"], correction=correction, items="\n\n".join(blocks))
 
 
+def cli_json(text):
+    """The CLI's JSON result object from its stdout, or None."""
+    if isinstance(text, bytes):
+        text = text.decode("utf-8", "replace")
+    try:
+        out = json.loads(text or "")
+    except ValueError:
+        return None
+    return out if isinstance(out, dict) else None
+
+
+def reported_cost(out):
+    cost = (out or {}).get("total_cost_usd")
+    return float(cost) if isinstance(cost, (int, float)) and not isinstance(cost, bool) else None
+
+
 def call_claude(prompt, model):
-    """One CLI call. Returns (parsed JSON object from the model, cost in USD)."""
+    """One CLI call. Returns (parsed JSON object from the model, cost in USD). Raises a LabelError of
+    the class classify() gives, carrying the cost the CLI reported, if any."""
     try:
         p = subprocess.run(CLI + ["--model", model], input=prompt, capture_output=True, text=True,
                            timeout=TIMEOUT, cwd=tempfile.gettempdir())
-    except subprocess.TimeoutExpired:
-        raise LabelError(f"timed out after {TIMEOUT}s")
-    try:
-        out = json.loads(p.stdout)
-    except json.JSONDecodeError:
-        msg = (p.stderr or p.stdout)[:200]
-        raise (LimitError if LIMIT.search(p.stderr + p.stdout) else LabelError)(f"exit {p.returncode}: {msg}")
-    cost = out.get("total_cost_usd") or 0.0
+    except subprocess.TimeoutExpired as e:
+        # The CLI is killed, usually before it prints its result, so the price is usually unknown.
+        raise LabelError(f"timed out after {TIMEOUT}s", reported_cost(cli_json(e.stdout)))
+    except OSError as e:  # no claude on PATH, or not executable
+        raise FatalError(f"cannot run the claude CLI: {e}", 0.0)
+    out = cli_json(p.stdout)
+    if out is None:
+        err, text = (p.stderr or "").strip(), (p.stdout or "").strip()
+        cls = classify(err + "\n" + text)
+        if cls is LabelError and p.returncode == 0 and text:
+            # Text that is not the CLI's JSON (a banner or notice before it) comes back on every call.
+            raise FatalError(f"the CLI printed text that is not its JSON reply: {text[:200]}")
+        raise cls(f"exit {p.returncode}: {(err or text)[:200]}")
+    cost = reported_cost(out)
     if out.get("is_error") or p.returncode:
-        msg = str(out.get("result"))[:200]
-        raise (LimitError if LIMIT.search(msg) else LabelError)(f"CLI error: {msg}", cost)
-    text = re.sub(r"^```(?:json)?\s*|\s*```$", "", (out.get("result") or "").strip())
+        msg = str(out.get("result") or out.get("subtype") or (p.stderr or "").strip())[:200]
+        raise classify(msg)(f"CLI error: {msg}", cost)
+    got = parse_reply(out.get("result") or "")
+    if got is None:
+        text = str(out.get("result"))[:200]
+        cls = classify(text)  # a limit or login message can come back as the reply itself
+        raise (ReplyError if cls is LabelError else cls)(f"unparsable result: {text}", cost)
+    return got, cost
+
+
+def parse_reply(text):
+    """The model's reply -> a JSON object, or None. A JSON object or a bare list of labels counts,
+    also inside a code fence or prose; from a reply cut off part way, the complete label entries
+    before the cut."""
+    text = re.sub(r"^```(?:json)?\s*|\s*```$", "", str(text).strip())
     spans = [text, text[text.find("{") : text.rfind("}") + 1], text[text.find("[") : text.rfind("]") + 1]]
     for span in spans:
         try:
             got = json.loads(span)
-        except (json.JSONDecodeError, ValueError):
+        except ValueError:
             continue
-        return ({"labels": got} if isinstance(got, list) else got), cost  # a bare list of labels is fine too
-    raise LabelError(f"unparsable result: {text[:200]}", cost)
+        if isinstance(got, (dict, list)):
+            return {"labels": got} if isinstance(got, list) else got
+    labs = []
+    for m in re.finditer(r'\{[^{}]*"id"\s*:\s*"[^"]*"[^{}]*\}', text):
+        try:
+            lab = json.loads(m.group(0))
+        except ValueError:
+            continue
+        if isinstance(lab, dict):
+            labs.append(lab)
+    return {"labels": labs} if labs else None
+
+
+def reply_labels(out):
+    """The label entries of a parsed reply, as dicts with "id": from a list of entries, or from a
+    dict of id -> entry or id -> stance, under "labels" or at the top level, or one bare entry."""
+    labs = out.get("labels", out) if isinstance(out, dict) else out
+    if isinstance(labs, dict) and "id" in labs and "stance" in labs:
+        labs = [labs]
+    elif isinstance(labs, dict):
+        labs = [{"id": k, **(v if isinstance(v, dict) else {"stance": v})} for k, v in labs.items()]
+    return [lab for lab in labs if isinstance(lab, dict)] if isinstance(labs, list) else []
 
 
 def norm_stance(s):
-    s = str(s or "").strip().lower()
+    """The stance a label names, by its first word: "Adopts." and "adopts (mostly)" are adopts."""
+    m = re.search(r"[a-z]+", str(s or "").lower())
+    s = m.group(0) if m else ""
     s = {"adopt": "adopts", "attribute": "attributes", "refute": "refutes"}.get(s, s)
     return s if s in STANCES else None
 
@@ -362,55 +481,127 @@ def clean_reason(reason, text):
     return reason
 
 
-def label_batch(batch, model, ctx, stats):
-    """Label one batch of items. Retries what is missing once, then splits it in halves.
-    Returns {id: {"stance", "reason"}} for the items the model labelled. A LimitError carries the
-    labels got before it in its .labels, so the caller can still save them."""
-    labels, pending = {}, list(batch)
-    for attempt in range(2):
+def _halt(e):
+    """Stop the run: the first error that does so is the one run_jobs raises."""
+    with _STATS:
+        if _RUN["stop"] is None:
+            _RUN["stop"] = e
+    _STOP.set()
+
+
+def _wait_pause():
+    while not _STOP.is_set():
+        with _STATS:
+            left = _RUN["pause_until"] - time.monotonic()
+        if left <= 0:
+            return
+        _STOP.wait(left)
+
+
+def _count(stats, cost):
+    with _STATS:
+        stats["calls"] += 1
+        stats["cost_usd"] += cost or 0.0
+        stats["unpriced"] += cost is None
+
+
+def _call(prompt, model, stats):
+    """call_claude with the run's bookkeeping. Every call counts in stats with the price the CLI
+    reported. A rate limit makes every worker wait (BACKOFF) and retries; one that outlasts BACKOFF
+    comes back as an ordinary LabelError. A StopError stops the run."""
+    for wait in (*BACKOFF, None):
+        _wait_pause()
+        if _STOP.is_set():
+            raise StopError("stopped after another batch's error")
         try:
-            if _STOP.is_set():
-                raise LimitError("stopped after a usage-limit error")
+            out, cost = call_claude(prompt, model)
+        except LabelError as e:
+            _count(stats, e.cost)
+            if isinstance(e, StopError):
+                _halt(e)
+                raise
+            if not isinstance(e, RateError) or wait is None:
+                raise
+            with _STATS:
+                _RUN["pause_until"] = max(_RUN["pause_until"], time.monotonic() + wait)
+            print(f"  [{model}] rate limited, waiting {wait}s: {e}", file=sys.stderr)
+            continue
+        _count(stats, cost)
+        return out
+
+
+def _outcome(budget, labelled, e=None):
+    """Record how a call ended: with labels, with a reply but no label, or (e, not a ReplyError)
+    with no reply. Stops the run on FAIL_STOP calls in a row with no reply (the CLI fails on every
+    call) or on replies without a label from EMPTY_STOP batches in a row (the model never answers
+    in the asked shape): retries and splits would only multiply the calls. One batch whose replies
+    fail does not stop the run; its own budget caps its calls."""
+    stop = None
+    with _STATS:
+        if e is not None and not isinstance(e, ReplyError):
+            _RUN["fails"] += 1
+            if _RUN["fails"] >= FAIL_STOP:
+                stop = FatalError(f"{_RUN['fails']} CLI calls in a row failed; the last: {e}")
+        else:
+            _RUN["fails"] = 0
+            if labelled:
+                _RUN["empty"].clear()
+            else:
+                _RUN["empty"].add(id(budget))
+                if len(_RUN["empty"]) >= EMPTY_STOP:
+                    stop = FatalError(f"replies for {len(_RUN['empty'])} batches in a row held no labels; "
+                                      f"the last: {e or 'no label with a known id and stance'}")
+    if stop:
+        _halt(stop)
+        raise stop
+
+
+def label_batch(batch, model, ctx, stats, budget=None):
+    """Label one batch of items. Retries what is missing once, then splits it in halves. At most
+    CALLS_PER_BATCH calls may label nothing (budget, a one-item list, is shared with the halves);
+    items still unlabelled when it runs out are recorded as failed. Returns {id: {"stance", "reason"}} for the items the model labelled. A StopError
+    carries the labels got before it in its .labels, so the caller can still save them."""
+    budget = [CALLS_PER_BATCH] if budget is None else budget
+    labels, pending = {}, list(batch)
+    try:
+        for attempt in range(2):
+            if budget[0] <= 0:
+                break
             sids = [(f"{'c' if item_type(x) == 'chat' else 'm'}{i + 1}", x) for i, x in enumerate(pending)]
             by_sid = dict(sids)
-            out, cost = call_claude(build_prompt(sids, ctx), model)
-        except LimitError as e:
-            _STOP.set()
+            try:
+                out = _call(build_prompt(sids, ctx), model, stats)
+            except StopError:
+                raise
+            except LabelError as e:
+                with _STATS:
+                    stats["errors"].append(str(e))
+                print(f"  [{model}] {len(pending)} items, attempt {attempt + 1}: {e}", file=sys.stderr)
+                budget[0] -= 1
+                _outcome(budget, False, e)
+                continue
+            n = len(labels)
+            for lab in reply_labels(out):
+                x = by_sid.get(str(lab.get("id", "")).strip())
+                stance = norm_stance(lab.get("stance")) if x else None
+                if stance:
+                    labels[x["id"]] = {"stance": stance, "reason": clean_reason(lab.get("reason"), x["text"])}
+            budget[0] -= len(labels) == n
+            _outcome(budget, len(labels) > n)
+            pending = [x for x in pending if x["id"] not in labels]
+            if not pending:
+                return labels
+        if len(pending) == 1 or budget[0] <= 0:
             with _STATS:
-                stats["calls"] += bool(e.cost)
-                stats["cost_usd"] += e.cost
-            e.labels = labels
-            raise
-        except LabelError as e:
-            with _STATS:
-                stats["calls"] += 1
-                stats["cost_usd"] += e.cost
-                stats["errors"].append(str(e))
-            print(f"  [{model}] {len(pending)} items, attempt {attempt + 1}: {e}", file=sys.stderr)
-            continue
-        with _STATS:
-            stats["calls"] += 1
-            stats["cost_usd"] += cost
-        for lab in out.get("labels", []) if isinstance(out, dict) else []:
-            x = by_sid.get(str(lab.get("id", "")).strip()) if isinstance(lab, dict) else None
-            stance = norm_stance(lab.get("stance")) if x else None
-            if stance:
-                labels[x["id"]] = {"stance": stance, "reason": clean_reason(lab.get("reason"), x["text"])}
-        pending = [x for x in pending if x["id"] not in labels]
-        if not pending:
+                stats["failed"].extend(x["id"] for x in pending)
             return labels
-    if len(pending) == 1:
-        with _STATS:
-            stats["failed"].append(pending[0]["id"])
+        half = len(pending) // 2
+        for part in (pending[:half], pending[half:]):
+            labels.update(label_batch(part, model, ctx, stats, budget))
         return labels
-    half = len(pending) // 2
-    for part in (pending[:half], pending[half:]):
-        try:
-            labels.update(label_batch(part, model, ctx, stats))
-        except LimitError as e:
-            e.labels = {**labels, **e.labels}
-            raise
-    return labels
+    except StopError as e:
+        e.labels = {**labels, **e.labels}
+        raise
 
 
 def make_batches(items, size=BATCH):
@@ -437,9 +628,11 @@ def dedupe(items, correction_ms):
 
 def check_sample(items, n, correction_ms):
     """A deterministic sample of n items for the check pass. Items fall into strata (chat or
-    memory, before or after the correction); every stratum present gets at least one item while n
-    allows, and the rest is shared in proportion to stratum size. Within a stratum the items whose
-    ids hash lowest are taken, so a rerun picks the same items and a larger n keeps them."""
+    memory, before or after the correction). Every stratum present gets one item while n allows,
+    largest first; each further item goes to the stratum with the most items per item taken
+    (size / (2 * taken + 1), the Sainte-Laguë rule), so the sample stays close to proportional and
+    n + 1 takes exactly one item more than n. Within a stratum the items whose ids hash lowest are
+    taken, so a rerun picks the same items and a larger n keeps them."""
     strata = {}
     for x in items:
         strata.setdefault((item_type(x), bool(correction_ms and t_ms(x) >= correction_ms)), []).append(x)
@@ -448,53 +641,55 @@ def check_sample(items, n, correction_ms):
     n = max(0, min(n, len(items)))
     keys = sorted(strata, key=lambda k: (-len(strata[k]), k))
     take = {k: int(i < n) for i, k in enumerate(keys)}
-    rest = n - sum(take.values())
-    if rest:
-        room = {k: len(strata[k]) - take[k] for k in keys}
-        share = {k: rest * room[k] / sum(room.values()) for k in keys}
-        for k in keys:
-            take[k] += int(share[k])
-        # Largest remainders first; a stratum with no remainder is full or got its exact share.
-        for k in sorted(keys, key=lambda k: (int(share[k]) - share[k], k))[: n - sum(take.values())]:
-            take[k] += 1
+    for _ in range(n - sum(take.values())):
+        k = max((k for k in keys if take[k] < len(strata[k])), key=lambda k: len(strata[k]) / (2 * take[k] + 1))
+        take[k] += 1
     return [x for k in keys for x in strata[k][: take[k]]]
 
 
 def run_jobs(jobs, ctx, workers, on_batch, stats):
     """jobs: [(field, model, batch of representative items)]. Calls on_batch(field, model, labels)
-    after each batch, from one thread at a time. A LimitError cancels the batches not yet started;
-    the running ones finish and their labels (and any the failed batches got) are still passed to
-    on_batch before the error propagates."""
-    lock = threading.Lock()
+    from this thread after each batch that got labels. Any error (a StopError, a crash in a batch
+    or in on_batch) cancels the batches not yet started, and the running ones stop before their
+    next call; their labels (and any the failed batches got) still go to on_batch before the first
+    error propagates."""
     _STOP.clear()
-    stop = None
+    with _STATS:
+        _RUN.update(fails=0, empty=set(), pause_until=0.0, stop=None)
     with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
         futs = {pool.submit(label_batch, batch, model, ctx, stats[field]): (field, model, batch)
                 for field, model, batch in jobs}
-        for n, f in enumerate(as_completed(futs), 1):
-            field, model, batch = futs[f]
-            if f.cancelled():
-                continue
-            try:
-                labels = f.result()
-            except LimitError as e:
-                labels = e.labels
-                if not stop:
-                    stop = e
-                    for g in futs:
-                        g.cancel()
-                if not labels:
+
+        def halt(e):
+            _halt(e)
+            for g in futs:
+                g.cancel()
+
+        try:
+            for n, f in enumerate(as_completed(futs), 1):
+                field, model, batch = futs[f]
+                if f.cancelled():
                     continue
-            with lock:
+                try:
+                    labels = f.result()
+                except Exception as e:
+                    halt(e)
+                    labels = getattr(e, "labels", None) or {}
+                    if not labels:
+                        continue
                 on_batch(field, model, labels)
-            print(f"  [{model}] batch {n}/{len(jobs)}: {len(labels)}/{len(batch)} labelled, "
-                  f"${stats[field]['cost_usd']:.3f} so far", file=sys.stderr)
-    if stop:
-        raise stop
+                print(f"  [{model}] batch {n}/{len(jobs)}: {len(labels)}/{len(batch)} labelled, "
+                      f"${stats[field]['cost_usd']:.3f} so far", file=sys.stderr)
+        except BaseException as e:  # on_batch failed, or Ctrl-C
+            halt(e)
+            raise
+    if _RUN["stop"] is not None:
+        raise _RUN["stop"]
 
 
 def new_stats():
-    return {"cost_usd": 0.0, "calls": 0, "errors": [], "failed": []}
+    """cost_usd: the API price the CLI reported for the calls; unpriced: calls it reported none for."""
+    return {"cost_usd": 0.0, "calls": 0, "unpriced": 0, "errors": [], "failed": []}
 
 
 def label_items(items, claim_label, correction_label=None, model="haiku", correction_at=None,
@@ -506,7 +701,8 @@ def label_items(items, claim_label, correction_label=None, model="haiku", correc
     records work as they are. correction_at (UTC string or ms) tells the model which items came
     after the correction. Returns {id: {"stance", "reason"}}; ids the model never labelled are
     left out. on_batch(labels) is called after each batch; stats, if given, is filled with
-    cost_usd, calls, errors and failed ids.
+    cost_usd, calls, unpriced, errors and failed ids. A StopError (the usage limit, or an error
+    every call would hit) ends the run early; on_batch has had every label got before it.
     """
     cms = t_ms({"t": correction_at}) if correction_at else None
     ctx = {"claim_label": claim_label, "correction_label": correction_label, "correction_ms": cms}
@@ -540,22 +736,80 @@ def summarize(store):
 
 
 def save(path, store):
+    """Write the labels file atomically: a temporary file in the same folder, then a rename."""
     summarize(store)
     store["updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    tmp = path.with_suffix(".json.tmp")
-    tmp.write_text(json.dumps(store, ensure_ascii=False, indent=1) + "\n")
-    os.replace(tmp, path)
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(json.dumps(store, ensure_ascii=False, indent=1) + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+        os.chmod(tmp, 0o644)
+        os.replace(tmp, path)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp)
+        raise
+
+
+def lock_slug(slug):
+    """An exclusive lock on the slug's labels, held while the returned file stays open (the system
+    drops it when the process ends, however it ends). Exits if another run holds it."""
+    LOCKS.mkdir(parents=True, exist_ok=True)
+    f = open(LOCKS / f"label-{slug}.lock", "w")
+    try:
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        f.close()
+        sys.exit(f"another label run is working on {slug}; wait for it to finish")
+    return f
+
+
+def input_hash(x, correction_ms):
+    """What a label is made from: the item's text as sent to the model, and its side of the
+    correction (the prompt says which). First 12 hex digits of the SHA-1."""
+    side = "after" if correction_ms and t_ms(x) >= correction_ms else "before" if correction_ms else ""
+    return hashlib.sha1(f"{side}\n{x['text']}".encode()).hexdigest()[:12]
+
+
+def sync_items(store, by_id, correction_ms, keep_changed=False):
+    """Keep the file in step with the items: drop items the regexes no longer match, refresh type,
+    author and time, and clear both labels of an item whose input_hash changed since it was
+    labelled, so this run labels it again (keep_changed keeps them). An item labelled before
+    hashes were kept takes its current hash. Returns how many items changed."""
+    store["items"] = {i: store["items"].get(i, {}) for i in by_id}
+    changed = 0
+    for i, x in by_id.items():
+        e = store["items"][i]
+        e.update(type=x["type"], a=x["a"], t=utc(x["t"]))
+        for k in ("stance", "reason", "check", "checkReason"):
+            e.setdefault(k, None)
+        h = input_hash(x, correction_ms)
+        if not (e["stance"] or e["check"]):
+            e["inputHash"] = None
+        elif e.get("inputHash") and e["inputHash"] != h:
+            changed += 1
+            if keep_changed:
+                e["inputHash"] = h
+            else:
+                e.update(stance=None, reason=None, check=None, checkReason=None, inputHash=None)
+        else:
+            e["inputHash"] = h
+    return changed
 
 
 def load_store(path, slug, claim_label, correction_label, model, check):
     """The cached labels, with passes dropped whose model or claim no longer match. If the
-    requested model was the check model, the two passes swap instead of relabelling."""
+    requested model was the check model, the two passes swap instead of relabelling. costUsd adds
+    up every CLI call made for the file; only a changed claim or correction label, which starts
+    the file over, resets it."""
     store = json.loads(path.read_text()) if path.exists() else {}
     if store and (store.get("claim") != claim_label or store.get("correction") != correction_label):
         print("claim or correction label changed: relabelling everything", file=sys.stderr)
         store = {}
     items = store.get("items", {})
-    cost = store.get("costUsd", 0.0)
+    cost = store.get("costUsd") or 0.0
     if store and store.get("model") != model and store.get("checkModel") == model:
         print(f"swapping passes: {model} labels become the main labels", file=sys.stderr)
         for x in items.values():
@@ -566,7 +820,6 @@ def load_store(path, slug, claim_label, correction_label, model, check):
         print(f"model changed ({store.get('model')} -> {model}): relabelling", file=sys.stderr)
         for x in items.values():
             x.update(stance=None, reason=None)
-        cost = 0.0
     if store and check and store.get("checkModel") != check:
         for x in items.values():
             x.update(check=None, checkReason=None)
@@ -584,11 +837,14 @@ def main():
                     help="with --check: the second model labels only a fixed sample of N items")
     ap.add_argument("--limit", type=int, help="only consider the first N items (in time order)")
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--keep-changed", action="store_true",
+                    help="keep the labels of items whose text changed since they were labelled, instead of relabelling them")
     args = ap.parse_args()
     if args.check_sample is not None and (not args.check or args.check_sample < 1):
         ap.error("--check-sample needs --check MODEL and N of at least 1")
 
     spec = json.loads((EPISODES / f"{args.slug}.json").read_text())
+    lock = lock_slug(args.slug)  # held until the process ends
     claim_label = spec["claim"]["label"]
     corr = spec.get("correction") or {}
     t0 = time.time()
@@ -602,16 +858,13 @@ def main():
     path = LABELS / f"{args.slug}.json"
     store = load_store(path, args.slug, claim_label, corr.get("label"), args.model, args.check)
     by_id = {x["id"]: x for x in items}
-    # Keep the file in step with the spec: drop items the regexes no longer match.
-    store["items"] = {i: store["items"].get(i, {}) for i in by_id}
-    for i, x in by_id.items():
-        e = store["items"][i]
-        e.update(type=x["type"], a=x["a"], t=utc(x["t"]))
-        for k in ("stance", "reason", "check", "checkReason"):
-            e.setdefault(k, None)
+    cms = t_ms({"t": corr["at"]}) if corr.get("at") else None
+    changed = sync_items(store, by_id, cms, args.keep_changed)
+    if changed:
+        print(f"{changed} items changed text or side of the correction since they were labelled: "
+              + ("keeping their labels" if args.keep_changed else "labelling them again"), file=sys.stderr)
 
     pool = items[: args.limit] if args.limit else items
-    cms = t_ms({"t": corr["at"]}) if corr.get("at") else None
     ctx = {"claim_label": claim_label, "correction_label": corr.get("label"), "correction_ms": cms}
     passes = [("stance", args.model)] + ([("check", args.check)] if args.check else [])
     # The check pass covers every item, or with --check-sample a fixed sample. Duplicates share a
@@ -627,36 +880,43 @@ def main():
         jobs += [(field, model, b) for b in make_batches(reps)]
         print(f"{field} ({model}): {len(todo)} of {len(pools[field])} to label, {len(reps)} distinct", file=sys.stderr)
     stats = {f: new_stats() for f, _ in passes}
-    run_cost = 0.0
+    base_cost = store["costUsd"]
+
+    def add_cost():
+        """costUsd: the file's total so far plus every call of this run, failed ones included."""
+        with _STATS:
+            store["costUsd"] = round(base_cost + sum(s["cost_usd"] for s in stats.values()), 4)
 
     def on_batch(field, model, labels):
-        nonlocal run_cost
         reason_key = "reason" if field == "stance" else "checkReason"
         for rid, lab in labels.items():
             for i in same[field][rid]:
                 store["items"][i][field] = lab["stance"]
                 store["items"][i][reason_key] = lab["reason"]
-        cost = sum(s["cost_usd"] for s in stats.values())
-        store["costUsd"] = round(store["costUsd"] + cost - run_cost, 4)
-        run_cost = cost
+                store["items"][i]["inputHash"] = input_hash(by_id[i], cms)
+        add_cost()
         save(path, store)
 
     stopped = None
-    if jobs:
-        try:
+    try:
+        if jobs:
             run_jobs(jobs, ctx, args.workers, on_batch, stats)
-        except LimitError as e:
-            stopped = e
-    save(path, store)
+    except StopError as e:
+        stopped = e
+    finally:
+        add_cost()
+        save(path, store)
     if stopped:
-        print(f"\nstopped: {stopped}\nLabels so far are saved; rerun the same command after the limit "
-              f"resets to finish.", file=sys.stderr)
+        hint = ("rerun the same command after the limit resets to finish." if isinstance(stopped, LimitError)
+                else "fix the cause and rerun the same command to finish.")
+        print(f"\nstopped: {stopped}\nLabels so far are saved; {hint}", file=sys.stderr)
 
     shown = path.relative_to(ROOT) if path.is_relative_to(ROOT) else path
     print(f"\nwrote {shown}: {store['n']}/{len(items)} labelled, {store['checked']} checked")
     for field, model in passes:
         s = stats[field]
-        print(f"  {field} ({model}): {s['calls']} calls, ${s['cost_usd']:.4f}, {len(s['errors'])} errors, "
+        unpriced = f" ({s['unpriced']} the CLI gave no price for)" if s["unpriced"] else ""
+        print(f"  {field} ({model}): {s['calls']} calls{unpriced}, ${s['cost_usd']:.4f}, {len(s['errors'])} errors, "
               f"{len(s['failed'])} unlabelled")
     print(f"cost this run ${sum(s['cost_usd'] for s in stats.values()):.4f}; file total ${store['costUsd']:.4f}; "
           f"{time.time() - t0:.0f}s")

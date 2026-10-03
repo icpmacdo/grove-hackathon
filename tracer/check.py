@@ -19,6 +19,7 @@ import re
 import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 TRACER = Path(__file__).resolve().parent
 OUT = TRACER / "out" / "episodes"
@@ -124,7 +125,8 @@ ITEM = {
     "moves": {"agent": S, "t": is_int, "toGroup": S, "label": S},
     "figures": {"value": S, "label": S},
 }
-OPTIONAL = {"chat": {"reason": S}, "mem": {"reason": S}}
+OPTIONAL = {"chat": {"reason": S}, "mem": {"reason": S}, "panels": {"endDay": is_int}}
+PATTERN_KEYS = {"claim": ("chat", "mem", "files"), "correction": ("chat", "strong", "mem", "files")}
 
 
 def check_shape(d, r):
@@ -154,6 +156,7 @@ def check_shape(d, r):
             r.fail(f"{coll}: field {f!r} missing or invalid in {n} item(s), first at index {i}: {str(d[coll][i])[:160]}")
     if not d["panels"]:
         r.fail("panels is empty")
+    check_zone_and_patterns(d, r)
     for k in ("how", "method", "limits"):
         if not L(d["notes"].get(k)):
             r.fail(f"notes.{k} is not a list")
@@ -174,6 +177,48 @@ def check_shape(d, r):
         if k not in d["stats"]:
             r.fail(f"stats: missing {k!r}")
     return not r.fails
+
+
+def check_zone_and_patterns(d, r):
+    """Optional fields: timeZone (an IANA zone name or null) and patterns (the spec's regexes for the
+    viewer's highlights; each must compile in Python)."""
+    z = d.get("timeZone")
+    if z is not None:
+        try:
+            ZoneInfo(z)
+        except (KeyError, ValueError, TypeError):
+            r.fail(f"timeZone {z!r} is not a known zone")
+    if "patterns" not in d:
+        return
+    pats = d["patterns"]
+    if not D(pats):
+        r.fail(f"patterns is not an object: {type(pats).__name__}")
+        return
+    for k in sorted(set(pats) - {"claim", "correction", "linger"}):
+        r.fail(f"patterns: unknown key {k!r}")
+    found = [("linger", pats.get("linger"))]
+    for part, keys in PATTERN_KEYS.items():
+        v = pats.get(part)
+        if v is None:
+            if part == "claim":
+                r.fail("patterns.claim is missing")
+            continue
+        if not D(v):
+            r.fail(f"patterns.{part} is not an object")
+            continue
+        for k in sorted(set(v) - set(keys)):
+            r.fail(f"patterns.{part}: unknown key {k!r}")
+        found += [(f"{part}.{k}", v.get(k)) for k in keys]
+    for where, p in found:
+        if p is None:
+            continue
+        if not S(p):
+            r.fail(f"patterns.{where} is not a string")
+            continue
+        try:
+            re.compile(p)
+        except re.error as e:
+            r.fail(f"patterns.{where} does not compile: {e}")
 
 
 # Structure -----------------------------------------------------------------------------------------
@@ -514,6 +559,9 @@ def check_stats(d, r):
 # Meaning: what the data says must agree with the rules that made it -------------------------------
 
 def village_day(t, tz):
+    """Day number at epoch ms t; tz is a ZoneInfo (daylight saving included) or a fixed offset in hours."""
+    if isinstance(tz, ZoneInfo):
+        return (datetime.fromtimestamp(t / 1000, tz).date() - DAY1).days + 1
     return ((datetime.fromtimestamp(t / 1000, timezone.utc) + timedelta(hours=tz)).date() - DAY1).days + 1
 
 
@@ -521,11 +569,19 @@ def check_meaning(d, spec, r):
     """Rules the engine follows that the data alone can confirm: day numbers, the spec's panels and
     correction time, kinds against labels (red needs an adopts), kinds against the correction time,
     link rooms, the corrector, and the parts of memory_only the data can show."""
-    tz, corr = d["tzOffsetHours"], d["correctionMs"]
+    corr = d["correctionMs"]
+    try:
+        tz = ZoneInfo(d["timeZone"]) if d.get("timeZone") else d["tzOffsetHours"]
+    except (KeyError, ValueError, TypeError):
+        tz = d["tzOffsetHours"]  # check_shape reported the zone
+    where = tz.key if isinstance(tz, ZoneInfo) else f"UTC{tz:+g}"
     for p in d["panels"]:
         if p["day"] != village_day(p["startMs"], tz):
             r.fail(f"panel {p['id']}: day {p['day']}, but {utc(p['startMs'])} UTC is Day {village_day(p['startMs'], tz)} "
-                   f"at UTC{tz:+g}")
+                   f"in {where}")
+        # endDay: the day the panel ends on; an end at midnight belongs to the day before.
+        if "endDay" in p and p["endDay"] != village_day(p["endMs"] - 1, tz):
+            r.fail(f"panel {p['id']}: endDay {p['endDay']}, but it ends on Day {village_day(p['endMs'] - 1, tz)} in {where}")
     for k in ("title", "headline", "lede"):
         if PLACEHOLDER.search(d[k]):
             r.fail(f"{k} has an unfilled placeholder: {d[k][:120]!r}")
@@ -580,6 +636,16 @@ def check_meaning(d, spec, r):
             r.fail(f"links[{i}]: both ends are {ln['from']}")
 
     rows = {x["name"]: x for x in d["rows"]}
+    # pin_first: the rows it names (agents or human rows) that the episode shows in that group come
+    # first in the group, in its order.
+    for g, names in ((spec or {}).get("pin_first") or {}).items():
+        if not L(names):
+            r.fail(f"pin_first.{g}: {names!r} is not a list of row names")
+            continue
+        order = [x["name"] for x in d["rows"] if x["group"] == g]
+        want = list(dict.fromkeys(n for n in names if n in order))
+        if order[:len(want)] != want:
+            r.fail(f"pin_first.{g}: rows {want} should open the group, but it starts {order[:len(want)]}")
     c = d["stats"].get("corrector")
     if c is not None and (c not in rows or rows[c]["human"]):
         r.fail(f"stats.corrector {c!r} is not an agent row")

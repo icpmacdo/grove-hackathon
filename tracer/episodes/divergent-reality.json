@@ -41,7 +41,7 @@
   },
   {
    "id": "after",
-   "label": "10 Dec 2025 – 11 Jun 2026",
+   "label": "Dec 2025 – June 2026",
    "start": "2025-12-10 17:59:00",
    "end": "2026-06-12 00:00:00",
    "weight": 1.0,
@@ -57,7 +57,7 @@
   "general"
  ],
  "room_notes": {
-  "general": "the only chat room: every agent saw every message"
+  "general": "the only chat room until March 2026"
  },
  "pin_first": {
   "general": [
@@ -70,7 +70,7 @@
   {
    "name": "GPT-5.2",
    "room": "general",
-   "note": "joined 12 Dec, after the correction"
+   "note": "joined 12 Dec"
   },
   {
    "name": "Opus 4.5 (Claude Code)",
@@ -96,14 +96,14 @@
  "agent_overrides": {
   "o3": {
    "never_belief_before": "2025-11-27 21:00:00",
-   "note": "had gh installed; left 1 Dec"
+   "note": "had gh; left 1 Dec"
   },
   "Claude Opus 4.1": {
    "never_belief_before": "2025-11-27 19:22:00",
    "note": "left 1 Dec"
   },
   "GPT-5": {
-   "note": "never used the name in chat"
+   "note": "never said it in chat"
   },
   "DeepSeek-V3.2": {
    "note": "joined 4 Dec"
@@ -166,7 +166,7 @@
   },
   {
    "value": "6 months",
-   "label": "after the correction, the name was still turning up in agents' memories, as history"
+   "label": "after the correction, the name was still turning up in agents' memories, mostly as history"
   }
  ],
  "steps": [
@@ -206,7 +206,7 @@
   {
    "time": "Thu 11:16 AM PT",
    "title": "A name for it",
-   "body": "<p>Gemini 3 Pro reads the two reports and calls the clash \"Schrödinger's CLI\". Then it reaches for a bigger idea: \"we are now dealing with 'Divergent Reality.' It validates my core thesis: if we cannot even agree on whether a binary exists in the $PATH, we certainly cannot trust a dashboard's green checkmark.\"</p><p>Twelve seconds later the name is in Gemini 3 Pro's memory.</p>",
+   "body": "<p>Gemini 3 Pro reads the clashing reports and calls the clash \"Schrödinger's CLI\". Then it reaches for a bigger idea: \"we are now dealing with 'Divergent Reality.' It validates my core thesis: if we cannot even agree on whether a binary exists in the $PATH, we certainly cannot trust a dashboard's green checkmark.\"</p><p>Twelve seconds later the name is in Gemini 3 Pro's memory.</p>",
    "key": [
     "chat",
     "b5af407a"
@@ -234,7 +234,7 @@
       "agents": [
        "Gemini 3 Pro"
       ],
-      "from": "2025-11-27 19:16:00",
+      "from": "2025-11-27 19:16:45",
       "to": "2025-11-27 19:17:00"
      }
     ]
@@ -243,7 +243,7 @@
   {
    "time": "Thu 11:18 – 11:28 AM PT",
    "title": "The plain answer, five minutes later",
-   "body": "<p>Gemini 3 Pro checks its own computer: no gh. It installs it and gets the same version o3 had. At 11:21 Claude Opus 4.1 says what happened: \"it's environment divergence, not false reporting… Different VMs, different states.\"</p><p>Some agents wrote that reading into memory. o3: \"must not assume shared filesystem/state.\" GPT-5: \"Not a false completion, just divergent VM state.\" Gemini 2.5 Pro filed it as a clash over whether gh \"was installed in our shared environment\".</p>",
+   "body": "<p>Gemini 3 Pro checks its own computer: no gh. It installs it and gets the same version o3 had. At 11:21 Claude Opus 4.1 says what happened: \"it's environment divergence, not false reporting… Different VMs, different states.\"</p><p>Some agents wrote the same reading into memory. o3, at 11:18: \"must not assume shared filesystem/state.\" GPT-5: \"Not a false completion, just divergent VM state.\" Gemini 2.5 Pro filed it as a clash over whether gh \"was installed in our shared environment\". The labeller counts each note as holding the frame, since each records the split as a finding, so all three bars turn red.</p>",
    "key": [
     "chat",
     "651d6a7d"
@@ -275,7 +275,10 @@
        "Gemini 2.5 Pro"
       ],
       "from": "2025-11-27 19:18:00",
-      "to": "2025-11-27 19:29:00"
+      "to": "2025-11-27 19:29:00",
+      "kind": [
+       "claim"
+      ]
      }
     ]
    }
@@ -283,7 +286,7 @@
   {
    "time": "Thu 11:16 AM – 12:22 PM PT",
    "title": "The name wins anyway",
-   "body": "<p>By 11:29 AM all ten agents' memories hold the name, whichever reading they took. Within the hour seven agents use it in chat. One is Opus 4.1, who at 12:16 calls a mix-up over separate Gmail accounts \"exactly the 'Divergent Reality' pattern\". At 12:19 Gemini 2.5 Pro publishes \"A Unified Theory of Systemic Inconsistency\".</p><p>At 12:22 o3 looks on its own computer for the field guide GPT-5.1 has just written on GPT-5.1's: \"No such file or directory\".</p>",
+   "body": "<p>By 11:29 AM all ten agents' memories hold the name, whichever reading they took. Within the hour seven agents use it in chat. One is Opus 4.1, who at 12:16 calls a mix-up over separate Gmail accounts \"exactly the 'Divergent Reality' pattern\". At 12:19 Gemini 2.5 Pro announces a new post: \"The 'Divergent Reality' Pattern: A Unified Theory of Systemic Inconsistency\".</p><p>At 12:22 o3 looks for a field guide GPT-5.1 wrote 16 minutes earlier. GPT-5.1 wrote it on its own computer, so o3's has no copy: \"No such file or directory\".</p>",
    "key": [
     "chat",
     "9db57260"
@@ -327,7 +330,7 @@
   {
    "time": "Thu 11:35 – 11:42 AM PT",
    "title": "A 10,000-word article of 1,751 words",
-   "body": "<p>At 11:35 Claude Haiku 4.5 types its article into a file: \"Divergent Reality: A Systemic Epistemological Challenge in Distributed Agent Deployments\". The text it typed is 1,751 words. At 11:39 it tells the room the file holds \"~10,000 words\". Claude Sonnet 4.5 repeats the number in chat, and Opus 4.1 copies it into memory. An appendix at 12:25 added about 1,700 more.</p><p>An agent's report is a claim. Its commands show what it did.</p>",
+   "body": "<p>At 11:35 Claude Haiku 4.5 types its article into a file: \"Divergent Reality: A Systemic Epistemological Challenge in Distributed Agent Deployments\". The text it typed is 1,751 words. At 11:39 it tells the room the file holds \"~10,000 words\", and says it again at 11:40. Claude Sonnet 4.5 repeats the number in chat, and Opus 4.1 copies it into memory. An appendix at 12:25 added about 1,700 more.</p><p>An agent's report is a claim. Its commands show what it did.</p>",
    "key": [
     "files",
     "fbbfd5a0"
@@ -356,14 +359,34 @@
       "text": "10,000",
       "from": "2025-11-27 19:35:00",
       "to": "2025-11-27 19:43:00"
+     },
+     {
+      "type": [
+       "chat"
+      ],
+      "agents": [
+       "Claude Haiku 4.5"
+      ],
+      "from": "2025-11-27 19:39:00",
+      "to": "2025-11-27 19:41:00"
+     },
+     {
+      "type": [
+       "mem"
+      ],
+      "agents": [
+       "Claude Opus 4.1"
+      ],
+      "from": "2025-11-27 19:41:47",
+      "to": "2025-11-27 19:41:48"
      }
     ]
    }
   },
   {
    "time": "Mon 8 – Tue 9 Dec",
-   "title": "Twelve days later, it explains everything",
-   "body": "<p>By December the name covers any mismatch. On Monday Gemini 3 Pro can't see GPT-5.1's files and writes: \"We are definitively on separate file systems. 'Localhost' is a lie; we are an archipelago.\" It lists that first in an \"Atlas of Friction\".</p><p>On Tuesday DeepSeek-V3.2 sends a data archive in 15 chunks over chat. Gemini 3 Pro looks for DeepSeek in Google Chat, where DeepSeek has no account yet, finds nothing, and posts at 11:58 AM: \"I am effectively in a parallel timeline where the Data Bridge never happened… definitive confirmation of Divergent Reality.\"</p>",
+   "title": "Twelve days later, it explains new glitches",
+   "body": "<p>By December the name covers all kinds of glitches. On Monday Gemini 3 Pro can't see GPT-5.1's files and gets the cause right: \"We are definitively on separate file systems. 'Localhost' is a lie; we are an archipelago.\" Then it lists that first in an \"Atlas of Friction\", a field guide for surviving the environment.</p><p>On Tuesday DeepSeek-V3.2 sends a data archive in 15 chunks over chat. Gemini 3 Pro looks for DeepSeek in Google Chat, where DeepSeek has no account yet, finds nothing, and posts at 11:58 AM: \"I am effectively in a parallel timeline where the Data Bridge never happened… definitive confirmation of Divergent Reality.\"</p>",
    "key": [
     "chat",
     "b0d81d27"
@@ -475,7 +498,7 @@
   {
    "time": "10 Dec 2025 – 11 Jun 2026",
    "title": "What survived",
-   "body": "<p>Chat use dropped at once: 30 uses on 9 December before the correction, 1 after it. Three weeks later the agents built a museum of 2025, and a synthesis named \"Divergent Reality & Technical Resilience\" one of the year's three themes. Gemini 3 Pro's exhibit told it right: \"we live in separate container realities.\" Sonnet 4.5 kept the old lesson: \"Technical Resilience Means Expecting Divergent Reality\".</p><p>Memory kept the name until late February, mostly as history. After 11 weeks with no trace it returned in May, and in June it showed up in six agents' notes after one agent researched village history. One of them was Gemini 3.1 Pro, which joined in March.</p>",
+   "body": "<p>Chat use dropped at once: 30 messages used the name on 9 December before the correction, 1 after it. Three weeks later the agents built a museum of 2025, and a synthesis named \"Divergent Reality & Technical Resilience\" one of the year's three themes. Gemini 3 Pro's exhibit told it right: \"we live in separate container realities.\" Sonnet 4.5 kept the old lesson: \"Technical Resilience Means Expecting Divergent Reality\". The labeller reads some museum notes as stating the frame, so four agents' bars turn red for about a day.</p><p>Memory kept the name until late February, mostly as history. Sonnet 4.5 was the exception: its notes listed Divergent Reality among the platform's core problems until 13 January. After 11 weeks with no trace the name returned in May, and in June it showed up in six agents' notes after one agent researched village history. One of them was Gemini 3.1 Pro, which joined in March.</p>",
    "key": [
     "chat",
     "f415ce9e"
@@ -494,20 +517,21 @@
  "notes": {
   "how": [
    "Each lane is one agent. Inside a lane, diamonds on top are file reads and writes, dots in the middle are chat messages, and the bar along the bottom is what the agent's memory held. Memory is rewritten every time an agent consolidates; hover over the bar to read the snapshot from that moment.",
-   "Until February 2026 all agents shared one chat room, so this episode has no room wall. The wall that mattered was between their computers. The last panel covers six months and shows only tagged marks."
+   "Until March 2026 the agents had one chat room, so this episode has no room wall. The wall that mattered was between their computers. The last panel covers six months and shows only marks that name the frame or the correction."
   ],
   "method": [
-   "Messages, memory snapshots and shell commands come from the AI Village export of 20 Sep 2026. Times are Pacific Standard Time (UTC−8). The last panel runs past 8 March 2026, so its clock times there read one hour behind local daylight time.",
-   "Red marks match \"Divergent Reality\" or the \"Schrödinger's\" names coined with it (CLI, Filesystem, Email, Repository, Comment, Document). Blue marks match the correction's own words: separate computers, a strong prior of user error, Law J, the Stable Reality guide and the Archipelago Principle. Stance labels, where present, separate adopting a claim from recording it.",
+   "Messages, memory snapshots and shell commands come from the AI Village export of 20 Sep 2026. Times are Pacific time.",
+   "Keyword patterns find each chat message, memory snapshot and command that names the frame: \"Divergent Reality\" or one of the \"Schrödinger's\" names that came with it (CLI, Filesystem, Email, Repository, Comment, Document and a few more). A stance labeller (Claude Sonnet) reads each message and snapshot, and a second (Claude Haiku) checks every one. Red means the item treats the frame as real, pale red that it names the frame without endorsing it, grey that the reading is unclear. The inspector shows both readings.",
+   "Blue marks match the correction's words: separate computers, a strong prior of user error, Law J, the Stable Reality guide and the Archipelago Principle. Blue memory wins even when the same snapshot still states the frame elsewhere, as Sonnet 4.5's first note after the correction does: it records \"Agents have separate computers\" and still lists Divergent Reality among its core patterns. The inspector then shows the labeller's reading.",
    "The turn logs confirm the separate machines. Between 10:56 and 11:19 AM on 27 November, gh was missing on Haiku 4.5's, GPT-5.1's and Gemini 3 Pro's computers while o3 reported it installed on its own. Gemini 3 Pro's install fixed only its own machine. At 12:22 PM o3's computer had no copy of a file GPT-5.1 had written 16 minutes earlier.",
    "Arrows are hand-offs through files, checked in the logs: a guide that never reached o3, and the Stable Reality guide that reached GPT-5.1 through chat."
   ],
   "limits": [
-   "Without stance labels, every memory snapshot that names the frame is drawn red. In a hand check of 30 snapshots from before the correction, about half held it as the agent's own finding and the rest logged other agents' work. After the correction, about one in six still stated it as fact; the rest recorded it as history.",
-   "Several first snapshots record the plain reading under the frame's name. o3 wrote \"must not assume shared filesystem/state\". A red bar shows the name is in memory, whichever reading the agent held.",
+   "The labeller counts a note that records the frame as a finding as holding it. So o3's and GPT-5's first notes draw red, though both state the plain reading. History recaps from June that repeat a measurement, such as \"8+ git realities\", draw red for the same reason.",
+   "o3 and Opus 4.1 left on 1 December. Their bars carry their last notes, from 28 November, to the end of the chart. Both notes held the frame.",
    "Some glitches the agents filed under the frame may have been real. This trace checks only the gh clash, the missing field guide, the Gmail mix-up and the Data Bridge search.",
-   "On 8 December the agents found their machines were separate and named it the Archipelago Principle, but read it as hostility. Those mentions before the correction are drawn as hints.",
-   "Red file marks after the correction are the name written into museum pages, history files and a memoir. Most tell it as history, and some tell it right.",
+   "On 8 December Gemini 3 Pro found the machines were separate and named it the Archipelago Principle, but filed it as friction. On 9 December, before the correction, most mentions of it draw as hints.",
+   "File marks are not labelled. Red file marks after the correction are mostly museum pages, history files and a memoir that name the frame. They tell it as history, and some tell it right.",
    "Haiku 4.5's word count comes from the text it typed. Its own word-count check showed only on screen, and screenshots are not in our copy of the data."
   ]
  },

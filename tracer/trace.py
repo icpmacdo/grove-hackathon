@@ -161,7 +161,21 @@ def from_ms(t):
 
 
 def local(t, tz):
+    """Wall time at epoch ms t: tz is a zone (ZoneInfo, daylight saving included) or a fixed offset in hours."""
+    if isinstance(tz, ZoneInfo):
+        return datetime.fromtimestamp(t / 1000, tz).replace(tzinfo=None)
     return from_ms(t) + timedelta(hours=tz)
+
+
+def display_zone(spec):
+    """The episode's display zone: the spec's "time_zone" (an IANA name), else Pacific time when
+    tz_offset_hours is absent, -7 or -8. Another offset stays a fixed offset (None)."""
+    if spec.get("time_zone"):
+        try:
+            return ZoneInfo(spec["time_zone"])
+        except (KeyError, ValueError) as e:
+            raise ValueError(f"time_zone {spec['time_zone']!r} is not a known zone") from e
+    return PACIFIC if spec.get("tz_offset_hours", -7) in (-7, -8) else None
 
 
 def village_day(t, tz):
@@ -333,7 +347,8 @@ def auto_panels(days, con=None, tz_offset_hours=None):
 def live_spec(claim, correction=None, days=(), con=None, tz_offset_hours=None):
     """A spec for a live trace: claim {"label", "pattern"}, optional correction {"label", "pattern",
     "at"}, and the chosen days. One pattern drives chat, memory and files. No steps; generic figures.
-    The display offset defaults to the Pacific offset on the first panel's date (-8 in winter)."""
+    tz_offset_hours defaults to the Pacific offset on the first panel's date (-8 in winter); either
+    Pacific offset makes the display zone Pacific time, with daylight saving (display_zone)."""
     panels = auto_panels(days, con, tz_offset_hours)
     if tz_offset_hours is None:
         tz_offset_hours = pacific_offset(date.fromisoformat(panels[0]["id"]))
@@ -384,6 +399,10 @@ class Episode:
         self.spec, self.con = spec, con
         self.warnings = []
         self.tz = spec.get("tz_offset_hours", -7)
+        # Display times, day numbers and gap labels follow the zone (daylight saving included);
+        # tz_offset_hours is the fallback for an episode outside Pacific time.
+        self.zone = display_zone(spec)
+        self.disp = self.zone or self.tz
         self.aliases = spec.get("aliases", {})
         self.overrides = spec.get("agent_overrides", {})
         if not spec.get("panels"):
@@ -638,20 +657,29 @@ class Episode:
         notes_g = spec.get("room_notes", {})
         self.groups = [{"key": g, "label": GROUP_LABELS.get(g, "#" + g), "note": notes_g.get(g, "")} for g in group_keys]
 
+        # pin_first places named rows first in their group, in its order. It may name human rows too
+        # (a human_rows entry with a room "group", or a "Staff (human) · #room" row); the other human
+        # rows follow the agents.
         pins = spec.get("pin_first", {})
+        for g in pins:
+            if g not in group_keys:
+                self.warn(f"pin_first: group {g!r} is not shown")
         rows = []
         for g in group_keys:
             members = [n for n, pg in place.items() if pg == g]
+            hs = [h for h, hg in humans.items() if hg == g]
             pin = pins.get(g, [])
             for n in pin:
-                if n not in members:
+                if n not in members and n not in hs:
                     self.warn(f"pin_first: {n!r} is not in group {g!r}")
-            members.sort(key=lambda n: (pin.index(n) if n in pin else len(pin), self.first_mark(n), n))
-            rows += [{"name": n, "group": g, "human": False, "silent": n not in chatted, "note": notes.get(n, "")}
-                     for n in members]
-            hs = [h for h, hg in humans.items() if hg == g]
+            members.sort(key=lambda n: (self.first_mark(n), n))
             hs.sort(key=lambda h: next((i for i, (n, _, _) in enumerate(self.human_rows) if n == h), -1))
-            rows += [{"name": h, "group": g, "human": True, "silent": False, "note": ""} for h in hs]
+            order = list(dict.fromkeys(n for n in pin if n in members or n in hs))
+            order += [n for n in members if n not in order] + [h for h in hs if h not in order]
+            human = set(hs)
+            rows += [{"name": n, "group": g, "human": True, "silent": False, "note": ""} if n in human else
+                     {"name": n, "group": g, "human": False, "silent": n not in chatted, "note": notes.get(n, "")}
+                     for n in order]
         self.rows = rows
         self.row_of = {r["name"]: r for r in rows}
         # Spec entries that name an agent or a group the episode does not show.
@@ -1288,7 +1316,7 @@ class Episode:
         for a, b in zip(self.panels, self.panels[1:]):
             label = labels.get(f"{a['id']}|{b['id']}")
             if label is None:
-                da, db = local(a["e"], self.tz).date(), local(b["s"], self.tz).date()
+                da, db = local(a["e"], self.disp).date(), local(b["s"], self.disp).date()
                 gap = b["s"] - a["e"]
                 if db > da:
                     n = (db - da).days
@@ -1350,13 +1378,24 @@ class Episode:
         steps = self.steps()
         corr = spec.get("correction") or {}
         notes = {"how": [], "method": [], "limits": [], **spec.get("notes", {})}
+        claim = spec["claim"]
         data = {
             "slug": spec.get("slug"), "title": spec.get("title", ""), "headline": spec.get("headline", ""),
-            "lede": spec.get("lede", ""), "tzOffsetHours": self.tz,
-            "claimLabel": spec["claim"].get("label"), "correctionLabel": corr.get("label"),
+            "lede": spec.get("lede", ""), "tzOffsetHours": self.tz, "timeZone": self.zone.key if self.zone else None,
+            "claimLabel": claim.get("label"), "correctionLabel": corr.get("label"),
+            # The spec's regexes (Python syntax), so the viewer can highlight the words they match.
+            "patterns": {
+                "claim": {"chat": claim.get("chat"), "mem": claim.get("memory"), "files": claim.get("files")},
+                "correction": {"chat": corr.get("chat"), "strong": corr.get("strong"), "mem": corr.get("memory"),
+                               "files": corr.get("files")} if corr else None,
+                "linger": spec.get("linger"),
+            },
+            # day: the Village day the panel starts on; endDay: the day it ends on (an end at midnight
+            # belongs to the day before).
             "panels": [{"id": p["id"], "label": p.get("label", p["id"]), "startMs": p["s"], "endMs": p["e"],
                         "weight": p.get("weight", 1.0), "showOther": p.get("show_other", True),
-                        "day": village_day(p["s"], self.tz)} for p in self.panels],
+                        "day": village_day(p["s"], self.disp), "endDay": village_day(p["e"] - 1, self.disp)}
+                       for p in self.panels],
             "gaps": self.gaps(),
             "correctionMs": self.corr_ms,
             "groups": self.groups,

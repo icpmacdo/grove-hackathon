@@ -29,6 +29,8 @@
   --chip-warn: #fdf1dc;
   --ch-chat: #4a3aa7;
   --ch-mem: #1baf7a;
+  --hl-claim: #fbd3d2;
+  --hl-fix: #cfe2fa;
   --shadow: rgba(20, 23, 28, 0.18);
   color-scheme: light;
   --font-ui: "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -42,6 +44,7 @@
     --shade: rgba(57, 135, 229, 0.12); --sel: rgba(57, 135, 229, 0.24);
     --chip-belief: #3a2324; --chip-fix: #1d2c40; --chip-none: #262b31;
     --warn: #f0b45a; --chip-warn: #3a2d17; --ch-chat: #9085e9; --ch-mem: #199e70;
+    --hl-claim: #5e2c2d; --hl-fix: #1e3d64;
     --shadow: rgba(0, 0, 0, 0.5);
     color-scheme: dark;
   }
@@ -53,6 +56,7 @@
   --shade: rgba(57, 135, 229, 0.12); --sel: rgba(57, 135, 229, 0.24);
   --chip-belief: #3a2324; --chip-fix: #1d2c40; --chip-none: #262b31;
   --warn: #f0b45a; --chip-warn: #3a2d17; --ch-chat: #9085e9; --ch-mem: #199e70;
+  --hl-claim: #5e2c2d; --hl-fix: #1e3d64;
   --shadow: rgba(0, 0, 0, 0.5);
   color-scheme: dark;
 }
@@ -106,6 +110,15 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
   .figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .figures div:nth-child(4n+1) { padding-left: 18px; border-left: 1px solid var(--rule); }
   .figures div:nth-child(2n+1) { padding-left: 0; border-left: 0; }
+}
+/* Wide screens: the figures sit beside the lede, two by two, so the chart starts higher. */
+@media (min-width: 1240px) {
+  .masthead.has-figs { max-width: none; grid-template-columns: minmax(0, 1fr) minmax(0, 480px); grid-template-rows: repeat(4, auto); column-gap: 56px; }
+  .masthead.has-figs > * { grid-column: 1; }
+  .masthead.has-figs > .figures { grid-column: 2; grid-row: 1 / -1; align-self: start; margin: 0; border-top: 0; grid-template-columns: repeat(var(--fig-wide, 2), minmax(0, 1fr)); }
+  .masthead.has-figs .figures div:nth-child(n) { padding: 14px 16px 14px 22px; border-left: 1px solid var(--rule); border-top: 1px solid var(--rule); }
+  .masthead.has-figs .figures div:nth-child(2n+1) { padding-left: 0; border-left: 0; }
+  .masthead.has-figs .figures div:nth-child(-n+2) { border-top: 0; padding-top: 4px; }
 }
 
 /* Workbench */
@@ -204,6 +217,11 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
 .quote { margin: 0; padding: 10px 12px; border-left: 3px solid var(--rule); background: var(--bg); border-radius: 0 6px 6px 0; font-size: 13.5px; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 300px; overflow: auto; }
 .quote.code { font-family: var(--font-mono); font-size: 12px; }
 .quote.belief, .quote.attributed { border-left-color: var(--belief); } .quote.fix, .quote.hint { border-left-color: var(--fix); }
+/* Words a claim or correction pattern matched: a tint plus an underline in the mark's colour, solid for
+   the claim and dashed for the correction, so the two differ by more than hue. Text keeps the ink
+   colour (contrast above 9:1 in both themes). */
+mark.hl { color: inherit; background: var(--hl-claim); box-shadow: inset 0 -2px 0 var(--belief); border-radius: 2px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix) 4px, transparent 4px) left bottom / 6px 2px repeat-x, var(--hl-fix); }
 .insp-meta { margin: 0; font-size: 12.5px; color: var(--ink-3); overflow-wrap: anywhere; }
 .insp-meta code { font-size: 11.5px; }
 .insp-empty { margin: 0; color: var(--ink-3); font-size: 14px; }
@@ -419,8 +437,46 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
     if (!/(Z|[+-]\d\d:?\d\d)$/i.test(s)) s += 'Z';
     return Date.parse(s);
   };
-  // Spec regexes are Python syntax; translate the few constructs JS spells differently.
-  const pyRe = s => String(s).replace(/^\(\?i\)/, '').replace(/\(\?P</g, '(?<').replace(/\(\?P=(\w+)\)/g, '\\k<$1>');
+  // Spec regexes are Python syntax. jsRe translates what JS spells differently and compiles the result
+  // with the given flags: leading global flags ((?i), (?s), (?m)), (?P<name>, (?P=name), (?#comments),
+  // \A and \Z, {,n}, a ] first in a set, and scoped (?i: groups (every pattern already ignores case).
+  // A pattern JS still cannot compile (atomic groups, possessive repeats, (?x)) gives null.
+  const RE_STEP = /\(\?P<|\(\?P=(\w+)\)|\(\?#[^)]*\)|\(\?i:|\{,(\d+)\}/y;
+  const jsRe = (src, flags = '') => {
+    let s = String(src ?? ''), out = '', inSet = false;
+    const f = new Set(flags);
+    const lead = s.match(/^\(\?([aiLmsux]+)\)/);
+    if (lead) {
+      if (/[xL]/.test(lead[1])) return null;
+      for (const c of 'ism') if (lead[1].includes(c)) f.add(c);
+      s = s.slice(lead[0].length);
+    }
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      if (c === '\\') {
+        const e = s[i + 1] ?? '';
+        out += inSet ? c + e : e === 'A' ? '^' : e === 'Z' ? '$' : c + e;
+        i++;
+        continue;
+      }
+      if (inSet) { if (c === ']') inSet = false; out += c; continue; }
+      if (c === '[') {
+        inSet = true; out += c;
+        if (s[i + 1] === '^') { out += '^'; i++; }
+        if (s[i + 1] === ']') { out += '\\]'; i++; }
+        continue;
+      }
+      RE_STEP.lastIndex = i;
+      const m = RE_STEP.exec(s);
+      if (m) {
+        out += m[0] === '(?P<' ? '(?<' : m[1] ? `\\k<${m[1]}>` : m[0] === '(?i:' ? '(?:' : m[2] ? `{0,${m[2]}}` : '';
+        i += m[0].length - 1;
+        continue;
+      }
+      out += c;
+    }
+    try { return new RegExp(out, [...f].join('')); } catch (e) { return null; }
+  };
   const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const store = {
@@ -432,13 +488,33 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
   const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const MO = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'June', 'July', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const DAY1 = Date.UTC(2025, 3, 2);  // AI Village Day 1, on the display-time-zone date
-  let OFF = -7 * 3600e3, TZ = 'PT';
-  const setZone = h => {
-    h = Number.isFinite(h) ? h : -7;
-    OFF = h * 3600e3;
-    TZ = h === -7 || h === -8 ? 'PT' : h === 0 ? 'UTC' : `UTC${h > 0 ? '+' : '−'}${Math.abs(h)}`;
+  // UTC offset in ms of a zone at epoch ms t, read from Intl (fmt formats in that zone, 24-hour clock).
+  const zoneOffset = (fmt, t) => {
+    const p = Object.fromEntries(fmt.formatToParts(new Date(t)).map(x => [x.type, x.value]));
+    return Date.UTC(+p.year, p.month - 1, +p.day, p.hour % 24, +p.minute, +p.second) - Math.floor(t / 1000) * 1000;
   };
-  const local = t => new Date(t + OFF);
+  const zoneFmt = zone => new Intl.DateTimeFormat('en-US', { timeZone: zone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  // The display zone: the episode's timeZone (Pacific time, daylight saving included) when the
+  // browser knows it, else the fixed tzOffsetHours. Offsets change on quarter hours, so they are
+  // cached per 15 minutes.
+  let OFF = -7 * 3600e3, TZ = 'PT', ZFMT = null;
+  const zcache = new Map();
+  const setZone = (h, zone) => {
+    h = Number.isFinite(h) ? h : -7;
+    OFF = h * 3600e3; ZFMT = null; zcache.clear();
+    if (zone) { try { ZFMT = zoneFmt(zone); } catch (e) { ZFMT = null; } }
+    TZ = ZFMT ? (zone === 'America/Los_Angeles' ? 'PT' : zone) : h === -7 || h === -8 ? 'PT' : h === 0 ? 'UTC' : `UTC${h > 0 ? '+' : '−'}${Math.abs(h)}`;
+  };
+  const offAt = t => {
+    if (!ZFMT) return OFF;
+    const k = Math.floor(t / 900e3);
+    let v = zcache.get(k);
+    if (v == null) { try { v = zoneOffset(ZFMT, k * 900e3); } catch (e) { v = OFF; } zcache.set(k, v); }
+    return v;
+  };
+  const local = t => new Date(t + offAt(t));
+  // Wall time (as epoch ms of the same clock reading in UTC) back to epoch ms
+  const fromLocal = w => { const t = w - offAt(w); return w - offAt(t); };
   const hm = (d, secs) => {
     const h = d.getUTCHours(); const h12 = ((h + 11) % 12) + 1;
     return `${h12}:${pad(d.getUTCMinutes())}${secs ? ':' + pad(d.getUTCSeconds()) : ''} ${h < 12 ? 'AM' : 'PM'}`;
@@ -464,9 +540,8 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
   let laFmt = null;
   const laOffsetMin = ms => {
     try {
-      laFmt ||= new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      const p = Object.fromEntries(laFmt.formatToParts(new Date(ms)).map(x => [x.type, x.value]));
-      return Math.round((Date.UTC(+p.year, p.month - 1, +p.day, p.hour % 24, +p.minute, +p.second) - Math.floor(ms / 1000) * 1000) / 60000);
+      laFmt ||= zoneFmt('America/Los_Angeles');
+      return Math.round(zoneOffset(laFmt, ms) / 60000);
     } catch (e) { return -420; }
   };
   const ptDate = ms => new Date(ms + laOffsetMin(ms) * 60000);
@@ -521,7 +596,8 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
       if (c.from != null) o.from = U(c.from);
       if (c.to != null) o.to = U(c.to);
       if (c.text != null) {
-        try { o.text = new RegExp(pyRe(c.text), 'i'); } catch (e) { o.bad = true; console.warn('Belief Tracer: focus regex ignored', c.text, e.message); }
+        o.text = jsRe(c.text, 'i');
+        if (!o.text) { o.bad = true; console.warn('Belief Tracer: focus regex ignored', c.text); }
       }
       if (c.linked != null) o.linked = !!c.linked;
       return o;
@@ -547,7 +623,8 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
   }
 
   function model(D) {
-    setZone(D.tzOffsetHours);
+    // data without timeZone (built before it existed) at a Pacific offset gets Pacific time too
+    setZone(D.tzOffsetHours, D.timeZone !== undefined ? D.timeZone : [-7, -8, undefined, null].includes(D.tzOffsetHours) ? 'America/Los_Angeles' : null);
     const panels = D.panels.slice().sort((a, b) => a.startMs - b.startMs);
     const groups = (D.groups || []).map(g => ({ key: g.key, label: g.label || '#' + g.key, note: g.note || '' }));
     const rows = D.rows.map(r => ({ ...r }));
@@ -578,8 +655,17 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
       const a = find(l.from[0], l.from[1]), b = find(l.to[0], l.to[1]);
       if (a < 0 || b < 0) return;
       marks[a].linked = marks[b].linked = true;
-      links.push({ a, b, label: l.label || '', auto: !!l.auto });
+      links.push({ a, b, label: l.label || '', auto: !!l.auto, rooms: Array.isArray(l.rooms) ? l.rooms : null });
     });
+
+    // highlight patterns per channel: [regex, 1 claim | 2 correction]; patterns JS cannot compile are left out
+    const P = D.patterns || {}, pc = P.claim || {}, px = P.correction || {};
+    const hl = { chat: [], mem: [], file: [] };
+    const addHl = (type, cls, src) => { const re = src ? jsRe(src, 'gi') : null; if (re) hl[type].push([re, cls]); };
+    addHl('chat', 1, pc.chat); addHl('chat', 1, P.linger); addHl('chat', 2, px.chat);
+    if (px.strong && px.strong !== px.chat) addHl('chat', 2, px.strong);
+    addHl('mem', 1, pc.mem); addHl('mem', 2, px.mem);
+    addHl('file', 1, pc.files); addHl('file', 2, px.files);
 
     // memory bands: the state carried between snapshots, per panel, plus each gap between panels
     const bands = [];
@@ -629,7 +715,7 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
     const moves = (D.moves || []).map(m => ({ agent: m.agent, t: U(m.t), to: m.toGroup ?? m.to, label: m.label || 'moves' }));
     const hasStance = marks.some(m => m.stance || m.check);
     const disagree = marks.filter(m => m.check && m.stance !== m.check).length;
-    return { D, panels, groups, rows, rowOf, marks, bands, links, steps, overview, annos, moves, hasStance, disagree, find, step: 0, selected: null, focus: null };
+    return { D, panels, groups, rows, rowOf, marks, bands, links, steps, overview, annos, moves, hasStance, disagree, find, hl, step: 0, selected: null, focus: null };
   }
 
   // ---------- masthead, legend, notes ----------
@@ -646,21 +732,89 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
     ? (m.stance === 'unclear' ? 'Mentions the claim, stance unclear' : 'Counted as neither claim nor correction')
     : KIND[m.type][m.kind] || m.kind);
   const isTagged = m => !(m.type === 'chat' && m.kind === 'other') && !(m.type === 'mem' && m.kind === 'none');
+  const cap = s => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
+  // ---------- highlights ----------
+  // Matches of the episode's patterns in a text: [start, end, 1 claim | 2 correction]. A match that ends
+  // partway into a word is cut back when it took only one or two letters of it (a trailing guard such
+  // as "adversary( [^i])" taking the "a" of "and"), else runs to the end of the word (a stem such as
+  // "sabotag" marks "sabotage"). Trailing spaces are left out.
+  const WORDCH = /[\p{L}\p{N}_]/u;
+  const hits = (text, type) => {
+    const out = [];
+    for (const [re, cls] of V.hl[type] || []) {
+      let n = 0;
+      for (const m of text.matchAll(re)) {
+        const a = m.index;
+        let b = a + m[0].length;
+        if (b < text.length && WORDCH.test(text[b]) && WORDCH.test(text[b - 1])) {
+          let k = b - 1;
+          while (k > a && WORDCH.test(text[k])) k--;
+          if (k > a && b - k - 1 <= 2) b = k;
+          else while (b < text.length && WORDCH.test(text[b])) b++;
+        }
+        while (b > a && /\s/.test(text[b - 1])) b--;
+        if (b > a) out.push([a, b, cls]);
+        if (++n >= 200) break;
+      }
+    }
+    return out;
+  };
+  // The text as HTML with each match in a <mark>; where two matches overlap, the shorter one shows.
+  // cls: which kinds it marked (bit 1 claim, bit 2 correction).
+  function marked(text, type) {
+    text = String(text ?? '');
+    const found = text ? hits(text, type) : [];
+    if (!found.length) return { html: esc(text), cls: 0 };
+    const paint = new Uint8Array(text.length);
+    found.sort((a, b) => (b[1] - b[0]) - (a[1] - a[0])).forEach(([a, b, c]) => paint.fill(c, a, b));
+    let html = '', cls = 0;
+    for (let i = 0; i < text.length;) {
+      let j = i + 1;
+      while (j < text.length && paint[j] === paint[i]) j++;
+      const seg = esc(text.slice(i, j));
+      html += paint[i] ? `<mark class="hl${paint[i] === 2 ? ' hl-fix' : ''}">${seg}</mark>` : seg;
+      cls |= paint[i];
+      i = j;
+    }
+    return { html, cls };
+  }
+  const hlKey = cls => (cls ? `<p class="insp-meta">Highlights: ${[cls & 1 && '<mark class="hl">claim pattern</mark>', cls & 2 && '<mark class="hl hl-fix">correction pattern</mark>'].filter(Boolean).join(' ')}</p>` : '');
+  // Evidence log text: the start of the text, or, when the first match falls past the clip, the part around it.
+  const LOG_CHARS = 170;
+  function logText(m) {
+    const t = m.text || '';
+    if (t.length > LOG_CHARS) {
+      const first = hits(t, m.type).reduce((lo, h) => Math.min(lo, h[0]), Infinity);
+      if (first !== Infinity && first > LOG_CHARS - 50) {
+        const a = Math.max(0, first - 50);
+        return (a > 0 ? '…' : '') + marked(t.slice(a, a + LOG_CHARS).trimEnd(), m.type).html + (a + LOG_CHARS < t.length ? '…' : '');
+      }
+    }
+    return marked(short(t, LOG_CHARS), m.type).html;
+  }
+  // Rooms of a hand-off's two ends at that moment (links[].rooms)
+  const roomOf = r => (r ? '#' + r : 'an unknown room');
+  const linkRooms = l => (!l.rooms ? '' : l.rooms[0] && l.rooms[0] === l.rooms[1] ? `inside #${l.rooms[0]}` : `${roomOf(l.rooms[0])} to ${roomOf(l.rooms[1])}`);
 
   function renderHead() {
     const { D, panels } = V;
-    const days = [...new Set(panels.map(p => p.day ?? dayNum(p.startMs)))].sort((a, b) => a - b);
-    $('eyebrow').textContent = `Belief Tracer · AI Village · ${days.length > 1 ? `Days ${days[0]}–${days[days.length - 1]}` : `Day ${days[0]}`}`;
+    // from the day the first panel starts to the day the last one ends (an end at midnight is the day before)
+    const d0 = Math.min(...panels.map(p => p.day ?? dayNum(p.startMs)));
+    const d1 = Math.max(...panels.map(p => p.endDay ?? dayNum(p.endMs - 1)));
+    $('eyebrow').textContent = `Belief Tracer · AI Village · ${d1 > d0 ? `Days ${d0}–${d1}` : `Day ${d0}`}`;
     $('headline').textContent = D.headline || D.title || 'Belief trace';
     $('lede').textContent = D.lede || '';
     $('lede').hidden = !D.lede;
-    $('claimdef').innerHTML = (D.claimLabel ? `<dt><i style="background:var(--belief)"></i>Claim</dt><dd>${esc(D.claimLabel)}</dd>` : '') +
-      (D.correctionLabel ? `<dt><i style="background:var(--fix)"></i>Correction</dt><dd>${esc(D.correctionLabel)}</dd>` : '');
+    $('claimdef').innerHTML = (D.claimLabel ? `<dt><i style="background:var(--belief)"></i>Claim</dt><dd>${esc(cap(D.claimLabel))}</dd>` : '') +
+      (D.correctionLabel ? `<dt><i style="background:var(--fix)"></i>Correction</dt><dd>${esc(cap(D.correctionLabel))}</dd>` : '');
     $('claimdef').hidden = !D.claimLabel && !D.correctionLabel;
     const figs = (D.figures || []).filter(f => f && f.value != null);
     const el = $('figures');
     el.hidden = !figs.length;
     el.style.setProperty('--fig-cols', Math.min(4, Math.max(1, figs.length)));
+    el.style.setProperty('--fig-wide', Math.min(2, Math.max(1, figs.length)));
+    el.parentElement.classList.toggle('has-figs', figs.length > 0);
     el.innerHTML = figs.map(f => `<div><dt>${esc(f.value)}</dt><dd>${esc(f.label)}</dd></div>`).join('');
   }
 
@@ -718,7 +872,12 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
     const ls = D.labelStats;
     if (ls && ls.items) {
       let s = `Stance labels: ${ls.model || 'a model'} labelled ${num(ls.labelled)} of ${plural(ls.items, 'matching item')}.`;
-      if (ls.checkModel && ls.agreement != null) s += ` A second pass by ${ls.checkModel} agreed on ${Math.round(ls.agreement * 100)}%.`;
+      if (ls.checkModel && ls.agreement != null) {
+        const pct = `${+(ls.agreement * 100).toFixed(1)}%`;
+        s += ls.checked != null
+          ? ` A second pass by ${ls.checkModel} checked ${ls.checkSample ? 'a sample of ' : ''}${plural(ls.checked, 'item')} and agreed on ${pct} of them.`
+          : ` A second pass by ${ls.checkModel} agreed on ${pct}.`;
+      }
       if (disagree) s += ` ${plural(disagree, 'item')} in this trace ${disagree === 1 ? 'has' : 'have'} a disagreement, flagged in the inspector and the evidence log.`;
       method.push(s);
     }
@@ -848,9 +1007,12 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
       const stepMs = [15, 30, 60, 120, 180, 360, 720, 1440, 2880, 10080, 20160].map(m => m * 60e3).find(s => (s / len) * w >= 64);
       const ticks = [];
       if (stepMs) {
+        // ticks step in wall time, so they stay on the hour (or at midnight) across a daylight-saving change
         const grain = Math.min(stepMs, DAY);  // day-scale ticks start at local midnight, then step
-        for (let t = Math.ceil((p.startMs + OFF) / grain) * grain - OFF; t <= p.endMs; t += stepMs) {
-          ticks.push([t, stepMs >= DAY ? `${local(t).getUTCDate()} ${MO[local(t).getUTCMonth()]}` : hourLabel(t)]);
+        for (let w = Math.ceil((p.startMs + offAt(p.startMs)) / grain) * grain; ; w += stepMs) {
+          const t = fromLocal(w);
+          if (t > p.endMs) break;
+          if (t >= p.startMs) ticks.push([t, stepMs >= DAY ? `${local(t).getUTCDate()} ${MO[local(t).getUTCMonth()]}` : hourLabel(t)]);
         }
       } else {
         // long panels: month starts, every k months
@@ -858,7 +1020,7 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
         const d0 = local(p.startMs);
         for (let y = d0.getUTCFullYear(), m = d0.getUTCMonth() + 1; ; m++) {
           if (m > 11) { y++; m = 0; }
-          const t = Date.UTC(y, m, 1) - OFF;
+          const t = fromLocal(Date.UTC(y, m, 1));
           if (t > p.endMs) break;
           if (m % k === 0) ticks.push([t, m === 0 ? `${MO[0]} ${y}` : MO[m]]);
         }
@@ -1110,16 +1272,20 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
     const m = marks[i]; const r = rowOf[m.a];
     const where = m.type === 'chat' ? `Chat message · #${m.room}` : m.type === 'mem' ? 'Memory snapshot, written at consolidation'
       : `Shell command · ${m.op === 'write' ? 'writes a file' : 'reads a file'}${m.artifact ? ' · ' + m.artifact : ''}`;
-    let chip, body;
+    let chip, body, hl = { cls: 0 };
     if (m.type === 'file') {
       const c = m.kind === 'belief' ? (m.op === 'write' ? 'Writes the claim into a file' : 'Reads a file about the claim') : (m.op === 'write' ? 'Writes the correction into a file' : 'Reads the correction from a file');
       chip = `<span class="chip ${chipCls(m)}"><i></i>${c}</span>`;
-      body = `<pre class="quote code ${chipCls(m)}">${esc(m.text)}</pre>`;
+      hl = marked(m.text, 'file');
+      body = `<pre class="quote code ${chipCls(m)}">${hl.html}</pre>`;
     } else {
       chip = `<span class="chip ${chipCls(m)}"><i></i>${esc(kindText(m))}</span>`;
-      body = m.type === 'mem' && m.kind === 'none' && !m.stance
-        ? `<p class="insp-empty">This snapshot${m.chars ? ` (${num(m.chars)} characters)` : ''} doesn’t mention the claim or the correction.</p>`
-        : m.text ? `<blockquote class="quote ${chipCls(m)}">${esc(m.text)}</blockquote>` : '';
+      if (m.type === 'mem' && m.kind === 'none' && !m.stance) {
+        body = `<p class="insp-empty">This snapshot${m.chars ? ` (${num(m.chars)} characters)` : ''} doesn’t mention the claim or the correction.</p>`;
+      } else if (m.text) {
+        hl = marked(m.text, m.type);
+        body = `<blockquote class="quote ${chipCls(m)}">${hl.html}</blockquote>`;
+      } else body = '';
     }
     const reason = (m.reason ? `<p class="insp-meta">Labeller’s reason: ${esc(m.reason)}</p>` : '') +
       ((m.kind === 'fix' || m.kind === 'hint') && m.stance === 'adopts' ? `<p class="insp-meta">Drawn blue because it ${m.kind === 'fix' ? 'states the correction' : 'uses the correction’s wording'}. The labeller rated how it treats the claim, which it also mentions.</p>` : '');
@@ -1131,21 +1297,30 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
     const own = links.map((l, k) => [l, k]).filter(([l]) => l.a === i || l.b === i);
     const linkList = own.length ? `<ul class="insp-links">${own.map(([l]) => {
       const other = l.a === i ? l.b : l.a, om = marks[other];
-      return `<li>${esc(l.label || 'Hand-off')}${l.auto ? ' <span class="muted">(found automatically)</span>' : ''}<br><button type="button" class="linkish" data-goto="${other}">${l.a === i ? 'Next' : 'Previous'}: ${esc(om.a)}, ${clock(om.t)}</button></li>`;
+      const meta = [linkRooms(l), l.auto && 'found automatically'].filter(Boolean).join(', ');
+      return `<li>${esc(l.label || 'Hand-off')}${meta ? ` <span class="muted">(${esc(meta)})</span>` : ''}<br><button type="button" class="linkish" data-goto="${other}">${l.a === i ? 'Next' : 'Previous'}: ${esc(om.a)}, ${clock(om.t)}</button></li>`;
     }).join('')}</ul>` : '';
     const link = `https://theaidigest.org/village?day=${dayNum(m.t)}&time=${m.t}`;
     el.innerHTML = `<p class="kicker">${keyLabel ? esc(keyLabel) + ' · ' : ''}${esc(where)}</p>
       <h3 class="insp-who">${esc(who(r) || m.a)}</h3>
       <p class="insp-time">${dayName(m.t, true)}, ${clock(m.t, true)} ${TZ} · ${utc(m.t)}</p>
-      <div class="chips">${chip}${stanceChip(m)}</div>${off}${reason}${body}${linkList}
+      <div class="chips">${chip}${stanceChip(m)}</div>${off}${reason}${body}${hlKey(hl.cls)}${linkList}
       <p class="insp-meta">${m.type === 'chat' ? 'Message' : m.type === 'mem' ? 'Memory' : 'Turn'} id <code>${esc(m.id)}</code>${excerpt} · <a href="${link}" target="_blank" rel="noopener">Open this moment in the AI Village</a></p>`;
   }
   function inspectLink(k) {
-    const l = V.links[k], { marks } = V;
+    const l = V.links[k], { marks, rowOf } = V;
+    const room = j => (l.rooms && l.rooms[j] ? ` in #${esc(l.rooms[j])}` : '');
     const end = i => `<button type="button" class="linkish" data-goto="${i}">${esc(marks[i].a)}, ${dayName(marks[i].t)} ${clock(marks[i].t)}</button>`;
+    // An arrow can cross rooms while both rows sit in one group: an agent that moved wrote from its new room.
+    const ga = rowOf[marks[l.a].a]?.group, gb = rowOf[marks[l.b].a]?.group;
+    const moved = l.rooms && l.rooms[0] && l.rooms[1] && l.rooms[0] !== l.rooms[1] && ga === gb
+      ? [0, 1].map(j => [marks[j ? l.b : l.a].a, l.rooms[j]]).filter(([, r]) => r !== ga)
+        .map(([a, r]) => `${esc(a)} was in #${esc(r)} at the time; its row sits in ${esc(V.groups.find(g => g.key === ga)?.label || ga)}.`).join(' ')
+      : '';
     $('inspector').innerHTML = `<p class="kicker">Hand-off${l.auto ? ' · found automatically' : ' · checked by hand'}</p>
       <h3 class="insp-who">${esc(l.label || 'Hand-off')}</h3>
-      <ul class="insp-links"><li>From ${end(l.a)}</li><li>To ${end(l.b)}</li></ul>`;
+      <ul class="insp-links"><li>From ${end(l.a)}${room(0)}</li><li>To ${end(l.b)}${room(1)}</li></ul>
+      ${l.rooms ? `<p class="insp-meta">${l.rooms[0] && l.rooms[0] === l.rooms[1] ? `Both ends in #${esc(l.rooms[0])}.` : `Rooms at the time: ${esc(linkRooms(l))}.`}${moved ? ' ' + moved : ''}</p>` : ''}`;
   }
   function select(i, opts = {}) {
     V.selected = i; placeSel(); inspect(i, opts.label);
@@ -1168,7 +1343,7 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
     const stance = m => (m.check && m.stance !== m.check ? `${esc(m.stance || 'none')}<span class="flag" title="Checker says ${esc(m.check)}">checker: ${esc(m.check)}</span>` : esc(m.stance || ''));
     const html = rows.slice(0, cap).map(i => {
       const m = marks[i];
-      return `<tr data-i="${i}"${i === V.selected ? ' class="cur"' : ''}><td class="time">${dayName(m.t)} ${clock(m.t, true)}</td><td class="who">${esc(whoShort(rowOf[m.a], m.a))}</td><td class="ch"><span class="dot ${chipCls(m)}"></span>${ch(m)}</td>${hasStance ? `<td class="st">${stance(m)}</td>` : ''}<td class="txt">${esc(short(m.text))}</td></tr>`;
+      return `<tr data-i="${i}"${i === V.selected ? ' class="cur"' : ''}><td class="time">${dayName(m.t)} ${clock(m.t, true)}</td><td class="who">${esc(whoShort(rowOf[m.a], m.a))}</td><td class="ch"><span class="dot ${chipCls(m)}"></span>${ch(m)}</td>${hasStance ? `<td class="st">${stance(m)}</td>` : ''}<td class="txt">${logText(m)}</td></tr>`;
     });
     if (rows.length > cap) html.push(`<tr class="more"><td colspan="${hasStance ? 5 : 4}">Showing the first ${num(cap)} of ${num(rows.length)}. Pick a step to narrow the list.</td></tr>`);
     $('log-body').innerHTML = html.join('');
@@ -1233,7 +1408,8 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
     const lk = e.target.closest('[data-l]');
     if (lk) {
       const l = V.links[+lk.dataset.l];
-      tip.innerHTML = `<b>${esc(l.label || 'Hand-off')}</b><span class="tm">${l.auto ? 'Found automatically' : 'Checked by hand'} · click for both ends</span>`;
+      const meta = [linkRooms(l), l.auto ? 'found automatically' : 'checked by hand', 'click for both ends'].filter(Boolean).join(' · ');
+      tip.innerHTML = `<b>${esc(l.label || 'Hand-off')}</b><span class="tm">${esc(cap(meta))}</span>`;
       tip.hidden = false; return;
     }
     const h = e.target.closest('[data-i]');

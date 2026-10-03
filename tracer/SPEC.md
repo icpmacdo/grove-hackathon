@@ -33,7 +33,9 @@ command text when absent.
 ## Conventions
 
 - Stored times are UTC strings `"YYYY-MM-DD HH:MM:SS"` in specs and epoch milliseconds (`t`) in data.
-- Display time zone comes from the spec (`tz_offset_hours`, default -7 for PDT; use -8 for PST dates).
+- Display time zone: Pacific time (`America/Los_Angeles`), with daylight saving, unless the spec sets
+  `time_zone` (an IANA name) or a `tz_offset_hours` other than -7 or -8 (then that fixed offset). See
+  the daylight-saving note below.
 - AI Village day number: Day 1 = 2025-04-02, counted on the display-time-zone date.
   Deep link: `https://theaidigest.org/village?day={day}&time={t}`.
 - Agent names are `agents.name`. Merge aliases with `aliases` (for example
@@ -64,9 +66,25 @@ command text when absent.
 > - `live_spec` and `auto_panels` without `tz_offset_hours` use the Pacific zone: each chosen date
 >   runs from its own Pacific midnight, and the episode's `tz_offset_hours` is the offset on the
 >   first panel's date (-8 in winter). Before, live traces always used -7, so winter times showed one
->   hour late. An episode still has one offset, so a panel that crosses a daylight-saving change
->   shows the times on the far side one hour off (divergent-reality's `after` panel, December to
->   June, at -8).
+>   hour late. (The note below replaces the single offset with the zone.)
+
+> **Note (trace.py, check.py, template.html, 3 Oct): daylight saving.** Display times follow the zone,
+> so a panel that crosses a daylight-saving change shows each time at its own offset. Before, an
+> episode had one offset: divergent-reality's `after` panel (December 2025 to June 2026, at -8) showed
+> every time after 8 March 2026 one hour early, labelled PT.
+> - Zone: the spec's optional `time_zone` (an IANA name; an unknown name fails the build), else
+>   `America/Los_Angeles` when `tz_offset_hours` is absent, -7 or -8. Any other `tz_offset_hours` stays a
+>   fixed offset, as before. Episode data carries `timeZone` (the IANA name, or null for a fixed offset)
+>   next to `tzOffsetHours` (the spec's value, kept as the fallback).
+> - The engine's panel `day` and `endDay` and its automatic gap labels use the zone (Python
+>   `zoneinfo`). `tracer.check` recomputes `day` and `endDay` in the same zone.
+> - The viewer reads the offset at each moment from `Intl.DateTimeFormat` (cached per 15 minutes) for
+>   clock times, dates, day numbers, the inspector's deep link and the evidence log. Hour and day
+>   ticks step in wall time, so they stay on the hour across a change. A browser without the zone
+>   falls back to `tzOffsetHours`. Data without `timeZone` (built before it existed) at -7 or -8 is
+>   shown in Pacific time too. The label stays "PT".
+> - Hand-written times in specs (step `time`, annotation labels, gap labels, notes) are not
+>   converted: write them in the local time of their own date (PDT from 8 March 2026, PST before).
 
 ## Episode spec (`tracer/episodes/<slug>.json`)
 
@@ -76,7 +94,8 @@ command text when absent.
   "title": "Temporal Bleed",                       // short name for tabs
   "headline": "Ten agents decided their archive was broken. It was Friday.",
   "lede": "Two to four plain sentences: what happened and what the trace shows.",
-  "tz_offset_hours": -7,
+  "tz_offset_hours": -7,                           // optional fallback; see Conventions and the daylight-saving note
+  "time_zone": "America/Los_Angeles",              // optional IANA zone; the default for -7, -8 or no offset
   "claim": {
     "label": "the archive is misfiling Day 424 (temporal bleed)",   // used in labeller prompts and UI
     "chat":   "<regex>",                            // chat messages that assert or build on the claim
@@ -102,7 +121,7 @@ command text when absent.
   "memory_lookback": "2026-05-28 12:00:00",         // earliest memory snapshot to read (for carried-in state)
   "rooms": "auto",                                  // or an ordered list of room names to show
   "order_by": "<regex>",                            // optional: order rows in a group by first match (chat or claim memory); default: first belief/claim mark
-  "pin_first": {"best": ["Claude Opus 4.7"]},       // optional: rows placed first in their group (next to the wall above)
+  "pin_first": {"best": ["Claude Opus 4.7"]},       // optional: rows placed first in their group (next to the wall above); may name human rows
   "room_notes": {"rest": "where the belief spread", "best": "the room next door"},
   "aliases": {"[Temporary] Fine-tuned Leader": "Fine-Tuned Leader"},
   "human_rows": [{"name": "Nudger (automated)", "pattern": "<regex on content>"}],  // optional: human messages matching go to this one row (not per room)
@@ -136,13 +155,29 @@ command text when absent.
 >   key that matches no item or more than one. An `agent_overrides`, `moves`, `room_notes` or
 >   `pin_first` entry that names an agent or group with no row only prints a warning.
 
+> **Note (trace.py, 3 Oct): placing human rows.** `pin_first` may name human rows as well as agents.
+> Within a group, the rows it names come first, in its order, agents and human rows mixed; then the
+> other agents (by `order_by` or first claim mark), then the other human rows (in `human_rows` order).
+> A `human_rows` row sits in group `_all` unless its entry names a `group`, so to put one next to an
+> agent, give the entry that agent's room and pin both:
+> `"human_rows": [{"name": "Nudger (automated)", "pattern": "…", "group": "general"}]` with
+> `"pin_first": {"general": ["GPT-5.1", "Nudger (automated)"]}` draws GPT-5.1 first in #general and
+> the Nudger row right below it. The row still collects matching messages from every room (the
+> inspector names each message's room). A `Staff (human) · #<room>` row can be pinned in its room
+> the same way. `tracer.check` fails when the rows `pin_first` names (those the episode shows) are not
+> first in their group in that order.
+
 ## Episode data (engine output, viewer input)
 
 ```jsonc
 {
   "slug", "title", "headline", "lede", "tzOffsetHours",
+  "timeZone": "America/Los_Angeles",                // IANA zone, or null for the fixed tzOffsetHours
   "claimLabel", "correctionLabel",                  // strings or null
-  "panels": [{"id", "label", "startMs", "endMs", "weight", "showOther", "day"}],
+  "patterns": {"claim": {"chat", "mem", "files"},   // the spec's regexes (Python syntax), null where unset
+               "correction": {"chat", "strong", "mem", "files"} | null,
+               "linger": "<regex>" | null},
+  "panels": [{"id", "label", "startMs", "endMs", "weight", "showOther", "day", "endDay"}],  // endDay: the day it ends on
   "gaps": [{"after": "fri", "label": "Sat–Sun · closed"}],
   "correctionMs": 1780335097000,                    // or null
   "groups": [{"key": "rest", "label": "#rest", "note": "where the belief spread"}],
@@ -433,6 +468,59 @@ and records agreement. The viewer shows disagreements.
 >   running finish, and every label they got is saved before the exit (status 2).
 > - temporal-bleed's main labels are sonnet's and its check is haiku (passes swapped, 3 Oct).
 
+> **Note (label.py, review 3 Oct): redaction, errors, cost, locking and the input hash.** Readers
+> that only use the fields above are unaffected.
+> - Redaction: label.py now uses trace.py's `SECRET_PARTS`, `SECRET` and `PEM` character for
+>   character (copied, not imported), and `redact()` makes the same two passes: key blocks first,
+>   then the rest. This replaces the eight-part pattern in the first label.py note. Prompts,
+>   reasons and error messages all go through it. In the database, 883 memory texts and 1 chat
+>   text hold a key shape. The old pattern left one in 808 of them; the new one leaves none.
+> - Errors are sorted by the CLI's message:
+>   - The account usage limit ("usage limit", "5-hour limit reached", "hit your limit") stops the
+>     run, as before. "Rate limit reached" no longer counts as the usage limit.
+>   - A rate limit, overload or server error (429, 529, 5xx, `rate_limit_error`) makes every worker
+>     wait 15, 30, 60 and then 120 s, retrying after each wait. One that outlasts the waits counts
+>     as a failed call.
+>   - Errors that every call would hit stop the run at once: no `claude` on PATH, not logged in or
+>     an expired token, an unknown option or model, and text on stdout before or instead of the
+>     CLI's JSON (a banner).
+>   - Eight calls in a row that bring no reply (errors, timeouts) stop the run, counted across all
+>     batches. So do replies without a usable label from three batches in a row.
+>   - A batch retries and splits as before, but at most 16 of its calls may label nothing. Items
+>     still unlabelled then are recorded as failed, and a rerun picks them up. Before, an error that
+>     never went away cost about 98 calls for each batch of 25.
+>   - Every stop saves the labels so far and exits with status 2. After the usage limit the message
+>     says to rerun once it resets; after other stops it says to fix the cause and rerun. Any error,
+>     a crash in a batch or in saving included, cancels the batches not yet started.
+> - Replies: labels can come as a list, or as a dict from id to stance or to entry, under `labels`
+>   or at the top level. From a reply cut off part way, the complete entries before the cut are
+>   kept. A stance counts by its first word, so "Adopts." and "adopts (mostly)" are adopts.
+> - `costUsd` is the API-price total, as the CLI reports it (`total_cost_usd`), of every CLI call
+>   made for the file: both passes, every run, calls that failed or hit a limit, and calls whose
+>   labels a later model change replaced. A model change no longer resets it. Only a changed claim
+>   or correction label resets it, because that starts the file over. A call killed by the 180 s
+>   timeout reports no price and adds nothing; the run summary counts such calls. On a
+>   subscription (the CLI logged in to a Pro or Max plan) no call is billed on its own: `costUsd`
+>   is then a usage gauge at API prices, and nobody is charged that amount.
+> - One run at a time per slug: `main()` takes an exclusive lock on
+>   `tracer/out/locks/label-<slug>.lock` (git-ignored), and a second run exits with a message. The
+>   system drops the lock when the process ends. The labels file is written to a temporary file in
+>   the same folder, then renamed over the old one.
+> - New item field `"inputHash"`: the first 12 hex digits of the SHA-1 of the text the labels were
+>   made from, together with the item's side of `correction.at`; null while the item is
+>   unlabelled. When an item's current text or side no longer matches its hash, the next run
+>   clears both its labels and labels it again. `--keep-changed` keeps the labels and takes the
+>   new hash. Items labelled before this field existed take their current hash on their next run,
+>   without relabelling, so a text that changed before then keeps its label. Nothing was
+>   relabelled for this change: the committed files gain the field on their next run.
+> - `--check-sample N` gives one item to each stratum first, then each further item to the stratum
+>   with the highest size / (2 × taken + 1) (the Sainte-Laguë rule). N + 1 now takes the items of N
+>   plus one, as the second note promised; the old largest-remainder rounding could drop one. The
+>   committed files have full checks (`checkSample` null), so no stored sample changes.
+> - `label_items()` keeps its signature. `stats` gains `unpriced` (calls the CLI reported no price
+>   for). When a run stops it raises a `StopError` (`LimitError` or `FatalError`); `on_batch` has
+>   had every label got before that.
+
 ## Local app (`serve.py`)
 
 `uv run python -m tracer.serve [--port 8765]` serves the viewer in live mode.
@@ -529,8 +617,8 @@ Episode tabs switch between curated episodes; `#<slug>` selects one.
 > Producers that follow the sections above need no changes unless a bullet says so.
 > - Focus: a band also lights when the memory snapshot that starts it matches a non-band clause, and
 >   a band that matches lights its source snapshot in the evidence log. A band overlaps `[from, to]`
->   when `t <= to` and `t1 > from`. A `text` regex that JS cannot compile matches nothing (a leading
->   `(?i)` and `(?P<name>` are translated). A link lights when the step has `links: true` or both of
+>   when `t <= to` and `t1 > from`. A `text` regex that JS cannot compile matches nothing (the viewer
+>   translates Python syntax with `jsRe`; see the highlights note at the end). A link lights when the step has `links: true` or both of
 >   its ends are lit. Steps without `focus` dim nothing.
 > - Steps: when the first step has no `focus` its button reads "All" and the rest count from 1. Episode data with no steps gets one built-in overview step.
 > - When no annotation sits within 2 minutes of `correctionMs`, the viewer draws a "correction" line.
@@ -563,3 +651,35 @@ Episode tabs switch between curated episodes; `#<slug>` selects one.
 >   evidence card sits right under the chart, before the evidence log.
 > - Item `chars` (memory) shows as "Excerpt from a N-character snapshot". A blue item whose stance
 >   is `adopts` gets a line saying the colour follows the correction wording.
+
+> **Note (template.html, trace.py, check.py, 3 Oct): highlights, masthead, hand-off rooms.**
+> - Highlights: the engine copies the spec's regexes into `patterns` (keys follow the data's channels:
+>   `chat`, `mem`, `files`). The viewer translates each to a JS regex (`jsRe`: leading `(?i)`, `(?s)`
+>   and `(?m)`, `(?P<name>`, `(?P=name)`, `(?#…)`, `\A`, `\Z`, `{,n}`, a `]` first in a set, and
+>   scoped `(?i:` groups) and runs it with the `gi` flags on the excerpt. A pattern JS cannot compile
+>   (atomic groups, possessive repeats, `(?x)`) gets no highlight. Chat uses `claim.chat` and `linger`
+>   (claim) and `correction.chat` and `correction.strong` (correction); memory `claim.mem` and
+>   `correction.mem`; files `claim.files` and `correction.files`. Every match is marked, whatever the
+>   item's kind or time, so a highlight shows what a pattern matched, not how the item was tagged.
+>   Where a claim and a correction match overlap, the shorter one shows. Checked against Python's
+>   `re` on 20,000 item texts from the four episodes: same spans (counted in UTF-16 units). The mark
+>   then snaps to words: a match that ends one or two letters into a word (a trailing guard, as in
+>   watch-is-unbroken's `\badversary\b(… [^i]…)`, which takes the "a" of "and") stops before that
+>   word; one that ends further into a word (a stem such as `sabotag`) runs to its end; trailing
+>   spaces are left out.
+> - Marks are `<mark class="hl">` (claim: a red tint, solid underline) and `<mark class="hl hl-fix">`
+>   (correction: a blue tint, dashed underline), from the `--hl-claim` and `--hl-fix` tokens in both
+>   themes; text keeps the ink colour. The inspector adds a key line naming the kinds it marked. The
+>   evidence log shows the part of a long text around its first match, so the match stays visible.
+>   Live traces get the same, from the phrase the user traced.
+> - Masthead: at 1240 px and wider, the figures sit beside the headline, lede and claim definitions,
+>   two by two. Narrower screens keep the figures below the lede.
+> - The eyebrow's day range runs from the first panel's `day` to the last panel's `endDay`.
+> - Hand-offs show `links[].rooms` in the tooltip and the inspector. When the two rooms differ but both
+>   rows sit in one group, the inspector says which agent was in another room at the time.
+> - The method note says how many items the agreement figure covers (`labelStats.checked`, "a sample
+>   of" when `checkSample` is set) and gives the agreement to one decimal.
+> - Claim and correction labels show with the first letter capitalised; the data keeps them as written
+>   (changing a label relabels every item).
+> - `tracer.check` validates `timeZone`, `patterns` (each must compile in Python) and `endDay` when
+>   present, and the `pin_first` order (rows named, agents or human rows, open their group).
