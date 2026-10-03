@@ -77,12 +77,15 @@ command text when absent.
 >   fixed offset, as before. Episode data carries `timeZone` (the IANA name, or null for a fixed offset)
 >   next to `tzOffsetHours` (the spec's value, kept as the fallback).
 > - The engine's panel `day` and `endDay` and its automatic gap labels use the zone (Python
->   `zoneinfo`). `tracer.check` recomputes `day` and `endDay` in the same zone.
+>   `zoneinfo`). `tracer.check` recomputes `day` and `endDay` in the same zone. `auto_panels` (live
+>   traces) reads each date from its Pacific midnight to the next, 23 or 25 hours on a change day.
+>   Before, it used the offset at noon, so a change day's window started an hour off.
 > - The viewer reads the offset at each moment from `Intl.DateTimeFormat` (cached per 15 minutes) for
 >   clock times, dates, day numbers, the inspector's deep link and the evidence log. Hour and day
->   ticks step in wall time, so they stay on the hour across a change. A browser without the zone
->   falls back to `tzOffsetHours`. Data without `timeZone` (built before it existed) at -7 or -8 is
->   shown in Pacific time too. The label stays "PT".
+>   ticks step in wall time, so they stay on the hour across a change. A wall time the clocks skip
+>   (2 AM on the spring change) gets no tick; before, a two-hour step labelled it 1 AM. A browser
+>   without the zone falls back to `tzOffsetHours`. Data without `timeZone` (built before it
+>   existed) at -7 or -8 is shown in Pacific time too. The label stays "PT".
 > - Hand-written times in specs (step `time`, annotation labels, gap labels, notes) are not
 >   converted: write them in the local time of their own date (PDT from 8 March 2026, PST before).
 
@@ -473,19 +476,30 @@ and records agreement. The viewer shows disagreements.
 > - Redaction: label.py now uses trace.py's `SECRET_PARTS`, `SECRET` and `PEM` character for
 >   character (copied, not imported), and `redact()` makes the same two passes: key blocks first,
 >   then the rest. This replaces the eight-part pattern in the first label.py note. Prompts,
->   reasons and error messages all go through it. In the database, 883 memory texts and 1 chat
->   text hold a key shape. The old pattern left one in 808 of them; the new one leaves none.
+>   reasons and error messages all go through it: `collect_items()` redacts each text, and the
+>   prompt builder redacts it again, so items that other callers pass to `label_items()` are
+>   covered too. In the database, 883 memory texts and 1 chat text hold a Google key or a private
+>   key block. The old pattern left a key in 808 of those memory texts and in the chat text; the
+>   new one leaves none.
 > - Errors are sorted by the CLI's message:
->   - The account usage limit ("usage limit", "5-hour limit reached", "hit your limit") stops the
->     run, as before. "Rate limit reached" no longer counts as the usage limit.
+>   - The account usage limit ("usage limit", "session limit", "weekly limit", "5-hour limit
+>     reached", "hit your limit") stops the run, as before. "Rate limit reached" no longer counts
+>     as the usage limit.
+>   - A one-line notice of up to 200 characters that comes back as the model's reply is sorted
+>     the same way. Longer reply text is the model's own and can quote such words from the items,
+>     so it only counts as a reply without labels.
 >   - A rate limit, overload or server error (429, 529, 5xx, `rate_limit_error`) makes every worker
 >     wait 15, 30, 60 and then 120 s, retrying after each wait. One that outlasts the waits counts
 >     as a failed call.
 >   - Errors that every call would hit stop the run at once: no `claude` on PATH, not logged in or
 >     an expired token, an unknown option or model, and text on stdout before or instead of the
 >     CLI's JSON (a banner).
->   - Eight calls in a row that bring no reply (errors, timeouts) stop the run, counted across all
->     batches. So do replies without a usable label from three batches in a row.
+>   - Eight calls in a row that bring no reply (errors, timeouts, rate limits that outlast the
+>     waits) stop the run when they come from two batches or more, or when the last was a rate
+>     limit. Otherwise one batch on its own never stops the run, because one item can make every
+>     call that holds it fail; the batch's own cap below limits it. A persistent error so costs 17
+>     calls with one worker and about 8 to 11 with four. Replies without a usable label from three
+>     batches in a row stop the run too.
 >   - A batch retries and splits as before, but at most 16 of its calls may label nothing. Items
 >     still unlabelled then are recorded as failed, and a rerun picks them up. Before, an error that
 >     never went away cost about 98 calls for each batch of 25.
@@ -509,10 +523,11 @@ and records agreement. The viewer shows disagreements.
 > - New item field `"inputHash"`: the first 12 hex digits of the SHA-1 of the text the labels were
 >   made from, together with the item's side of `correction.at`; null while the item is
 >   unlabelled. When an item's current text or side no longer matches its hash, the next run
->   clears both its labels and labels it again. `--keep-changed` keeps the labels and takes the
->   new hash. Items labelled before this field existed take their current hash on their next run,
->   without relabelling, so a text that changed before then keeps its label. Nothing was
->   relabelled for this change: the committed files gain the field on their next run.
+>   clears both its labels and labels it again in each pass it makes: the check pass only with
+>   `--check`, and with `--check-sample` only inside the sample. `--keep-changed` keeps the labels
+>   and takes the new hash. Items labelled before this field existed take their current hash on
+>   their next run, without relabelling, so a text that changed before then keeps its label.
+>   Nothing was relabelled for this change: the committed files gain the field on their next run.
 > - `--check-sample N` gives one item to each stratum first, then each further item to the stratum
 >   with the highest size / (2 × taken + 1) (the Sainte-Laguë rule). N + 1 now takes the items of N
 >   plus one, as the second note promised; the old largest-remainder rounding could drop one. The

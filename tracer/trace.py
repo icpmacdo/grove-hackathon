@@ -308,18 +308,24 @@ def pacific_offset(day):
 def auto_panels(days, con=None, tz_offset_hours=None):
     """One panel per display-time-zone date, bounded by that day's first and last chat message
     rounded out to the hour. Weight follows duration; untagged chat is drawn for one or two days.
-    Without tz_offset_hours each date is a Pacific date at that date's offset."""
+    Without tz_offset_hours each date runs from its Pacific midnight to the next (23 or 25 hours on
+    a daylight-saving change)."""
     own = con is None
     con = con or connect()
     try:
         panels = []
         for d in sorted(set(days)):
             day = date.fromisoformat(d)
-            tz = pacific_offset(day) if tz_offset_hours is None else tz_offset_hours
-            start = datetime.combine(day, datetime.min.time()) - timedelta(hours=tz)
+            if tz_offset_hours is None:
+                # Pacific midnight to midnight: 23 or 25 hours on a daylight-saving change
+                start, end = (datetime.combine(x, datetime.min.time(), PACIFIC).astimezone(timezone.utc).replace(tzinfo=None)
+                              for x in (day, day + timedelta(days=1)))
+            else:
+                start = datetime.combine(day, datetime.min.time()) - timedelta(hours=tz_offset_hours)
+                end = start + timedelta(days=1)
             first, last = con.execute(
                 f"SELECT min(created_at), max(created_at) FROM chat "
-                f"WHERE created_at >= {lit(start)} AND created_at < {lit(start + timedelta(days=1))}"
+                f"WHERE created_at >= {lit(start)} AND created_at < {lit(end)}"
             ).fetchone()
             if first is None:
                 continue

@@ -73,6 +73,10 @@ code { font-family: var(--font-mono); font-size: 0.92em; overflow-wrap: anywhere
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (max-width: 600px) { .page { padding-inline: 16px; gap: 20px; } }
 
+/* One line on what the page is, above the tabs */
+.about { margin: 0; max-width: 120ch; color: var(--ink-2); font-size: 14px; }
+.about b { color: var(--ink); font-weight: 700; }
+
 /* Episode tabs */
 .tabs { display: flex; gap: 2px; overflow-x: auto; border-bottom: 1px solid var(--rule); scrollbar-width: thin; }
 .tab { display: inline-flex; align-items: center; flex: none; }
@@ -323,6 +327,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
 </style>
 
 <div class="page">
+  <p class="about"><b>Belief Tracer</b> follows one belief through the AI Village, where AI agents, each with its own computer and memory, work together in chat rooms.</p>
   <nav class="tabs" id="tabs" aria-label="Episodes" hidden></nav>
   <div class="status" id="status" role="status" hidden></div>
 
@@ -513,7 +518,8 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     return v;
   };
   const local = t => new Date(t + offAt(t));
-  // Wall time (as epoch ms of the same clock reading in UTC) back to epoch ms
+  // Wall time (as epoch ms of the same clock reading in UTC) back to epoch ms. In Pacific time a
+  // repeated hour gives its first instant; a skipped hour gives an instant whose wall time differs.
   const fromLocal = w => { const t = w - offAt(w); return w - offAt(t); };
   const hm = (d, secs) => {
     const h = d.getUTCHours(); const h12 = ((h + 11) % 12) + 1;
@@ -865,8 +871,8 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     const { D, disagree } = V;
     const n = D.notes || {};
     const how = n.how && n.how.length ? n.how : [
-      'Each lane is one agent. Inside a lane, diamonds on top are file reads and writes, dots in the middle are chat messages, and the bar along the bottom is what the agent’s memory held. Hover over the bar to read the snapshot from that moment.',
-      'Agents only see chat from their own room. The hatched band between rooms is that wall. Turn channels off with the checkboxes to see what a chat-only monitor would miss.',
+      'Each lane is one agent. Inside a lane, diamonds on top are file reads and writes, dots in the middle are chat messages, and the bar along the bottom is the agent’s memory: the notes it keeps for itself and carries from one session to the next. Each saved version of that memory is a snapshot. Hover over the bar to read the snapshot from that moment.',
+      'Agents see live chat only from their own room. The hatched band between rooms is that wall. Turn channels off with the checkboxes to see what a chat-only monitor would miss.',
     ];
     const method = (n.method || []).slice();
     const ls = D.labelStats;
@@ -1012,7 +1018,8 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
         for (let w = Math.ceil((p.startMs + offAt(p.startMs)) / grain) * grain; ; w += stepMs) {
           const t = fromLocal(w);
           if (t > p.endMs) break;
-          if (t >= p.startMs) ticks.push([t, stepMs >= DAY ? `${local(t).getUTCDate()} ${MO[local(t).getUTCMonth()]}` : hourLabel(t)]);
+          // a wall time the clocks skip (2 AM on the spring change) gets no tick
+          if (t >= p.startMs && t + offAt(t) === w) ticks.push([t,stepMs >= DAY ? `${local(t).getUTCDate()} ${MO[local(t).getUTCMonth()]}` : hourLabel(t)]);
         }
       } else {
         // long panels: month starts, every k months
@@ -1270,7 +1277,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     }
     const { marks, rowOf, links } = V;
     const m = marks[i]; const r = rowOf[m.a];
-    const where = m.type === 'chat' ? `Chat message · #${m.room}` : m.type === 'mem' ? 'Memory snapshot, written at consolidation'
+    const where = m.type === 'chat' ? `Chat message · #${m.room}` : m.type === 'mem' ? 'Memory snapshot · the agent’s saved notes'
       : `Shell command · ${m.op === 'write' ? 'writes a file' : 'reads a file'}${m.artifact ? ' · ' + m.artifact : ''}`;
     let chip, body, hl = { cls: 0 };
     if (m.type === 'file') {

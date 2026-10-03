@@ -41,7 +41,7 @@ STANCES = ("adopts", "attributes", "refutes", "unclear")
 BATCH = 25
 TIMEOUT = 180  # seconds per CLI call
 CALLS_PER_BATCH = 16  # most calls one batch may make that label nothing, retries and splits included
-FAIL_STOP = 8  # CLI calls in a row, across all batches, that brought no reply: the run stops
+FAIL_STOP = 8  # calls in a row with no reply, from two batches or ending in a rate limit: the run stops
 EMPTY_STOP = 3  # batches in a row whose replies held no label: the run stops
 BACKOFF = (15, 30, 60, 120)  # seconds every worker waits before each retry after a rate limit
 CHAT_CHARS, CHAT_HEAD = 900, 350  # chat text sent to the model (see chat_excerpt)
@@ -110,9 +110,11 @@ Items:
 
 _STATS = threading.Lock()  # stats dicts and _RUN are shared by worker threads
 _STOP = threading.Event()  # set by the first StopError so queued batches skip their call
-# Run state: failed calls in a row, the batches whose replies held no label since the last label,
-# when the rate-limit pause ends (time.monotonic), the error that stopped the run. run_jobs resets it.
-_RUN = {"fails": 0, "empty": set(), "pause_until": 0.0, "stop": None}
+# Run state: calls in a row that brought no reply and the batches they came from, the batches whose
+# replies held no label since the last label, when the rate-limit pause ends (time.monotonic), the
+# error that stopped the run. Batches are keyed by id(budget) and keep the budget list as the value,
+# so a finished batch's id cannot be reused while it counts. run_jobs resets it.
+_RUN = {"fails": 0, "failing": {}, "empty": {}, "pause_until": 0.0, "stop": None}
 
 
 class LabelError(Exception):
@@ -144,8 +146,8 @@ class LimitError(StopError):
 
 class FatalError(StopError):
     """An error every later call would hit too: no CLI, not logged in, text on stdout that is not
-    the CLI's JSON, FAIL_STOP calls in a row that brought no reply, or replies without a label
-    from EMPTY_STOP batches in a row."""
+    the CLI's JSON, FAIL_STOP calls in a row that brought no reply (from two batches or more, or
+    ending in a rate limit), or replies without a label from EMPTY_STOP batches in a row."""
 
 
 # The account's usage limit, as the CLI words it ("5-hour limit reached ∙ resets 3pm", "Claude AI usage
@@ -374,7 +376,7 @@ def build_prompt(batch, ctx):
         attrs.append(f'time="{utc(x["t"])} UTC"')
         if ctx["correction_ms"]:
             attrs.append('when="after the correction"' if t_ms(x) >= ctx["correction_ms"] else 'when="before the correction"')
-        blocks.append(f"<item {' '.join(attrs)}>\n{x['text']}\n</item>")
+        blocks.append(f"<item {' '.join(attrs)}>\n{redact(x['text'])}\n</item>")  # collect_items redacts too
     return PROMPT.format(claim=ctx["claim_label"], correction=correction, items="\n\n".join(blocks))
 
 
@@ -419,9 +421,11 @@ def call_claude(prompt, model):
         raise classify(msg)(f"CLI error: {msg}", cost)
     got = parse_reply(out.get("result") or "")
     if got is None:
-        text = str(out.get("result"))[:200]
-        cls = classify(text)  # a limit or login message can come back as the reply itself
-        raise (ReplyError if cls is LabelError else cls)(f"unparsable result: {text}", cost)
+        text = str(out.get("result") or "").strip()
+        # A limit or login notice can come back as the reply itself: one short line. Longer text is
+        # the model's own, and it can quote such words from the items, so it is never classified.
+        cls = classify(text) if len(text) <= 200 and "\n" not in text else LabelError
+        raise (ReplyError if cls is LabelError else cls)(f"unparsable result: {text[:200]}", cost)
     return got, cost
 
 
@@ -532,22 +536,29 @@ def _call(prompt, model, stats):
 
 def _outcome(budget, labelled, e=None):
     """Record how a call ended: with labels, with a reply but no label, or (e, not a ReplyError)
-    with no reply. Stops the run on FAIL_STOP calls in a row with no reply (the CLI fails on every
-    call) or on replies without a label from EMPTY_STOP batches in a row (the model never answers
-    in the asked shape): retries and splits would only multiply the calls. One batch whose replies
-    fail does not stop the run; its own budget caps its calls."""
+    with no reply. Stops the run on FAIL_STOP calls in a row with no reply from two batches or
+    more, or ending in a rate limit (the CLI fails on every call), or on replies without a label
+    from EMPTY_STOP batches in a row (the model never answers in the asked shape): retries and
+    splits would only multiply the calls. Otherwise one batch on its own does not stop the run,
+    whether its calls fail or its replies hold no label (one item can cause either); its own
+    budget caps its calls."""
     stop = None
     with _STATS:
         if e is not None and not isinstance(e, ReplyError):
             _RUN["fails"] += 1
-            if _RUN["fails"] >= FAIL_STOP:
-                stop = FatalError(f"{_RUN['fails']} CLI calls in a row failed; the last: {e}")
+            _RUN["failing"][id(budget)] = budget
+            # A rate limit that outlasted BACKOFF is never one item's fault: it needs no second batch.
+            if _RUN["fails"] >= FAIL_STOP and (len(_RUN["failing"]) >= 2 or isinstance(e, RateError)):
+                k = len(_RUN["failing"])
+                stop = FatalError(f"{_RUN['fails']} CLI calls in a row" + (f", from {k} batches," if k > 1 else "")
+                                  + f" failed; the last: {e}")
         else:
             _RUN["fails"] = 0
+            _RUN["failing"].clear()
             if labelled:
                 _RUN["empty"].clear()
             else:
-                _RUN["empty"].add(id(budget))
+                _RUN["empty"][id(budget)] = budget
                 if len(_RUN["empty"]) >= EMPTY_STOP:
                     stop = FatalError(f"replies for {len(_RUN['empty'])} batches in a row held no labels; "
                                       f"the last: {e or 'no label with a known id and stance'}")
@@ -559,8 +570,9 @@ def _outcome(budget, labelled, e=None):
 def label_batch(batch, model, ctx, stats, budget=None):
     """Label one batch of items. Retries what is missing once, then splits it in halves. At most
     CALLS_PER_BATCH calls may label nothing (budget, a one-item list, is shared with the halves);
-    items still unlabelled when it runs out are recorded as failed. Returns {id: {"stance", "reason"}} for the items the model labelled. A StopError
-    carries the labels got before it in its .labels, so the caller can still save them."""
+    items still unlabelled when it runs out are recorded as failed. Returns {id: {"stance",
+    "reason"}} for the items the model labelled. A StopError carries the labels got before it in
+    its .labels, so the caller can still save them."""
     budget = [CALLS_PER_BATCH] if budget is None else budget
     labels, pending = {}, list(batch)
     try:
@@ -655,7 +667,7 @@ def run_jobs(jobs, ctx, workers, on_batch, stats):
     error propagates."""
     _STOP.clear()
     with _STATS:
-        _RUN.update(fails=0, empty=set(), pause_until=0.0, stop=None)
+        _RUN.update(fails=0, failing={}, empty={}, pause_until=0.0, stop=None)
     with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
         futs = {pool.submit(label_batch, batch, model, ctx, stats[field]): (field, model, batch)
                 for field, model, batch in jobs}
