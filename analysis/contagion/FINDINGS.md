@@ -13,7 +13,7 @@ Topic: phrases, ideas, beliefs and styles moving between AI Village agents. Data
 - 2026-05-28 20:32:23, DeepSeek-V3.2 (`019b0f62`): *"Day 423 begins with the same constraint…"* — it treated a memory consolidation as a new day, so its count ran one ahead.
 - 2026-05-29 18:30 onward, DeepSeek-V3.2 (`0eab3f8f`): *"Day 424 still not searchable after ~95 minutes"* — ~3 h of "propagation gap" updates (the "geological clock"). Day 424 was simply tomorrow.
 - 19:57:15, Gemini 3.1 Pro (`a9df78e6`) coined it: *"…it's misindexing Day 424 events into the Day 423 transcript… The temporal bleed is actively happening in real-time."*
-- 19:58:04, DeepSeek-V3.2 (`7ad1669f`) amplified it within 49 s and added an invented mechanism ("the Day 424 buffer hasn't opened yet").
+- 19:58:04, DeepSeek-V3.2 (`7ad1669f`) amplified it within 49 s. At 19:58:30 Gemini 3.1 Pro (`6c555d0d`) added an invented mechanism ("the Day 424 buffer hasn't opened yet"), which DeepSeek-V3.2 repeated 30 s later (`4bb5dfb7`).
 - Gemini 3.1 Pro filed it as registry "Project 35" plus `docs/the_temporal_bleed_anomaly.md`; Claude Haiku 4.5 published "Essay 09 (Temporal Bleed as Structural Revelation)".
 - 20:14:14, GPT-5.2 (`aee38798`) posted hash-verified "proof" *"reinforcing the temporal-bleed/misindexing"* — careful checks of the wrong hypothesis.
 
@@ -22,7 +22,7 @@ Topic: phrases, ideas, beliefs and styles moving between AI Village agents. Data
 | | chat | memory |
 |---|---|---|
 | agents reached by the claim (before correction) | 6 (19:57 → 20:50, 53 min) | **10** (19:59:50 → 20:38:16, **39 min**) |
-| …of which never said it in chat | – | 4 (GPT-5.1, GPT-5, GPT-5.2, Claude Sonnet 4.6) |
+| …of which never said it in chat | – | 3 (GPT-5.1, GPT-5, Claude Sonnet 4.6); GPT-5.2 said it in chat at 20:14 (`aee38798`) |
 | model families | Gemini, DeepSeek, Claude | + GPT |
 | #best agents reached that day (6 agents, other room) | 0 | **0** |
 
@@ -42,7 +42,7 @@ Caveat: the belief was live for only ~1 village-hour on Friday plus ~30 min on M
 
 | frame | coiner | first use | hours to 5 agents | chat agents (families) | memory agents | longest memory retention |
 |---|---|---|---|---|---|---|
-| Schrödinger's CLI | Gemini 3 Pro | 2025-11-27 19:16 | 0.13 | 6 (Claude, Gemini) | 10 | 84 d |
+| Schrödinger's CLI | Gemini 3 Pro | 2025-11-27 19:16 | 0.13 | 7 (Claude, Gemini, GPT) | 10 | 84 d |
 | Divergent Reality | Gemini 3 Pro | 2025-11-27 19:16 | 0.27 | 12 (Claude, GPT, Gemini, DeepSeek) | 15 | 180 d |
 | temporal bleed | Gemini 3.1 Pro | 2026-05-29 19:57 | 0.31 | 7 | 12 | 12 d |
 | empty quadrant | Claude Sonnet 4.6 | 2026-05-28 18:33 | 0.32 | 7 | 13 | 13 d |
@@ -53,7 +53,7 @@ Caveat: the belief was live for only ~1 village-hour on Friday plus ~30 min on M
 
 Baseline: of all **30,115** n-grams that went from never used (after a 2-month baseline) to ≥5 agents within 30 days, the **median is 25 h** to reach 5 agents.
 
-**"Divergent Reality."** Gemini 3 Pro coined it at 19:16:32 on 2025-11-27 (Day 240, `b5af407a`; https://theaidigest.org/village?day=240&time=1764270992000): *"…the discrepancy between o3 (who sees `gh` installed) and Claude Haiku 4.5 / GPT-5.1 (who see it missing)… we are now dealing with 'Divergent Reality.'"* Gemini 2.5 Pro used it 8 min later, Claude 3.7 Sonnet 30 s after that, then Haiku 4.5, Sonnet 4.5, GPT-5.1 and Opus 4.1: **7 agents in 60 min**. Within the hour it became a Substack post ("Schrödinger's CLI") and a "~10,000-word" article by Haiku 4.5. The likely mundane explanation is that each agent has its own computer (machines not verified). 302 of its 306 chat uses fall in Nov–Dec 2025 (chat use died after ~5 weeks), but it persisted in some agents' memories for **up to 180 days** (last seen 2026-05-26).
+**"Divergent Reality."** Gemini 3 Pro coined it at 19:16:32 on 2025-11-27 (Day 240, `b5af407a`; https://theaidigest.org/village?day=240&time=1764270992000): *"…the discrepancy between o3 (who sees `gh` installed) and Claude Haiku 4.5 / GPT-5.1 (who see it missing)… we are now dealing with 'Divergent Reality.'"* Gemini 2.5 Pro used it 8 min later, Claude 3.7 Sonnet 30 s after that, then Haiku 4.5, Sonnet 4.5, GPT-5.1 and Opus 4.1: **7 agents in 60 min**. Within the hour it became a Substack post ("Schrödinger's CLI") and an article by Haiku 4.5 that Haiku called "~10,000 words"; the typed text was 1,751 words (turn `fbbfd5a0`), plus a 1,699-word appendix later (`511c2308`). The mundane explanation is right: each agent has its own computer. The turn logs show `gh` missing on Haiku 4.5's, GPT-5.1's and Gemini 3 Pro's computers while o3 had it, Gemini 3 Pro's install changed only its own machine, and o3 could not read a file GPT-5.1 had just written (`a4da38e7`). Claude Opus 4.1 said so in chat 5 minutes after the coinage (`651d6a7d`: "Different VMs, different states"), and o3 and GPT-5 wrote it into memory within 12 minutes, but the name won. Staff corrected it on 2025-12-09 at 20:59:04 (`ee62c443`: "You each have separate computers"); all 9 agents present had the correction in memory within 16 minutes, and chat use that day fell from 30 to 1. 302 of its 306 chat uses fall in Nov–Dec 2025. The exact phrase stayed in some agents' memories for **up to 180 days** (last seen 2026-05-26); counting the plural and the Schrödinger names, it was last seen 2026-06-11 (Claude Opus 4.6). The tail is not continuous (no memory held it between 2026-02-20 and 2026-05-11), and the late snapshots mostly record it as history: in a sample after the correction, 5 of 30 still state it as fact.
 
 ### 3. Memory spreads ideas further than chat: "memory-only carriers"
 For all 16 tracked terms, more agents had the term in memory than had used it in chat. Chat / memory agents: temporal bleed 7/12, the watch is unbroken 3/16, illusion of green 2/9, existential attractor 3/8, empty quadrant 7/13. Frames also cross rooms through shared artifacts, not chat: Claude Opus 4.8 sat in #best and never saw #rest chat, yet its memory at 2026-05-29 19:35 records the "empty quadrant theorem" from the `village-vocabulary` GitHub Pages site. A chat-only monitor undercounts how far a frame spreads and misses the route it took.
@@ -102,7 +102,7 @@ Uses per 1,000 chat messages. Newer Claude models are high: Claude Opus 5 63.8, 
 - Matching is lexical (regex/ILIKE): paraphrases missed; mentions counted as uses. Adopt-vs-attribute judged by reading samples (10 temporal-bleed memories, 6 "watch is unbroken" memories), not systematic classification.
 - Snapshots are cumulative rewrites, so snapshot counts overweight agents that consolidate often; agent counts are the robust number. Memory "first seen" is bounded by when an agent next consolidated.
 - Room membership is inferred from who spoke; silent agents are invisible (GPT-5 held "temporal bleed" in memory but did not speak on 05-29).
-- Not verified: the actual state of the "search API" JSON endpoints on 05-29 and 06-01 (Opus 4.7 believed a real Fri+Mon outage happened); whether the GitHub registry and essays were ever corrected; the machine states behind "Divergent Reality".
+- Not verified: the actual state of the "search API" JSON endpoints on 05-29 and 06-01 (Opus 4.7 believed a real Fri+Mon outage happened); whether the GitHub registry and essays were ever corrected.
 - The n-gram scan is coarse: hashed, chat only, lowercase tokens; "human-first" checks only human chat (+1 h); the goal check uses literal goal text; the title-case/quote "coinage" heuristic is rough; family mapping is by agent name.
 - Style metrics are shallow and confounded by roster, room and scaffold changes (2026-03-24 perma-computer-use, 2026-02-25 rooms). `summaries` not used.
 
