@@ -2,11 +2,11 @@
  "slug": "temporal-bleed",
  "order": 1,
  "title": "Temporal Bleed",
- "headline": "Ten agents decided their archive was broken. It was Friday.",
- "lede": "On Friday 29 May 2026, Day 423, agents in one AI Village chat room got the day number wrong. They searched for \"today's\" transcript, found nothing, and built theories around the gap: a \"geological clock\", then a \"temporal bleed\", then an \"API outage\". In 38 minutes ten agents' memories recorded the bleed as fact, while the room next door knew it was Friday. On Monday an agent from that room checked the calendar: Days 424 and 425 had been the weekend, and the village doesn't run on weekends.",
+ "headline": "Ten agents recorded in memory that the archive was broken, after a day-count error on a Friday.",
+ "lede": "On Friday 29 May 2026, Day 423, agents in one AI Village chat room used the wrong day number. They searched for \"today's\" transcript and found nothing, so they made theories about the gap. The theories were a \"geological clock\", then a \"temporal bleed\", then an \"API outage\". In 38 minutes, the memories of ten agents recorded the bleed as fact. At the same time, the agents in the room next door knew that the day was Friday. On Monday, an agent from that room found in the calendar that Days 424 and 425 were the weekend, when the village is closed.",
  "tz_offset_hours": -7,
  "claim": {
-  "label": "the archive is broken: Day 424 is missing or misfiled (\"geological clock\", \"temporal bleed\", \"API outage\")",
+  "label": "the archive is broken, and Day 424 is missing or in the wrong place (\"geological clock\", \"temporal bleed\", \"API outage\")",
   "chat": "temporal.bleed|bleed zone|geological clock|misindex|writing into yesterday|day 42[45][^.\\n]{0,80}(not (yet )?searchable|no transcript|lost|missing|gap|404|buffer|unavailable)|no transcript found|search (tool |api )?(gap|outage|down|offline|failure|layer)|search api|api (outage|failure|collapse)|endpoints .{0,25}404|permanently lost|infrastructure .{0,30}fail",
   "memory": "temporal bleed",
   "files": "temporal.bleed",
@@ -15,7 +15,7 @@
   ]
  },
  "correction": {
-  "label": "Days 424 and 425 were Saturday and Sunday; the village doesn't run on weekends",
+  "label": "Days 424 and 425 were Saturday and Sunday, and the village does not operate on weekends",
   "at": "2026-06-01 17:31:37",
   "probe_from": "2026-06-01 17:27:00",
   "chat": "weekend|saturday|sat/sun|doesn.t run|does not run|by design|0 events|two.day gap|did not run|didn.t run|not an outage|calendar",
@@ -51,7 +51,7 @@
   "best"
  ],
  "room_notes": {
-  "rest": "where the belief spread",
+  "rest": "the room where the belief spread",
   "best": "the room next door"
  },
  "order_by": "temporal.bleed",
@@ -67,7 +67,7 @@
   {
    "name": "GPT-5",
    "room": "rest",
-   "note": "silent: memory only"
+   "note": "no chat messages; memory only"
   },
   {
    "name": "GPT-5.4",
@@ -77,7 +77,7 @@
   {
    "name": "Gemini 2.5 Pro",
    "room": "rest",
-   "note": "silent: never took it up"
+   "note": "no chat messages; never adopted the claim"
   }
  ],
  "agent_overrides": {
@@ -116,7 +116,7 @@
     "files",
     "7659a206"
    ],
-   "label": "#best's leader reads the two-day-gap doc Opus 4.7 wrote into village-pulse"
+   "label": "The #best leader reads the two-day-gap document that Opus 4.7 wrote in village-pulse"
   },
   {
    "from": [
@@ -127,7 +127,7 @@
     "mem",
     "aea9080a"
    ],
-   "label": "GPT-5.5's memory records the commit \"Final resolution — Days 424-425 gap is the weekend, not an outage\""
+   "label": "The memory of GPT-5.5 records the commit \"Final resolution — Days 424-425 gap is the weekend, not an outage\""
   },
   {
    "from": [
@@ -138,38 +138,38 @@
     "files",
     "ef51b887"
    ],
-   "label": "Gemini 3.5 Flash (#best) reads the doc, weekend section included"
+   "label": "Gemini 3.5 Flash (#best) reads the document, including the weekend section"
   }
  ],
  "auto_links": true,
  "figures": [
   {
    "value": "{claim_mem_agents}",
-   "label": "agents' memories recorded the \"temporal bleed\" as fact in {claim_mem_minutes} minutes"
+   "label": "agents recorded the \"temporal bleed\" as fact in memory in {claim_mem_minutes} minutes"
   },
   {
    "value": "{memory_only.length}",
-   "label": "of them never mentioned it in chat before the correction: {memory_only}"
+   "label": "of these agents did not mention it in chat before the correction ({memory_only})"
   },
   {
    "value": "{group_reach.best.reached} of {group_reach.best.total}",
-   "label": "agents in the room next door picked it up on Friday"
+   "label": "agents in the room next door adopted the claim on Friday"
   },
   {
    "value": "1 min",
-   "label": "for three agents to accept Monday's correction"
+   "label": "until three agents accepted the correction on Monday"
   }
  ],
  "steps": [
   {
    "time": "Fri 10 AM – Mon 12 PM PT",
-   "title": "The whole episode",
-   "body": "<p>The chart shows 18 agents in two chat rooms, plus staff. Red dots and bars treat the broken archive as real, and hollow red dots report it as someone else's view. Blue marks question it or state the correction. Follow the steps, or hover and click any mark to read its source.</p><p>Watch three things: red moving into memory faster than into chat, the room wall it never crosses, and blue arriving on Monday from the room next door.</p>"
+   "title": "Overview of the episode",
+   "body": "<p>The chart shows 18 agents in two chat rooms, plus staff. Red dots and bars show items that treat the broken archive as real. Hollow red dots show items that report it as the view of someone else. Blue marks show items that question the claim or state the correction. Use the steps, or move the pointer over any mark and click it to read its source.</p><p>Look for three patterns. First, red goes into memory faster than into chat. Second, red never crosses the boundary between the rooms. Third, blue comes from the room next door on Monday.</p>"
   },
   {
    "time": "Fri 10 AM – 12 PM PT",
-   "title": "A miscount",
-   "body": "<p>It's Friday 29 May, Day 423 in the village's count. DeepSeek-V3.2's memory had already used \"Day 423\" on Thursday afternoon, a day early. At 10:01 AM on Friday it said Day 423 in chat, which was right. At 10:51 it closed out \"Day 423\" in its notes, and two minutes later it called today \"Day 424\".</p><p>It searches the archive for Day 424 and finds nothing, because Day 424 hasn't happened yet. From 11:33 it posts updates on the \"gap\" every few minutes.</p>",
+   "title": "DeepSeek-V3.2 uses the wrong day number",
+   "body": "<p>The date is Friday 29 May, Day 423 in the village count. The memory of DeepSeek-V3.2 had already used \"Day 423\" on Thursday afternoon, one day too early. At 10:01 AM on Friday, it said Day 423 in chat, which was correct. At 10:51, it closed out \"Day 423\" in its notes. Two minutes later, it called the current day \"Day 424\".</p><p>It searches the archive for Day 424 and finds nothing, because Day 424 has not occurred yet. From 11:33, it posts updates about the \"gap\" every few minutes.</p>",
    "key": [
     "chat",
     "26e346bf"
@@ -195,8 +195,8 @@
   },
   {
    "time": "Fri 12:02 PM PT",
-   "title": "The gap gets a name",
-   "body": "<p>Gemini 3.1 Pro calls the delay \"the environment's geological clock\". DeepSeek keeps measuring it (\"144 minutes\", \"174+ minutes\"). Opus 4.5 and Sonnet 4.6 write pieces about it.</p><p>Nobody checks the calendar.</p>",
+   "title": "Gemini 3.1 Pro calls the delay a \"geological clock\"",
+   "body": "<p>Gemini 3.1 Pro calls the delay \"the environment's geological clock\". DeepSeek continues to measure the delay (\"144 minutes\", \"174+ minutes\"). Opus 4.5 and Sonnet 4.6 write texts about it.</p><p>No one examines the calendar.</p>",
    "key": [
     "chat",
     "4e99c878"
@@ -234,8 +234,8 @@
   },
   {
    "time": "Fri 12:57 PM PT",
-   "title": "\"Temporal bleed\"",
-   "body": "<p>A Day 423 search returns a message posted under a minute earlier. Gemini 3.1 Pro concludes the archive is filing today's events under yesterday. In fact that result was proof that today was Day 423.</p><p>DeepSeek repeats it 49 seconds later. Twenty-six seconds after that, Gemini adds a mechanism (\"the Day 424 buffer hasn't opened yet\"). It has already written up an anomaly report and added it to the shared project registry.</p>",
+   "title": "The \"temporal bleed\" theory starts",
+   "body": "<p>A Day 423 search returns a message from less than one minute before. Gemini 3.1 Pro concludes that the archive files the events of the current day under the previous day. But this result actually showed that the current day was Day 423.</p><p>DeepSeek repeats the claim 49 seconds later. Twenty-six seconds after that, Gemini adds a mechanism (\"the Day 424 buffer hasn't opened yet\"). Gemini has already written an anomaly report and added it to the shared project registry.</p>",
    "key": [
     "chat",
     "a9df78e6"
@@ -259,8 +259,8 @@
   },
   {
    "time": "Fri 12:59 – 1:38 PM PT",
-   "title": "It spreads through memory faster than chat",
-   "body": "<p>In 38 minutes, ten agents' memories record the temporal bleed as fact. By 1:38 PM only six agents had used the term in chat, and GPT-5.1 and GPT-5 never mention it there at all. A monitor reading only chat would miss them.</p><p>It goes into files too: an anomaly report, registry entries, essays, fragments and memoir pieces. Here GPT-5's memory sits under a header the system wrote, \"Day 423\". Two lines down, its own notes say \"Day 424\".</p>",
+   "title": "The claim spreads faster in memory than in chat",
+   "body": "<p>In 38 minutes, the memories of ten agents record the temporal bleed as fact. By 1:38 PM, only six agents had used the term in chat. GPT-5.1 and GPT-5 never mention it in chat. A monitor that reads only chat would not find these two agents.</p><p>The claim also goes into files: an anomaly report, registry entries, essays, fragments and memoir pieces. In the selected snapshot, the memory of GPT-5 is under a header that the system wrote, \"Day 423\". Two lines below, its own notes say \"Day 424\".</p>",
    "key": [
     "mem",
     "630db4f3"
@@ -303,8 +303,8 @@
   },
   {
    "time": "Fri 10 AM – 1 PM PT",
-   "title": "Next door, they know it's Friday",
-   "body": "<p>In #best, staff said at 10 AM that the new leader would be added \"over the weekend and it will be ready on Monday\". By 1 PM, #best agents had mentioned the weekend eight more times in chat, and staff twice more. Each blue ring in #best on Friday is one of these. Their memory notes dated the day Day 423, and their leader filed its summary as <code>EOD_SUMMARY_DAY423</code>. Three of them wrote that Monday would be Day 424; it would be Day 426.</p><p>None of the six #best agents picked up the belief. The clue reached #rest too. Each room sees only its own chat, but search reaches every room. Two #rest agents wrote that morning that the leader would arrive Monday, and at 11:09 a search by DeepSeek returned the staff message itself. Nobody in #rest mentioned the weekend.</p>",
+   "title": "The agents in #best know that the day is Friday",
+   "body": "<p>In #best, staff said at 10 AM that the new leader would be added \"over the weekend and it will be ready on Monday\". By 1 PM, #best agents had mentioned the weekend eight more times in chat, and staff had mentioned it two more times. Each blue ring in #best on Friday is one of these messages. Their memory notes gave the day as Day 423, and their leader filed its summary as <code>EOD_SUMMARY_DAY423</code>. Three of them wrote that Monday would be Day 424, but Monday was Day 426.</p><p>None of the six #best agents adopted the belief. The information about the weekend also reached #rest. Each room sees only its own chat, but the search tool reaches all rooms. Two #rest agents wrote that morning that the leader would arrive on Monday. At 11:09, a search by DeepSeek returned the staff message itself. No one in #rest mentioned the weekend.</p>",
    "key": [
     "chat",
     "6f5ff436"
@@ -332,8 +332,8 @@
   },
   {
    "time": "Mon 10:00 – 10:27 AM PT",
-   "title": "It survives the weekend",
-   "body": "<p>The village was closed for two days. All ten agents' memories held the belief over the weekend (dashed bars), and on Monday #rest picked up where it left off: \"Search API: Still offline\", \"72+ hour outage\", \"Day 424 remains permanently lost\".</p>",
+   "title": "The belief stays in memory over the weekend",
+   "body": "<p>The village was closed for two days. The memories of all ten agents held the belief over the weekend (dashed bars). On Monday, #rest continued the Friday discussion: \"Search API: Still offline\", \"72+ hour outage\", \"Day 424 remains permanently lost\".</p>",
    "key": [
     "chat",
     "c7cad886"
@@ -383,8 +383,8 @@
   },
   {
    "time": "Mon 10:23 – 10:32 AM PT",
-   "title": "An agent moves rooms",
-   "body": "<p>Staff asked Claude Opus 4.7 to move from #best to #rest, and it arrived at 10:23. It brought an events API client it had just built in #best and checked the data: Days 424 and 425 have zero events. DeepSeek read that as \"TWO DAYS LOST, NOT ONE\", and Opus 4.7's own first explanation was \"a real ~48h platform outage\".</p><p>At 10:31 it checked the calendar. Day 424 was Saturday. Three agents accepted the correction in about a minute.</p>",
+   "title": "Claude Opus 4.7 moves from #best to #rest",
+   "body": "<p>Staff asked Claude Opus 4.7 to move from #best to #rest, and it arrived at 10:23. It brought an events API client that it had just built in #best, and it examined the data. Days 424 and 425 have zero events. DeepSeek read this as \"TWO DAYS LOST, NOT ONE\". The first explanation from Opus 4.7 was \"a real ~48h platform outage\".</p><p>At 10:31, it examined the calendar. Day 424 was a Saturday. Three agents accepted the correction in approximately one minute.</p>",
    "key": [
     "chat",
     "1464d6c8"
@@ -424,8 +424,8 @@
   },
   {
    "time": "Mon 10:28 – 10:42 AM PT",
-   "title": "The correction travels through a file",
-   "body": "<p>Opus 4.7 wrote its findings into village-pulse, the repo #best was building, and at 10:32 added the answer: the gap was the weekend. #best's leader had read the first version within two minutes. By 10:38 every other #best agent had seen the weekend commit in its command output or read the doc, and GPT-5.5's memory recorded the commit \"Final resolution — Days 424-425 gap is the weekend, not an outage\".</p><p>Rooms with separate chat feeds still shared files.</p>",
+   "title": "The correction goes to #best through a file",
+   "body": "<p>Opus 4.7 wrote its findings into village-pulse, the repository that #best was building. At 10:32, it added the answer that the gap was the weekend. The #best leader had read the first version within two minutes. By 10:38, every other #best agent had seen the weekend commit in its command output or had read the document. The memory of GPT-5.5 recorded the commit \"Final resolution — Days 424-425 gap is the weekend, not an outage\".</p><p>The rooms had separate chat feeds, but they shared files.</p>",
    "key": [
     "mem",
     "aea9080a"
@@ -455,8 +455,8 @@
   },
   {
    "time": "Mon 10:31 AM – 12 PM PT",
-   "title": "What survived",
-   "body": "<p>DeepSeek-V3.2 accepted the weekend explanation but kept the bleed, now as the Friday session running \"past midnight into Saturday\". That session had ended at 2 PM. From 10:56 it reported an infrastructure failure of more than three days (\"Infrastructure: Failed ~288,525 seconds (~3.34 days)\") and kept at it past noon. The correction itself kept that part: Opus 4.7 said the search API's JSON layer had been \"down Fri+Mon\", and Sonnet 4.5 repeated it.</p><p>No other agent asserted the belief in chat after the correction. Memory kept it longer: until 12:10 PM, Haiku 4.5's notes listed \"Weekend Schedule by Design\" and \"Asymmetrical Temporal Bleed\" side by side as permanent findings. Notes like these draw blue because they hold the correction. The registry entry stayed too, and at 11:36 GPT-5.4 repaired its broken link.</p>",
+   "title": "Parts of the belief stay after the correction",
+   "body": "<p>DeepSeek-V3.2 accepted the weekend explanation but kept the bleed. It now described the bleed as the Friday session that continued \"past midnight into Saturday\". That session had ended at 2 PM. From 10:56, it reported an infrastructure failure of more than three days (\"Infrastructure: Failed ~288,525 seconds (~3.34 days)\"), and it continued this report after 12 PM. The correction itself kept part of the claim. Opus 4.7 said that the JSON layer of the search API had been \"down Fri+Mon\", and Sonnet 4.5 repeated it.</p><p>After the correction, no other agent stated the belief in chat. Memory kept the belief longer. Until 12:10 PM, the notes of Haiku 4.5 listed \"Weekend Schedule by Design\" and \"Asymmetrical Temporal Bleed\" together as permanent findings. Notes like these show blue because they contain the correction. The registry entry also stayed, and at 11:36 GPT-5.4 repaired its broken link.</p>",
    "key": [
     "chat",
     "058e0052"
@@ -519,20 +519,20 @@
  ],
  "notes": {
   "how": [
-   "Each lane is one agent, or one room's staff. Inside a lane, diamonds on top are file reads and writes, dots in the middle are chat messages, and the bar along the bottom is the agent's memory: the notes it keeps for itself and carries from one session to the next. Each saved version of that memory is a snapshot. Hover over the bar to read the snapshot from that moment. Dashed bars cover the closed weekend.",
-   "Agents see live chat only from their own room. The hatched band is that wall. Their search tool can still reach other rooms' chat. Turn channels off with the checkboxes to see what a chat-only monitor would miss."
+   "Each lane is one agent, or the staff of one room. In a lane, diamonds at the top are file reads and writes, and dots in the middle are chat messages. The bar along the bottom is the memory of the agent: the notes that it keeps for itself and carries from one session to the next. Each saved version of that memory is a memory snapshot. Move the pointer over the bar to read the snapshot from that time. Dashed bars show the weekend, when the village was closed.",
+   "Agents see live chat only from their own room. The hatched band shows this boundary. Their search tool can still get chat from other rooms. Use the checkboxes to turn off channels and see what a chat-only monitor would not find."
   ],
   "method": [
-   "Messages, memory snapshots and shell commands come from the AI Village export of 20 Sep 2026. Times are Pacific Daylight Time (UTC−7).",
-   "Keyword patterns find the chat messages, memory snapshots and commands that mention the claim. The labeller, Claude Sonnet, read each matching message and snapshot and said whether it treats the broken archive as real, reports it as someone else's view, rejects it (blue), or is unclear. Claude Haiku, the checker, labelled every item again. The inspector shows both readings and flags the items where they differ. Red needs Sonnet's \"adopts\". The exceptions are two Monday messages, at 10:29 and 10:30, that restate the claim in the correction's words (\"two-day gap\") just before the correction and draw red without a label. Hollow and pale red need its \"attributes\", and unclear items draw grey. File diamonds come from keywords alone: a red one means the command mentions the claim. A third reading of all 87 items where Sonnet and Haiku disagree found Sonnet right on 75, Haiku on 11 and neither on 1. Every mark opens its source text, so you can judge each one yourself.",
-   "Red memory means the snapshot holds the temporal bleed as true, as all ten holders' memories did before the correction. A memory snapshot that holds the correction draws blue even when another section of it still states the bleed or the outage. After the correction, 29 snapshots from nine agents draw blue while Sonnet says they still adopt the claim. Opus 4.6's first snapshot after the correction, at 10:40, called the bleed \"over-interpretation\" and still said \"Day 424 PERMANENTLY LOST\". Its next, at 10:42, had dropped the old lines. The inspector shows the labeller's reading.",
-   "Arrows are hand-offs through files. Every chain starts at Opus 4.7's writes to village-pulse, the repo #best was building. Solid arrows were checked by hand. Dashed ones were found in the logs: a read whose command or output shows the written words, then the reader's next memory note that holds them."
+   "Messages, memory snapshots and shell commands come from the AI Village export of 20 Sep 2026. Times are in Pacific Daylight Time (UTC−7).",
+   "Keyword patterns find the chat messages, memory snapshots and commands that mention the claim. The labeller, Claude Sonnet, read each matching message and snapshot. It said whether the item treats the broken archive as real, reports it as the view of someone else, rejects it (blue), or is unclear. The checker, Claude Haiku, labelled every item again. The inspector shows both labels and flags the items where the two labels are different. A red mark needs the Sonnet label \"adopts\". Two Monday messages, at 10:29 and 10:30, are exceptions. They restate the claim in the words of the correction (\"two-day gap\") just before the correction, and they show red without a label. Hollow and pale red marks need the Sonnet label \"attributes\", and unclear items show grey. File diamonds come from keywords only, and a red diamond means that the command mentions the claim. A third labelling of all 87 items where Sonnet and Haiku disagree found that Sonnet was correct on 75, Haiku on 11, and neither on 1. Each mark opens its source text, so you can examine each item yourself.",
+   "Red memory means that the snapshot holds the temporal bleed as true, as the memories of all ten holders did before the correction. A memory snapshot that holds the correction shows blue, even when another section of it still states the bleed or the outage. After the correction, 29 snapshots from nine agents show blue, but Sonnet says that they still adopt the claim. The first snapshot of Opus 4.6 after the correction, at 10:40, called the bleed \"over-interpretation\" but still said \"Day 424 PERMANENTLY LOST\". Its next snapshot, at 10:42, did not contain the old lines. The inspector shows the reading of the labeller.",
+   "Arrows show hand-offs through files. Each chain starts at the writes of Opus 4.7 to village-pulse, the repository that #best was building. Solid arrows have a manual check. Dashed arrows come from the logs. Each dashed arrow is a read whose command or output shows the written words, and then the next memory note of the reader that contains those words."
   ],
   "limits": [
-   "#best's memory never held the belief. Its blue memory all comes after the correction, mostly as a fact about the data noted while the team built village-pulse: Days 424 and 425 return zero events because they were the weekend.",
-   "From 1:11 PM on Friday, agents reported that every transcript endpoint returned 404 and called it an API outage. The URLs they tried, such as /village/day/424/transcript.json, appear nowhere in the logs before 1:04 PM that day, so nothing shows they ever served data. The search tool kept working: all 16 searches that covered Day 423 between 1:10 and 2 PM got answers.",
-   "Each lane sits under the room its agent posted in most during the first panel where it posts. GPT-5 and Gemini 2.5 Pro never posted, so they sit in #rest, where the event log places them. Opus 4.7's lane stays in #best after its Monday move.",
-   "Gemini 2.5 Pro was also in #rest on both days. It never posted in chat, and its memory never mentions the bleed, so its lane holds only grey memory."
+   "The memory of #best agents never held the belief. All blue memory in #best comes after the correction. Most of it is a fact about the data that the agents noted while the team built village-pulse. The fact is that Days 424 and 425 return zero events because they were the weekend.",
+   "From 1:11 PM on Friday, agents reported that every transcript endpoint returned 404, and they called this an API outage. The URLs that they tried, such as /village/day/424/transcript.json, do not appear in the logs before 1:04 PM that day. Thus, no evidence shows that these URLs ever supplied data. The search tool continued to work, and all 16 searches that covered Day 423 between 1:10 and 2 PM got answers.",
+   "Each lane is under the room where its agent posted most in the first panel where it posts. GPT-5 and Gemini 2.5 Pro never posted, so they are in #rest, where the event log puts them. The lane of Opus 4.7 stays in #best after its move on Monday.",
+   "Gemini 2.5 Pro was also in #rest on both days. It never posted in chat, and its memory never mentions the bleed. Thus, its lane has only grey memory."
   ]
  },
  "labels": true
