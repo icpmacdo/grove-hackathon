@@ -763,7 +763,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
   // read it as adopting, reporting or refuting the claim.
   const kindText = m => (m.type === 'mem' && m.kind === 'none' && m.stance
     ? (m.stance === 'unclear' ? 'Mentions the claim, stance unclear' : 'Counted as neither claim nor correction')
-    : KIND[m.type][m.kind] || m.kind);
+    : m.type === 'mem' && KIND.mem[m.kind] ? KIND.mem[m.kind].replace(/^Memory/, SRC.vocab.memLegend) : KIND[m.type][m.kind] || m.kind);
   const isTagged = m => !(m.type === 'chat' && m.kind === 'other') && !(m.type === 'mem' && m.kind === 'none');
   const cap = s => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
   const modelName = m => (/^(sonnet|haiku|opus|fable)$/i.test(m || '') ? `Claude ${cap(m.toLowerCase())}` : m);
@@ -886,7 +886,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
       : `<path d="M${5 + j * 12} 1.2 ${8.8 + j * 12} 5 ${5 + j * 12} 8.8 ${1.2 + j * 12} 5Z" fill="var(--surface)" stroke="${col}" stroke-width="1.4"/>`).join('')}</svg>`;
     const files = fk.length ? [
       k(dia(true), `writes a ${esc(fn)}`),
-      k(dia(false), 'reads one'),
+      marks.some(m => m.type === 'file' && m.op === 'read') && k(dia(false), 'reads one'),
       fk.length > 1 && '<span class="lg-note">red: about the claim, blue: about the correction</span>',
     ] : [];
     const arrow = dash => `<svg width="22" height="10"><path d="M1 5H17" stroke="var(--ink-2)" stroke-width="1.6"${dash ? ' stroke-dasharray="4 3"' : ''}/><path d="M16 1.5 21 5 16 8.5Z" fill="var(--ink-2)"/></svg>`;
@@ -965,7 +965,10 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
   });
   const wrapName = (s, px) => {
     if (tw(s) <= px) return [s];
-    const cuts = [...s.matchAll(/ /g)].map(m => [s.slice(0, m.index), s.slice(m.index + 1)]);
+    let cuts = [...s.matchAll(/ /g)].map(m => [s.slice(0, m.index), s.slice(m.index + 1)]);
+    // a name with no space (a self-chosen wiki signature such as GroceryCoordinatorJan18Fast) breaks
+    // inside the word, before a capital or a digit
+    if (!cuts.length) cuts = [...s.matchAll(/(?<=[a-z])(?=[A-Z0-9])|(?<=[0-9])(?=[A-Z])/g)].map(m => [s.slice(0, m.index), s.slice(m.index)]);
     if (!cuts.length) return [s];
     const wide = c => Math.max(tw(c[0]), tw(c[1]));
     return cuts.find(c => c[1].startsWith('(') && wide(c) <= px) || cuts.reduce((b, c) => (wide(c) < wide(b) ? c : b));
@@ -1391,7 +1394,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
       <h3 class="insp-who">${esc(who(r) || m.a)}</h3>
       <p class="insp-time">${dayName(m.t, true)}, ${clock(m.t, true)} ${TZ} · ${utc(m.t)}</p>
       <div class="chips">${chip}${stanceChip(m)}</div>${off}${reason}${body}${hlKey(hl.cls)}${linkList}
-      <p class="insp-meta">${m.type === 'chat' ? 'Message' : m.type === 'mem' ? 'Memory' : 'Turn'} id <code>${esc(m.id)}</code>${excerpt}${link ? ` · <a href="${esc(link)}" target="_blank" rel="noopener">${esc(SRC.deepLinkText)}</a>` : ''}</p>`;
+      <p class="insp-meta">${m.type === 'chat' ? 'Message' : m.type === 'mem' ? SRC.vocab.memLegend : 'Turn'} id <code>${esc(m.id)}</code>${excerpt}${link ? ` · <a href="${esc(link)}" target="_blank" rel="noopener">${esc(SRC.deepLinkText)}</a>` : ''}</p>`;
   }
   function inspectLink(k) {
     const l = V.links[k], { marks, rowOf } = V;
@@ -1425,7 +1428,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     const cap = 500;
     $('log-summary').textContent = `Evidence log · ${plural(rows.length, 'item')} ${F ? 'in this step' : 'tagged across the episode'}`;
     $('log-head').innerHTML = `<tr><th>Time (${TZ})</th><th>Agent</th><th>Channel</th>${hasStance ? '<th>Stance</th>' : ''}<th>Text</th></tr>`;
-    const ch = m => (m.type === 'chat' ? 'Chat' : m.type === 'mem' ? 'Memory' : m.op === 'write' ? 'File write' : 'File read');
+    const ch = m => (m.type === 'chat' ? SRC.vocab.chatLegend : m.type === 'mem' ? SRC.vocab.memLegend : `${SRC.vocab.fileNoun.charAt(0).toUpperCase()}${SRC.vocab.fileNoun.slice(1)} ${m.op === 'write' ? 'write' : 'read'}`);
     const stance = m => (m.check && m.stance !== m.check ? `${esc(m.stance || 'none')}<span class="flag" title="Checker says ${esc(m.check)}">checker: ${esc(m.check)}</span>` : esc(m.stance || ''));
     const html = rows.slice(0, cap).map(i => {
       const m = marks[i];
