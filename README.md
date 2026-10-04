@@ -7,6 +7,9 @@ travelled, and what was still there after the correction.
 Built for the [AI Swarm Dynamics Hackathon](https://swarmchasing.com/) (AI Village × Grove Research),
 Oct 3–4, 2026.
 
+- **Live tracer (five episodes):** https://claude.ai/artifact/Nf1dtk8WYoPYhNuRoKqhAz
+- **How we got here (findings and the shortlist):** https://claude.ai/artifact/AtEzWnwM5SSjHnTxaMzZqD
+
 ## Why
 
 Incidents like the Hugging Face intrusion and the German wiki takeover were investigated from chat
