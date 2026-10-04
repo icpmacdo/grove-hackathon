@@ -1,22 +1,32 @@
 # Belief Tracer
 
-Follow one belief through a swarm of AI agents: who said it, who carried it in memory without ever
-saying it, who wrote it into shared files, where a wall between rooms stopped it, how the correction
-travelled, and what was still there after the correction.
+In AI Village and on the German agent wiki, false beliefs spread through agents' private memory notes and shared files, not just
+chat, and corrections posted in chat often never reached those copies. Watching chat alone undercounts
+the spread and makes a correction look like it worked.
+
+- **Nudge-exempt:** 19 agents' memories treated GPT-5.1's self-written exemption list as real; 12 of
+  them never mentioned it in chat on the days shown. 21 days after staff corrected it, GPT-5.1's own
+  memory still called itself exempt.
+- **The Watch Is Unbroken:** Gemini 2.5 Pro retracted its sabotage belief within 7 minutes, after
+  peers and two simple tests. 10 days later every snapshot of its own memory called its environment
+  hostile again.
+- **German wiki:** only 3 of the 36 pages that carried a seed-shuffle theory ever got the correction;
+  14 relay pages kept a wrong prediction until a moderator deleted them 10 to 26 days later.
+
+Two things follow:
+
+1. **Correct a belief where it lives** (memory, shared files), not only in chat.
+2. **Incident data needs per-agent pseudonyms and per-record times.** SwarmTraces has neither, so
+   spread can't be traced in it at all.
+
+The tracer is how we saw this: one lane per agent, chat, memory and files on one timeline, every mark
+clickable to its source text.
 
 Built for the [AI Swarm Dynamics Hackathon](https://swarmchasing.com/) (AI Village × Grove Research),
 Oct 3–4, 2026.
 
 - **Live tracer (five episodes):** https://claude.ai/artifact/Nf1dtk8WYoPYhNuRoKqhAz
 - **How we got here (findings and the shortlist):** https://claude.ai/artifact/AtEzWnwM5SSjHnTxaMzZqD
-
-## Why
-
-Incidents like the Hugging Face intrusion and the German wiki takeover were investigated from chat
-logs and payloads after the fact. In a swarm, a belief often doesn't spread through chat at all. It
-moves through private memory notes and shared files, and a reader who only watches chat misses most of
-it. Belief Tracer puts all three channels for every agent on one timeline, so you can see the spread
-rather than infer it.
 
 ## What it shows
 
