@@ -28,7 +28,8 @@ Data: `data/village.duckdb` (views described in `analysis/BRIEF.md`). Open it re
 `SET memory_limit='1500MB'; SET threads=2;` (several processes share a 16 GB machine).
 Optional input: `analysis/artifacts/out/artifact_events.parquet` (turn_id, created_at, agent, op, verb,
 artifact, resolved_by) maps shell commands to repos. Use it when present, fall back to regexes on the
-command text when absent.
+command text when absent. An episode from another dataset names its own database and artifact file
+in its spec (see Other datasets).
 
 ## Conventions
 
@@ -37,7 +38,8 @@ command text when absent.
   `time_zone` (an IANA name) or a `tz_offset_hours` other than -7 or -8 (then that fixed offset). See
   the daylight-saving note below.
 - AI Village day number: Day 1 = 2025-04-02, counted on the display-time-zone date.
-  Deep link: `https://theaidigest.org/village?day={day}&time={t}`.
+  Deep link: `https://theaidigest.org/village?day={day}&time={t}`. Another dataset sets its own (or
+  none) with `day_one` and `source` (see Other datasets).
 - Agent names are `agents.name`. Merge aliases with `aliases` (for example
   `"[Temporary] Fine-tuned Leader": "Fine-Tuned Leader"`).
 - Human chat (speaker_type `user`) becomes one row per room named `Staff (human) · #<room>`.
@@ -170,6 +172,87 @@ command text when absent.
 > the same way. `tracer.check` fails when the rows `pin_first` names (those the episode shows) are not
 > first in their group in that order.
 
+## Other datasets (spec fields; each defaults to the AI Village)
+
+An episode can come from a dataset other than the AI Village. These spec fields say where its data is
+and how to read and show it. Every one is optional and defaults to the Village behaviour above. The
+engine writes a new key into the episode data only when the spec sets the field, so a Village spec
+without them builds byte for byte as before.
+
+```jsonc
+{
+  "db": "data/holdout/dsewiki/dsewiki.duckdb",       // DuckDB file, relative to the repo root (or absolute); default data/village.duckdb
+  "artifact_events": "data/holdout/dsewiki/artifact_events.parquet",  // or null for none; default the Village's file
+  "file_op": "artifacts",                           // write/read from the artifact file's op column; default "commands"
+  "day_one": null,                                  // "YYYY-MM-DD" (Day 1 on the display date), or null for no day numbers
+  "auto_links": "any_room",                         // true, false, or "any_room": auto links need not cross a room wall
+  "auto_link_windows": {"read_min": 90, "uptake_min": 45, "room_hours": 48},   // any subset; these are the defaults
+  "source": {                                       // copied into the data; the viewer merges it over the Village's
+    "name": "DSE Wiki",                             // eyebrow: "<name> · Days N–M", or "<name> · <dates>" without day numbers
+    "about": "follows one belief through …",        // page-wide line after "Belief Tracer" (plain text)
+    "credit": "Source: …, 2026.",                   // last bullet of "What this can't tell you" (plain text)
+    "creditUrl": "https://…",                       // linked after the credit; null for no link
+    "deepLink": "https://…?rev={id}&t={t}",         // inspector link; {day}, {t} (epoch ms), {id} (mark id, URL-encoded); null for none
+    "deepLinkText": "Open this revision",           // optional; default "Open this moment at the source" when deepLink is set
+    "walls": false,                                 // false: a plain divider between room groups, no room-wall claim
+    "vocab": {                                      // each optional
+      "chat": "Edit summary",                       // inspector kicker for chat ("… · #room" follows); default "Chat message"
+      "mem": "Memory snapshot · the agent's saved notes",  // inspector kicker for memory (the default shown)
+      "file": "Page save",                          // inspector kicker for files ("… · writes a <fileNoun>" follows); default "Shell command"
+      "fileNoun": "page",                           // "writes a page", "Writes the claim into a page", legend "Pages"; default "file"
+      "chatLegend": "Chat", "memLegend": "Memory"   // legend checkbox labels (the defaults shown)
+    }
+  },
+  "label_context": "We are tracing how one claim spread through …"   // label.py: replaces the prompt's opening paragraph
+}
+```
+
+- `db`: `trace.py` opens one read-only connection per database; `serve.py` opens one per database
+  for curated builds, while its scan and live trace stay on the Village database; `label.py` reads
+  the spec's database. A missing file fails the build. The database needs the tables or views
+  `chat`, `agents`, `agent_memories` and `turns` with the columns and types the engine reads:
+  naive UTC `TIMESTAMP` (not `TIMESTAMPTZ`), `speaker_type` exactly `agent` or `user`, a non-null
+  `speaker` on agent rows, ids unique across chat, memory and turns (labels share one id space),
+  and an `agents` row for every `agent_memories.agent_id` (label.py joins on it).
+- `artifact_events`: a parquet file with `turn_id` (VARCHAR, matching `turns.id`), `created_at`
+  (TIMESTAMP), `artifact` and, for `file_op`, `op`. Artifact names are cut to the last path
+  segment, lowercased, with `.git` dropped, so name artifacts without slashes (`dse~Seite`). Set it
+  for every non-Village episode: left out, the Village file maps turn ids and supplies the known
+  repo names. `null` means artifact identity comes only from the command regexes (a warning in the
+  build summary). A path that does not exist fails the build.
+- `file_op: "artifacts"`: a turn is a write when its rows in the artifact file have `op` `write`
+  (any row), a read when they have only `read`; a turn the file does not resolve, or without
+  `write`/`read` ops, falls back to the `FILE_WRITE` command heuristics. The same rule skips writes
+  among the untagged reads of auto links.
+- `day_one`: panel `day` and `endDay` count from it; with `null` both are null and the viewer shows
+  no day numbers anywhere (eyebrow, panel titles, deep link `{day}` is empty). The data carries
+  `"dayOne"` (the date or null) when the spec sets it; `tracer.check` checks day numbers against
+  it.
+- `auto_link_windows`: positive numbers (minutes, minutes, hours). `read_min` is how long after a
+  write a read counts, `uptake_min` how long after a read the reader's next mark counts, and
+  `room_hours` how long an agent's last chat message sets its room.
+- `auto_links: "any_room"`: same rules as Auto links below, without the room conditions: the
+  writer's and reader's rooms may be the same or unknown (an agent with no chat in `room_hours`).
+  The labels then name a room only where one is known. The data carries `"autoLinks": "any_room"`,
+  and `tracer.check` then accepts automatic hand-offs inside one room.
+- `source`: strings or null, `walls` a boolean, `vocab` an object of strings; anything else fails
+  the build. The viewer merges each key over the Village's, so a key left out keeps the Village
+  value: set `name`, `about`, `credit`, `creditUrl` and `deepLink` for every non-Village episode.
+  With a `source`, a human row's inspector title is "Staff (human)" rather than "Village staff
+  (human)". `walls: false` also drops the room-wall sentence from the default "How to read this".
+- `label_context`: one paragraph of plain text; the default is the Village paragraph ("We are tracing
+  how one claim spread through the AI Village, …"), word for word. The rest of the prompt (stances,
+  notes, the memory note included) is unchanged. A changed context does not relabel stored items.
+- A spec file outside `tracer/episodes/` can be built, checked and labelled by its path:
+  `uv run python -m tracer.trace path/to/x.json`, `uv run python -m tracer.check path/to/x.json`,
+  `uv run python -m tracer.label path/to/x.json`. Its slug is the file name; it writes
+  `tracer/out/episodes/<slug>.json` (and `tracer/labels/<slug>.json`) like any episode but is not a
+  tab of the site.
+- Not covered: the live scan and "Trace a claim" (`serve.py`) stay on the Village database and Pacific
+  time; redaction (`SECRET`, and `tracer.check`'s stricter `GENERIC`) is the same for every dataset,
+  so an adapter should pre-redact its text with both; `tracer.check` still requires times in
+  2025–2027.
+
 ## Episode data (engine output, viewer input)
 
 ```jsonc
@@ -195,7 +278,11 @@ command text when absent.
   "figures": [{"value", "label"}],                  // placeholders already filled
   "steps": [ /* copied from spec, key ids resolved to full ids */ ],
   "notes": {"how": [], "method": [], "limits": []},
-  "labelStats": {"items": 0, "labelled": 0, "model": "haiku", "agreement": 0.0, "checkModel": "sonnet"}  // or null
+  "labelStats": {"items": 0, "labelled": 0, "model": "haiku", "agreement": 0.0, "checkModel": "sonnet"},  // or null
+  // only when the spec sets the field (see Other datasets):
+  "dayOne": "2025-04-02",                           // or null: panel day and endDay are null
+  "source": {"name", "about", "credit", "creditUrl", "deepLink", "deepLinkText", "walls", "vocab"},
+  "autoLinks": "any_room"
 }
 ```
 
@@ -363,7 +450,9 @@ memory snapshot or chat message within 45 minutes after the read has the same st
 (claim/belief or fix), add a second link from the read to that mark. Untagged reads that become link
 ends are included in `files` with the write's kind. Mark auto links `"auto": true`. Artifact identity
 comes from `artifact_events.parquet` when present; otherwise from repo-like names in the command
-(`ai-village-agents/<repo>`, `cd ~/<repo>`, `/tmp/<repo>`).
+(`ai-village-agents/<repo>`, `cd ~/<repo>`, `/tmp/<repo>`). The 48 hours, 90 minutes and 45 minutes
+are the defaults of `auto_link_windows`, and `auto_links: "any_room"` drops the room conditions (see
+Other datasets).
 
 > **Note (trace.py): the engine narrows the rule above.** Taken literally, the rule linked every
 > routine `git pull` of a room's own repo (51 links in temporal-bleed). As built:

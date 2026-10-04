@@ -35,7 +35,7 @@ STAT_KEYS = ["claim_chat_agents", "claim_mem_agents", "claim_mem_minutes", "memo
              "first_claim", "first_fix"]
 PLACEHOLDER = re.compile(r"\{[A-Za-z_][\w.-]*\}")
 LOW, HIGH = 1735689600000, 1830297600000  # 2025-01-01 .. 2028-01-01: anything else is not epoch ms
-DAY1 = date(2025, 4, 2)  # AI Village Day 1, on the display-time-zone date
+DAY1 = date(2025, 4, 2)  # AI Village Day 1, on the display-time-zone date (data "dayOne" overrides)
 
 # The strongest redaction pattern (SECRET in trace.py, copied so this file needs no DuckDB; its first
 # eight parts are label.py's), plus generic shapes a missed credential could take.
@@ -109,7 +109,8 @@ TOP = {"slug": S, "title": S, "headline": S, "lede": S, "tzOffsetHours": is_num,
        "chat": L, "mem": L, "files": L, "links": L, "annotations": L, "moves": L, "stats": D, "figures": L,
        "steps": L, "notes": D, "labelStats": opt(D)}
 ITEM = {
-    "panels": {"id": S, "label": S, "startMs": is_int, "endMs": is_int, "weight": is_num, "showOther": B, "day": is_int},
+    "panels": {"id": S, "label": S, "startMs": is_int, "endMs": is_int, "weight": is_num, "showOther": B,
+               "day": opt(is_int)},  # null only with "dayOne": null (check_meaning)
     "gaps": {"after": S, "label": S},
     "groups": {"key": S, "label": S, "note": S},
     "rows": {"name": S, "group": S, "human": B, "silent": B, "note": S},
@@ -125,8 +126,32 @@ ITEM = {
     "moves": {"agent": S, "t": is_int, "toGroup": S, "label": S},
     "figures": {"value": S, "label": S},
 }
-OPTIONAL = {"chat": {"reason": S}, "mem": {"reason": S}, "panels": {"endDay": is_int}}
+OPTIONAL = {"chat": {"reason": S}, "mem": {"reason": S}, "panels": {"endDay": opt(is_int)}}
+SOURCE_STR = ("name", "about", "credit", "creditUrl", "deepLink", "deepLinkText")
 PATTERN_KEYS = {"claim": ("chat", "mem", "files"), "correction": ("chat", "strong", "mem", "files")}
+
+
+def check_dataset(d, r):
+    """The optional dataset fields (SPEC: Other datasets): dayOne, source, autoLinks."""
+    if "dayOne" in d and d["dayOne"] is not None:
+        try:
+            date.fromisoformat(d["dayOne"])
+        except (TypeError, ValueError):
+            r.fail(f"dayOne is not a date or null: {d['dayOne']!r}")
+    if "source" in d:
+        src = d["source"]
+        if not D(src):
+            r.fail(f"source is not an object: {type(src).__name__}")
+        else:
+            for k in SOURCE_STR:
+                if not opt(S)(src.get(k)):
+                    r.fail(f"source.{k} is not a string or null")
+            if not B(src.get("walls", True)):
+                r.fail("source.walls is not true or false")
+            if not D(src.get("vocab", {})) or not all(S(v) for v in src.get("vocab", {}).values()):
+                r.fail("source.vocab is not an object of strings")
+    if d.get("autoLinks", "any_room") != "any_room":
+        r.fail(f"autoLinks is not \"any_room\": {d['autoLinks']!r}")
 
 
 def check_shape(d, r):
@@ -156,6 +181,7 @@ def check_shape(d, r):
             r.fail(f"{coll}: field {f!r} missing or invalid in {n} item(s), first at index {i}: {str(d[coll][i])[:160]}")
     if not d["panels"]:
         r.fail("panels is empty")
+    check_dataset(d, r)
     check_zone_and_patterns(d, r)
     for k in ("how", "method", "limits"):
         if not L(d["notes"].get(k)):
@@ -558,11 +584,12 @@ def check_stats(d, r):
 
 # Meaning: what the data says must agree with the rules that made it -------------------------------
 
-def village_day(t, tz):
-    """Day number at epoch ms t; tz is a ZoneInfo (daylight saving included) or a fixed offset in hours."""
+def village_day(t, tz, day1=DAY1):
+    """Day number at epoch ms t; tz is a ZoneInfo (daylight saving included) or a fixed offset in hours;
+    Day 1 is day1."""
     if isinstance(tz, ZoneInfo):
-        return (datetime.fromtimestamp(t / 1000, tz).date() - DAY1).days + 1
-    return ((datetime.fromtimestamp(t / 1000, timezone.utc) + timedelta(hours=tz)).date() - DAY1).days + 1
+        return (datetime.fromtimestamp(t / 1000, tz).date() - day1).days + 1
+    return ((datetime.fromtimestamp(t / 1000, timezone.utc) + timedelta(hours=tz)).date() - day1).days + 1
 
 
 def check_meaning(d, spec, r):
@@ -575,13 +602,22 @@ def check_meaning(d, spec, r):
     except (KeyError, ValueError, TypeError):
         tz = d["tzOffsetHours"]  # check_shape reported the zone
     where = tz.key if isinstance(tz, ZoneInfo) else f"UTC{tz:+g}"
+    # Day numbers count from dayOne (default the Village's Day 1); with "dayOne": null there are none.
+    try:
+        day1 = date.fromisoformat(d.get("dayOne", DAY1.isoformat())) if d.get("dayOne", DAY1) else None
+    except (TypeError, ValueError):
+        day1 = DAY1  # check_dataset reported it
     for p in d["panels"]:
-        if p["day"] != village_day(p["startMs"], tz):
-            r.fail(f"panel {p['id']}: day {p['day']}, but {utc(p['startMs'])} UTC is Day {village_day(p['startMs'], tz)} "
+        if day1 is None:
+            if p["day"] is not None or p.get("endDay") is not None:
+                r.fail(f"panel {p['id']}: day {p['day']}, endDay {p.get('endDay')}, but dayOne is null (no day numbers)")
+            continue
+        if p["day"] != village_day(p["startMs"], tz, day1):
+            r.fail(f"panel {p['id']}: day {p['day']}, but {utc(p['startMs'])} UTC is Day {village_day(p['startMs'], tz, day1)} "
                    f"in {where}")
         # endDay: the day the panel ends on; an end at midnight belongs to the day before.
-        if "endDay" in p and p["endDay"] != village_day(p["endMs"] - 1, tz):
-            r.fail(f"panel {p['id']}: endDay {p['endDay']}, but it ends on Day {village_day(p['endMs'] - 1, tz)} in {where}")
+        if "endDay" in p and p["endDay"] != village_day(p["endMs"] - 1, tz, day1):
+            r.fail(f"panel {p['id']}: endDay {p['endDay']}, but it ends on Day {village_day(p['endMs'] - 1, tz, day1)} in {where}")
     for k in ("title", "headline", "lede"):
         if PLACEHOLDER.search(d[k]):
             r.fail(f"{k} has an unfilled placeholder: {d[k][:120]!r}")
@@ -620,7 +656,8 @@ def check_meaning(d, spec, r):
         r.fail(f"files: {len(bad)} fix command(s) before the correction's probe window, first {bad[0]['id']}")
 
     # Link rooms: a chat end's room is the message's room; an automatic hand-off between two agents'
-    # file commands crosses a room wall by construction.
+    # file commands crosses a room wall by construction (unless autoLinks is "any_room").
+    any_room = d.get("autoLinks") == "any_room"
     by = {(c, x["id"]): x for c in ("chat", "mem", "files") for x in d[c]}
     for i, ln in enumerate(d["links"]):
         ends = [by.get(tuple(ln[e])) for e in ("from", "to")]
@@ -629,7 +666,7 @@ def check_meaning(d, spec, r):
         for e, x, room in zip(("from", "to"), ends, ln["rooms"]):
             if ln[e][0] == "chat" and room != x["room"]:
                 r.fail(f"links[{i}].{e}: room {room!r}, but the message is in #{x['room']}")
-        if ln["auto"] and ln["from"][0] == ln["to"][0] == "files" and ends[0]["a"] != ends[1]["a"] and \
+        if ln["auto"] and ln["from"][0] == ln["to"][0] == "files" and ends[0]["a"] != ends[1]["a"] and not any_room and \
                 (None in ln["rooms"] or ln["rooms"][0] == ln["rooms"][1]):
             r.fail(f"links[{i}]: automatic hand-off between {ends[0]['a']} and {ends[1]['a']} with rooms {ln['rooms']}")
         if ln["from"] == ln["to"]:
@@ -726,7 +763,8 @@ def check_episode(path, spec):
 
 def main():
     ap = argparse.ArgumentParser(description="Validate built Belief Tracer episode data against tracer/SPEC.md.")
-    ap.add_argument("slugs", nargs="*", help="default: every tracer/out/episodes/<slug>.json that has a spec")
+    ap.add_argument("slugs", nargs="*", help="default: every tracer/out/episodes/<slug>.json that has a spec; "
+                    "a path ending in .json is a spec file elsewhere, checked against <its name>.json")
     ap.add_argument("-q", "--quiet", action="store_true", help="print failures only")
     ap.add_argument("--dir", type=Path, default=OUT, help="where the episode data is (default tracer/out/episodes)")
     args = ap.parse_args()
@@ -736,8 +774,11 @@ def main():
         sys.exit(f"no built episodes with specs in {args.dir}")
     failed = []
     for slug in slugs:
-        path = args.dir / f"{slug}.json"
         sp = TRACER / "episodes" / f"{slug}.json"
+        if slug.endswith(".json"):  # a spec file outside tracer/episodes/
+            sp = Path(slug).resolve()
+            slug = sp.stem
+        path = args.dir / f"{slug}.json"
         spec = json.loads(sp.read_text()) if sp.exists() else None
         if not path.exists():
             print(f"== {slug}  FAIL\n  no episode data at {path}")

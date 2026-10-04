@@ -10,8 +10,8 @@ Usage: uv run python -m tracer.serve [--port 8765]
   GET  /api/scan?q=&regex=   mentions of a phrase per Pacific date, over all time
   POST /api/trace            an ad-hoc episode from chosen days, optionally stance-labelled
 
-Standard library only, bound to 127.0.0.1. One read-only DuckDB connection is opened on first use;
-each request works on its own cursor. A build or scan that is already running is never started
+Standard library only, bound to 127.0.0.1. One read-only DuckDB connection is opened on first use
+(plus one per other database a curated spec names in "db"); each request works on its own cursor. A build or scan that is already running is never started
 twice: a second identical request waits for the first and shares its result. Scans and live traces
 are cached in memory. Every excerpt is redacted with the engine's pattern and label.py's extension
 of it before it leaves the server.
@@ -298,6 +298,7 @@ class App:
     def __init__(self):
         self.db_lock = threading.Lock()
         self.db = None
+        self.other_dbs = {}  # path -> connection, for curated episodes whose spec names another "db"
         self.flight = Flight()
         self.slug_locks, self.locks_lock = {}, threading.Lock()
         self.label_lock = threading.Lock()  # label.py keeps run state in module globals
@@ -307,8 +308,15 @@ class App:
         self.built = {}   # slug -> (time it finished, bytes) of the last build in this process
         self.agent_names = None
 
-    def cursor(self):
+    def cursor(self, db=None):
+        """A cursor on the Village database, or on a curated spec's "db" (scan and live trace stay
+        Village-only)."""
         with self.db_lock:
+            path = str(trace.db_path(db))
+            if path != str(trace.DB):
+                if path not in self.other_dbs:
+                    self.other_dbs[path] = trace.connect(db)
+                return self.other_dbs[path].cursor()
             if self.db is None:
                 self.db = trace.connect()
             return self.db.cursor()
@@ -318,6 +326,9 @@ class App:
             if self.db is not None:
                 self.db.close()
                 self.db = None
+            for con in self.other_dbs.values():
+                con.close()
+            self.other_dbs = {}
 
     def names(self, cur):
         if self.agent_names is None:
@@ -402,10 +413,11 @@ class App:
         """Build one curated episode and write its out file. newest: sources_mtime() taken before
         the build read the spec and the labels."""
         t0 = time.time()
-        cur = self.cursor()
+        spec = trace.load_spec(slug)
+        cur = self.cursor(spec.get("db"))
         try:
             info = {}
-            data = trace.build_episode(trace.load_spec(slug), cur, info)
+            data = trace.build_episode(spec, cur, info)
         finally:
             cur.close()
         n = redact_episode(data)

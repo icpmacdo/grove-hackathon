@@ -46,7 +46,8 @@ MARKER = "/*__TRACER_CONFIG__*/null"
 NOCHAT, OTHER_ROOMS, ALL_ROOMS = "_nochat", "_other", "_all"
 GROUP_LABELS = {NOCHAT: "(no chat in window)", OTHER_ROOMS: "(other rooms)", ALL_ROOMS: "All rooms"}
 
-# Auto links: a read counts within 90 minutes of a write; a reader's next mark within 45 minutes.
+# Auto links: a read counts within 90 minutes of a write; a reader's next mark within 45 minutes; an
+# agent's room is its last chat message's room within 48 hours. The spec's auto_link_windows overrides.
 READ_WINDOW, UPTAKE_WINDOW, ROOM_MEMORY = 90 * 60000, 45 * 60000, 48 * 3600000
 OUTPUT_CHARS = 20000  # command output read for evidence that a reader saw a write
 
@@ -178,8 +179,10 @@ def display_zone(spec):
     return PACIFIC if spec.get("tz_offset_hours", -7) in (-7, -8) else None
 
 
-def village_day(t, tz):
-    return (local(t, tz).date() - DAY1).days + 1
+def village_day(t, tz, day1=DAY1):
+    """Day number at epoch ms t on the display-time-zone date: Day 1 is day1 (the spec's "day_one",
+    by default the AI Village's first day)."""
+    return (local(t, tz).date() - day1).days + 1
 
 
 def lit(value):
@@ -250,8 +253,13 @@ def sql_re(pattern):
     return "".join(out)
 
 
-def connect():
-    con = duckdb.connect(str(DB), read_only=True)
+def db_path(db=None):
+    """The spec's "db" (a DuckDB file, relative to the repo root unless absolute), else the Village's."""
+    return ROOT / db if db else DB
+
+
+def connect(db=None):
+    con = duckdb.connect(str(db_path(db)), read_only=True)
     con.execute("SET memory_limit='1500MB'; SET threads=2; SET enable_progress_bar=false;")
     return con
 
@@ -291,7 +299,15 @@ def list_specs():
 
 
 def load_spec(slug):
-    p = spec_path(slug)
+    """The spec tracer/episodes/<slug>.json, or a spec file anywhere when slug is a path ending in
+    .json (its slug defaults to the file name; it is not a tab of the site)."""
+    if slug.endswith(".json"):
+        p = Path(slug).resolve()
+        if not p.exists():
+            raise FileNotFoundError(f"no episode spec {slug}")
+        slug = p.stem
+    else:
+        p = spec_path(slug)
     if not p.exists():
         raise FileNotFoundError(f"no episode spec {p.relative_to(ROOT)} (have: {', '.join(list_specs())})")
     spec = json.loads(p.read_text())
@@ -387,7 +403,7 @@ def build_episode(spec, con=None, info=None):
     dict) receives build notes outside the contract: warnings, agents added with no chat, the
     corrector and the rooms shown."""
     own = con is None
-    con = con or connect()
+    con = con or connect(spec.get("db"))
     try:
         ep = Episode(spec, con)
         data = ep.build()
@@ -432,6 +448,38 @@ class Episode:
         self.lookback = parse(spec.get("memory_lookback") or spec["panels"][0]["start"])
         self.end = parse(spec["panels"][-1]["end"])
         self.label_ids = set()  # chat and memory items the labeller would see (claim regex matches)
+        # Dataset fields (SPEC: Other datasets). Each defaults to the AI Village.
+        day_one = spec.get("day_one", DAY1.isoformat())
+        try:
+            self.day_one = date.fromisoformat(day_one) if day_one else None
+        except (TypeError, ValueError) as e:
+            raise ValueError(f"day_one must be a date \"YYYY-MM-DD\" or null, got {day_one!r}") from e
+        art = spec.get("artifact_events", ARTIFACT_EVENTS)
+        self.art_path = (ROOT / art) if art else None
+        if "artifact_events" in spec and art and not self.art_path.exists():
+            raise ValueError(f"artifact_events: no file {art}")
+        if spec.get("file_op", "commands") not in ("commands", "artifacts"):
+            raise ValueError(f"file_op must be \"commands\" or \"artifacts\", got {spec['file_op']!r}")
+        self.op_from_artifacts = spec.get("file_op") == "artifacts"
+        self.art_op = {}  # turn id -> "write" or "read" (load_artifacts, with file_op "artifacts")
+        if spec.get("auto_links", True) not in (True, False, "any_room"):
+            raise ValueError(f"auto_links must be true, false or \"any_room\", got {spec['auto_links']!r}")
+        self.any_room = spec.get("auto_links") == "any_room"
+        w = spec.get("auto_link_windows") or {}
+        if not isinstance(w, dict) or set(w) - {"read_min", "uptake_min", "room_hours"} or \
+                not all(isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0 for v in w.values()):
+            raise ValueError(f"auto_link_windows takes positive numbers read_min, uptake_min and room_hours, got {w!r}")
+        self.read_window = round(w.get("read_min", READ_WINDOW / 60000) * 60000)
+        self.uptake_window = round(w.get("uptake_min", UPTAKE_WINDOW / 60000) * 60000)
+        self.room_memory = round(w.get("room_hours", ROOM_MEMORY / 3600000) * 3600000)
+        src = spec.get("source")
+        if src is not None and not (isinstance(src, dict) and isinstance(src.get("vocab", {}), dict)
+                                    and isinstance(src.get("walls", True), bool)
+                                    and all(isinstance(src.get(k), (str, type(None))) for k in
+                                            ("name", "about", "credit", "creditUrl", "deepLink", "deepLinkText"))
+                                    and all(isinstance(v, str) for v in src.get("vocab", {}).values())):
+            raise ValueError("source must be an object: name, about, credit, creditUrl, deepLink, deepLinkText "
+                             "(strings or null), walls (true or false), vocab (an object of strings)")
 
     def warn(self, msg):
         self.warnings.append(msg)
@@ -754,27 +802,41 @@ class Episode:
         m = hit(self.c_files, lc)
         return ("belief", m) if m else (None, None)
 
+    def is_write(self, tid, cmd):
+        """A turn writes: with file_op "artifacts", by the artifact events file's op for the turn when
+        it gives one; else (and always by default) by the FILE_WRITE command heuristics."""
+        op = self.art_op.get(tid) if self.op_from_artifacts else None
+        return op == "write" if op else bool(FILE_WRITE.search(cmd))
+
     def file_item(self, t, name, tid, cmd, kind, m=None):
-        return {"t": ms(t), "a": name, "id": tid, "kind": kind, "op": "write" if FILE_WRITE.search(cmd) else "read",
+        return {"t": ms(t), "a": name, "id": tid, "kind": kind, "op": "write" if self.is_write(tid, cmd) else "read",
                 "artifact": None, "text": snippet(cmd, m, before=200, length=620) if m else clip(cmd, 620),
                 "_arts": self.repos(tid, cmd)}
 
     # Artifacts -----------------------------------------------------------------------------------
 
     def load_artifacts(self):
-        """turn id -> artifact names from artifact_events.parquet (repo names, owner dropped)."""
-        self.art_events, self.known_repos = {}, None
-        if not ARTIFACT_EVENTS.exists():
+        """turn id -> artifact names from the artifact events file (the spec's "artifact_events", by
+        default the Village's artifact_events.parquet; repo names, owner dropped). With file_op
+        "artifacts" also turn id -> "write" or "read" from its op column (write wins)."""
+        self.art_events, self.known_repos, self.art_op = {}, None, {}
+        if self.art_path is None:
+            self.warn("artifact_events is null: artifact identity from command regexes only")
+            return
+        if not self.art_path.exists():
             self.warn("artifact_events.parquet missing: artifact identity from command regexes only")
             return
-        src = f"read_parquet({lit(ARTIFACT_EVENTS)})"
+        src = f"read_parquet({lit(self.art_path)})"
         short = lambda a: a.rstrip("/").split("/")[-1].lower().removesuffix(".git")
         self.known_repos = {short(a) for (a,) in self.con.execute(
             f"SELECT DISTINCT artifact FROM {src} WHERE artifact <> 'unknown'").fetchall()}
-        for tid, a in self.con.execute(
-            f"SELECT turn_id, artifact FROM {src} WHERE ({self.win()}) AND artifact <> 'unknown'"
+        op = ", lower(op)" if self.op_from_artifacts else ""
+        for tid, a, *o in self.con.execute(
+            f"SELECT turn_id, artifact{op} FROM {src} WHERE ({self.win()}) AND artifact <> 'unknown'"
         ).fetchall():
             self.art_events.setdefault(tid, set()).add(short(a))
+            if o and o[0] in ("write", "read") and self.art_op.get(tid) != "write":
+                self.art_op[tid] = o[0]
 
     def repos(self, tid, cmd):
         """Artifacts a turn touches: from the artifact events file when it resolved the turn, else
@@ -883,7 +945,7 @@ class Episode:
         # panels) and to commands that name a written artifact or that the artifact file maps to one.
         spans = []
         for w in sorted(writes, key=lambda w: w["t"]):
-            a, b = w["t"], w["t"] + READ_WINDOW
+            a, b = w["t"], w["t"] + self.read_window
             if spans and a <= spans[-1][1]:
                 spans[-1][1] = max(spans[-1][1], b)
             else:
@@ -914,7 +976,7 @@ class Episode:
                 if len(output) >= OUTPUT_CHARS:
                     output = re.sub(r"\S*$", "", output)  # a token cut at the limit could be part of a credential
                 cmd, output = redact_parts(cmd, pc), redact_parts(output, po)
-                if FILE_WRITE.search(cmd):
+                if self.is_write(tid, cmd):
                     continue
                 seen = {fam: m for fam, r in family_rx.items() if (m := hit(r, output.lower()))}
                 if not seen:
@@ -930,13 +992,14 @@ class Episode:
 
         def best_write(r, fam, arts):
             """The latest write of the family to one of arts in the 90 minutes before read r, by
-            another agent whose room then differs from the reader's room now."""
+            another agent whose room then differs from the reader's room now (any room with
+            auto_links "any_room")."""
             rb, best = room_at(r["a"], r["t"]), None
             for w in writes:
                 if w["kind"] == fam and w["_arts"] & arts and w["a"] != r["a"] and \
-                        w["t"] < r["t"] <= w["t"] + READ_WINDOW and (best is None or w["t"] > best["t"]):
+                        w["t"] < r["t"] <= w["t"] + self.read_window and (best is None or w["t"] > best["t"]):
                     ra = room_at(w["a"], w["t"])
-                    if ra and rb and ra != rb:
+                    if self.any_room or (ra and rb and ra != rb):
                         best = w
             return best
 
@@ -944,7 +1007,7 @@ class Episode:
         reads = sorted([f for f in self.files if f["op"] == "read" and f["_arts"]] + untagged, key=lambda f: (f["t"], f["id"]))
         chosen = {}  # (reader, artifact, family) -> (read, write)
         for r in reads:
-            if not room_at(r["a"], r["t"]):
+            if not self.any_room and not room_at(r["a"], r["t"]):
                 continue
             for art in sorted(r["_arts"]):
                 for fam in FAMILY:
@@ -964,7 +1027,7 @@ class Episode:
         # left out when it came from the reader's own room.
         def latest_write(q, fam):
             return max((w for w in writes if w["kind"] == fam and w["_arts"] & q["_arts"] and w["a"] != q["a"]
-                        and w["t"] < q["t"] <= w["t"] + READ_WINDOW), key=lambda w: w["t"], default=None)
+                        and w["t"] < q["t"] <= w["t"] + self.read_window), key=lambda w: w["t"], default=None)
 
         hand_pairs = {(tuple(ln["from"]), tuple(ln["to"])) for ln in hand}
         hand_ends = {tuple(ln["to"]) for ln in hand}
@@ -984,7 +1047,7 @@ class Episode:
                     lw = latest_write(q, fam)
                     if lw and lw["t"] > aw["t"]:
                         ra, rb = room_at(lw["a"], lw["t"]), room_at(q["a"], q["t"])
-                        if not (ra and rb and ra != rb):
+                        if not self.any_room and not (ra and rb and ra != rb):
                             anchor = None  # newer content from the reader's own room
                             break
                         anchor, aw = q, lw
@@ -1012,9 +1075,10 @@ class Episode:
                 wrote = f"mentions the claim in {art}" if w["kind"] == "belief" else \
                     f"writes evidence for the correction into {art}" if w["t"] < self.corr_ms else \
                     f"writes the correction into {art}"
+                at = lambda room: f" (#{room})" if room else ""  # a room is unknown only with "any_room"
                 new.append({"from": list(link[0]), "to": list(link[1]), "auto": True,
-                            "label": f"{w['a']} (#{ra}) {wrote}; "
-                                     f"{reader} (#{rb}) reads {art} {minutes(r['t'] - w['t'])} later"})
+                            "label": f"{w['a']}{at(ra)} {wrote}; "
+                                     f"{reader}{at(rb)} reads {art} {minutes(r['t'] - w['t'])} later"})
             if nxt:
                 typ, x = nxt
                 link2 = (("files", r["id"]), (typ, x["id"]))
@@ -1040,7 +1104,7 @@ class Episode:
     def load_rooms(self, lo, hi):
         """Agents' chat rooms from 48 hours before lo to hi (any room, shown or not), for
         chat_room_at. Widens the loaded span when asked for more."""
-        lo -= ROOM_MEMORY
+        lo -= self.room_memory
         span = getattr(self, "_room_span", None)
         if span and span[0] <= lo and hi <= span[1]:
             return
@@ -1060,7 +1124,7 @@ class Episode:
         hours, or None. load_rooms must cover t."""
         ts, rooms = self._rooms.get(name, ([], []))
         i = bisect_right(ts, t) - 1
-        return rooms[i] if i >= 0 and t - ts[i] <= ROOM_MEMORY else None
+        return rooms[i] if i >= 0 and t - ts[i] <= self.room_memory else None
 
     def link_rooms(self, links):
         """Each link's rooms at that moment, as "rooms": [from, to]: a chat end's room; else the
@@ -1098,10 +1162,10 @@ class Episode:
         cands = []
         ts, xs = self.mem_by.get(name, ([], []))
         i = bisect_right(ts, t)
-        m = xs[i] if i < len(xs) and xs[i]["t"] <= t + UPTAKE_WINDOW else None
+        m = xs[i] if i < len(xs) and xs[i]["t"] <= t + self.uptake_window else None
         if m and m["state"] in family:
             cands.append(("mem", m))
-        c = next((s for s in self.chat_seq.get(name, []) if t < s[0] <= t + UPTAKE_WINDOW), None)
+        c = next((s for s in self.chat_seq.get(name, []) if t < s[0] <= t + self.uptake_window), None)
         if c:
             x = next((x for x in self.chat if x["id"] == c[2]), None)
             if x and x["kind"] in family:
@@ -1400,7 +1464,8 @@ class Episode:
             # belongs to the day before).
             "panels": [{"id": p["id"], "label": p.get("label", p["id"]), "startMs": p["s"], "endMs": p["e"],
                         "weight": p.get("weight", 1.0), "showOther": p.get("show_other", True),
-                        "day": village_day(p["s"], self.disp), "endDay": village_day(p["e"] - 1, self.disp)}
+                        "day": village_day(p["s"], self.disp, self.day_one) if self.day_one else None,
+                        "endDay": village_day(p["e"] - 1, self.disp, self.day_one) if self.day_one else None}
                        for p in self.panels],
             "gaps": self.gaps(),
             "correctionMs": self.corr_ms,
@@ -1424,6 +1489,13 @@ class Episode:
                    {ln[end][1] for ln in links for end in ("from", "to") if ln[end][0] == "mem"} |
                    {st["key"][1] for st in steps if st.get("key") and st["key"][0] == "mem"}, data)
         data["mem"] = self.mem
+        # Dataset fields go into the data only when the spec sets them (SPEC: Other datasets).
+        if "day_one" in spec:
+            data["dayOne"] = self.day_one.isoformat() if self.day_one else None
+        if spec.get("source") is not None:
+            data["source"] = copy.deepcopy(spec["source"])
+        if self.any_room:
+            data["autoLinks"] = "any_room"
         return data
 
 
@@ -1525,20 +1597,24 @@ def summary(data, info, seconds):
 
 def main():
     ap = argparse.ArgumentParser(description="Build Belief Tracer episodes from tracer/episodes/<slug>.json.")
-    ap.add_argument("slugs", nargs="*")
+    ap.add_argument("slugs", nargs="*", help="episode slugs, or paths to spec files ending in .json")
     ap.add_argument("--all", action="store_true", help="build every spec in tracer/episodes/")
     ap.add_argument("--site", action="store_true", help="also write the static site to tracer/out/site/")
     args = ap.parse_args()
     slugs = list_specs() if args.all else args.slugs
     if not slugs and not args.site:
         ap.error("give one or more slugs, or --all")
-    con = connect()
+    cons = {}  # one connection per database (the spec's "db")
     failed = []
     for slug in slugs:
         t0 = time.time()
         info = {}
         try:
-            data = build_episode(load_spec(slug), con, info)
+            spec = load_spec(slug)
+            db = str(db_path(spec.get("db")))
+            if db not in cons:
+                cons[db] = connect(spec.get("db"))
+            data = build_episode(spec, cons[db], info)
         except Exception as e:  # report and go on to the next episode
             failed.append(slug)
             print(f"== {slug}  FAILED: {type(e).__name__}: {e}", file=sys.stderr)
@@ -1546,7 +1622,8 @@ def main():
         path = write_episode(data)
         print(summary(data, info, time.time() - t0))
         print(f"wrote {path.relative_to(ROOT)}\n")
-    con.close()
+    for con in cons.values():
+        con.close()
     if args.site:
         entries = write_site()
         print(f"site: {len(entries)} episodes in {(OUT / 'site').relative_to(ROOT)}")

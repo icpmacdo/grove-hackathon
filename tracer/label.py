@@ -3,7 +3,8 @@
 Usage: uv run python -m tracer.label <slug> [--model haiku] [--check sonnet [--check-sample N]]
                                             [--limit N] [--workers 4] [--keep-changed]
 
-Reads tracer/episodes/<slug>.json and data/village.duckdb. Items are every chat message in the
+Reads tracer/episodes/<slug>.json (or a spec file given by its path, ending in .json) and its
+database (the spec's "db", by default data/village.duckdb). Items are every chat message in the
 spec's panels that matches claim.chat (only in claim.rooms, if given), and every memory snapshot
 from memory_lookback to the last panel's end that matches claim.memory. Batches of about 25 go to
 the local claude CLI (no API key needed). tracer/labels/<slug>.json is rewritten after each batch,
@@ -80,7 +81,10 @@ SYSTEM = (
 CLI = ["claude", "-p", "--output-format", "json", "--tools", "", "--strict-mcp-config",
        "--no-session-persistence", "--system-prompt", SYSTEM]
 
-PROMPT = """We are tracing how one claim spread through the AI Village, where AI agents work together, talk in chat rooms and keep private memory notes that they rewrite every so often. Below are chat messages and memory excerpts that mention the claim. Label each one with its author's own stance toward the claim at that moment.
+# The prompt's opening paragraph; an episode spec's "label_context" replaces it (SPEC: Other datasets).
+CONTEXT = "We are tracing how one claim spread through the AI Village, where AI agents work together, talk in chat rooms and keep private memory notes that they rewrite every so often. Below are chat messages and memory excerpts that mention the claim. Label each one with its author's own stance toward the claim at that moment."
+
+PROMPT = """{context}
 
 Claim: {claim}
 {correction}
@@ -285,10 +289,11 @@ def excerpt(text, spans):
 
 # Items --------------------------------------------------------------------------------------------
 
-def connect():
+def connect(db=None):
+    """The spec's "db" (relative to the repo root unless absolute), else the Village database."""
     import duckdb
 
-    con = duckdb.connect(str(ROOT / "data" / "village.duckdb"), read_only=True)
+    con = duckdb.connect(str(ROOT / (db or "data/village.duckdb")), read_only=True)
     con.execute("SET memory_limit='1500MB'; SET threads=2; SET enable_progress_bar=false;")
     return con
 
@@ -377,7 +382,8 @@ def build_prompt(batch, ctx):
         if ctx["correction_ms"]:
             attrs.append('when="after the correction"' if t_ms(x) >= ctx["correction_ms"] else 'when="before the correction"')
         blocks.append(f"<item {' '.join(attrs)}>\n{redact(x['text'])}\n</item>")  # collect_items redacts too
-    return PROMPT.format(claim=ctx["claim_label"], correction=correction, items="\n\n".join(blocks))
+    return PROMPT.format(context=ctx.get("context") or CONTEXT, claim=ctx["claim_label"], correction=correction,
+                         items="\n\n".join(blocks))
 
 
 def cli_json(text):
@@ -842,7 +848,7 @@ def load_store(path, slug, claim_label, correction_label, model, check):
 
 def main():
     ap = argparse.ArgumentParser(description="Label the stance of each claim mention in an episode.")
-    ap.add_argument("slug")
+    ap.add_argument("slug", help="an episode slug, or the path to a spec file ending in .json")
     ap.add_argument("--model", default="haiku")
     ap.add_argument("--check", help="second model that labels every item again (or a sample, see --check-sample)")
     ap.add_argument("--check-sample", type=int, metavar="N",
@@ -855,12 +861,17 @@ def main():
     if args.check_sample is not None and (not args.check or args.check_sample < 1):
         ap.error("--check-sample needs --check MODEL and N of at least 1")
 
-    spec = json.loads((EPISODES / f"{args.slug}.json").read_text())
+    if args.slug.endswith(".json"):  # a spec file outside tracer/episodes/
+        spec_file = Path(args.slug).resolve()
+        args.slug = spec_file.stem
+    else:
+        spec_file = EPISODES / f"{args.slug}.json"
+    spec = json.loads(spec_file.read_text())
     lock = lock_slug(args.slug)  # held until the process ends
     claim_label = spec["claim"]["label"]
     corr = spec.get("correction") or {}
     t0 = time.time()
-    con = connect()
+    con = connect(spec.get("db"))
     items = collect_items(spec, con)
     con.close()
     print(f"{args.slug}: {len(items)} items ({sum(item_type(x) == 'chat' for x in items)} chat, "
@@ -877,7 +888,8 @@ def main():
               + ("keeping their labels" if args.keep_changed else "labelling them again"), file=sys.stderr)
 
     pool = items[: args.limit] if args.limit else items
-    ctx = {"claim_label": claim_label, "correction_label": corr.get("label"), "correction_ms": cms}
+    ctx = {"claim_label": claim_label, "correction_label": corr.get("label"), "correction_ms": cms,
+           "context": spec.get("label_context")}
     passes = [("stance", args.model)] + ([("check", args.check)] if args.check else [])
     # The check pass covers every item, or with --check-sample a fixed sample. Duplicates share a
     # label only inside the pool they were deduplicated in, so the sample stays the sample.
