@@ -329,7 +329,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
 </style>
 
 <div class="page">
-  <p class="about"><b>Belief Tracer</b> follows one belief through the AI Village, where AI agents, each with its own computer and memory, work together in chat rooms.</p>
+  <p class="about"><b>Belief Tracer</b> shows how one claim moves through the AI Village. In the AI Village, AI agents work together in chat rooms. Each agent has its own computer and memory.</p>
   <nav class="tabs" id="tabs" aria-label="Episodes" hidden></nav>
   <div class="status" id="status" role="status" hidden></div>
 
@@ -337,7 +337,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     <header class="masthead">
       <p class="eyebrow">AI Village · live</p>
       <h1 id="tr-title">Trace a claim</h1>
-      <p class="lede">Type a phrase. The scan counts the chat messages, memory snapshots and file commands that mention it, day by day. Pick the days to trace, add the correction if there was one, then build the trace.</p>
+      <p class="lede">Type a phrase. The scan counts the chat messages, memory snapshots and file commands that mention it, day by day. Select the days to trace. If agents corrected the claim, add the correction. Then build the trace.</p>
     </header>
     <form class="panel tr-card" id="scan-form" novalidate>
       <div class="tr-row">
@@ -366,8 +366,8 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
       <h2 id="build-title">Build the trace</h2>
       <p class="muted" id="build-days"></p>
       <div class="tr-row">
-        <label class="fld"><span>Correction phrase</span><small>Optional. What agents said when they corrected the claim. Needs a time.</small><input type="text" id="fix-q" autocomplete="off" spellcheck="false"></label>
-        <label class="fld"><span>Correction time, Pacific</span><small>When the first clear correction was posted. Marks after it count as after the correction.</small><input type="datetime-local" id="fix-at" step="1"></label>
+        <label class="fld"><span>Correction phrase</span><small>Optional. Type the words that agents used to correct the claim. Also give a time.</small><input type="text" id="fix-q" autocomplete="off" spellcheck="false"></label>
+        <label class="fld"><span>Correction time, Pacific</span><small>Type the time of the first clear correction. The trace counts marks after this time as after the correction.</small><input type="datetime-local" id="fix-at" step="1"></label>
       </div>
       <div class="tr-row">
         <label class="check"><input type="checkbox" id="fix-regex"> Correction is a regular expression</label>
@@ -406,7 +406,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
 
       <aside class="rail">
         <section class="panel story" aria-labelledby="step-title">
-          <p class="kicker">Walk through it</p>
+          <p class="kicker">Steps</p>
           <ol class="steps" id="steps"></ol>
           <p class="step-time" id="step-time"></p>
           <h2 class="step-title" id="step-title"></h2>
@@ -572,7 +572,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     try { res = await fetch(url, opts); } catch (e) {
       if (e.name === 'AbortError') throw e;
       throw new Error(location.protocol === 'file:'
-        ? 'The browser blocked the request because this page was opened as a local file. Serve its folder over HTTP instead, for example with uv run python -m http.server.'
+        ? 'The browser blocked the request because you opened this page as a local file. Serve its folder over HTTP. For example, use uv run python -m http.server.'
         : S.mode === 'live' ? 'The local server did not answer. Check that tracer.serve is still running.' : `The request for ${url} failed.`);
     }
     const text = await res.text();
@@ -713,7 +713,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     }));
     if (!steps.length) {
       steps = [{ title: 'The whole trace', time: `${dayName(panels[0].startMs)} – ${dayName(panels[panels.length - 1].endMs)}`,
-        body: '<p>Every chat message, memory snapshot and file command in the chosen days. Red marks hold the claim, blue marks hold the correction. Hover over any mark to preview it, and click it to read the source.</p>',
+        body: '<p>The chart shows each chat message, memory snapshot and file command on the selected days. Red marks contain the claim. Blue marks contain the correction. Put the pointer on a mark to see a preview. Click a mark to read its source text.</p>',
         clauses: null, rangeMs: null, keyIdx: -1 }];
     }
     const overview = !steps[0].clauses;
@@ -734,7 +734,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
   // eyebrow, credit, deep link, room walls and the words for each channel.
   const VILLAGE = {
     name: 'AI Village',
-    about: 'follows one belief through the AI Village, where AI agents, each with its own computer and memory, work together in chat rooms.',
+    about: 'shows how one claim moves through the AI Village. In the AI Village, AI agents work together in chat rooms. Each agent has its own computer and memory.',
     credit: 'Source: AI Digest, “AI Village dataset”, 2026.', creditUrl: 'https://theaidigest.org/village',
     deepLink: 'https://theaidigest.org/village?day={day}&time={t}', deepLinkText: 'Open this moment in the AI Village',
     walls: true,
@@ -753,7 +753,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
 
   // ---------- masthead, legend, notes ----------
   const KIND = {
-    chat: { belief: 'Asserts or builds on the claim', attributed: 'Mentions the claim as someone else’s view', hint: 'Questions the claim or hints at the correction', fix: 'States the correction', other: 'Counted as neither claim nor correction' },
+    chat: { belief: 'States or supports the claim', attributed: 'Mentions the claim as someone else’s view', hint: 'Questions the claim or suggests the correction', fix: 'States the correction', other: 'Not counted as claim or correction' },
     mem: { claim: 'Memory holds the claim as true', attributed: 'Memory records the claim as someone else’s view', fix: 'Memory holds the correction', none: 'Memory mentions neither' },
   };
   const chipCls = m => (m.type === 'mem' && m.kind === 'attributed' ? 'attributed mem-attributed' : { belief: 'belief', claim: 'belief', attributed: 'attributed', fix: 'fix', hint: 'hint', none: 'none' }[m.kind] || '');
@@ -762,7 +762,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
   // A neutral item that still carries a stance matched the claim wording, but the labeller did not
   // read it as adopting, reporting or refuting the claim.
   const kindText = m => (m.type === 'mem' && m.kind === 'none' && m.stance
-    ? (m.stance === 'unclear' ? 'Mentions the claim, stance unclear' : 'Counted as neither claim nor correction')
+    ? (m.stance === 'unclear' ? 'Mentions the claim. The stance is not clear.' : 'Not counted as claim or correction')
     : m.type === 'mem' && KIND.mem[m.kind] ? KIND.mem[m.kind].replace(/^Memory/, SRC.vocab.memLegend) : KIND[m.type][m.kind] || m.kind);
   const isTagged = m => !(m.type === 'chat' && m.kind === 'other') && !(m.type === 'mem' && m.kind === 'none');
   const cap = s => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
@@ -866,9 +866,9 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     const chk = (c, label) => `<label><input type="checkbox" data-ch="${c}"${hidden[c] ? '' : ' checked'}> ${esc(label)}</label>`;
     const fn = SRC.vocab.fileNoun;
     const chat = [
-      has('chat', 'belief') && k(dot('var(--belief)'), 'asserts the claim'),
+      has('chat', 'belief') && k(dot('var(--belief)'), 'states the claim'),
       has('chat', 'attributed') && k(ring('var(--belief)'), 'as someone else’s view'),
-      has('chat', 'hint') && k(ring('var(--fix)'), 'questions it or hints at the correction'),
+      has('chat', 'hint') && k(ring('var(--fix)'), 'questions the claim or suggests the correction'),
       has('chat', 'fix') && k(dot('var(--fix)'), 'states the correction'),
       has('chat', 'other') && k(dot('var(--other)', 2.2), 'other'),
     ];
@@ -877,7 +877,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
       has('mem', 'attributed') && k(bar('var(--belief-soft)'), 'as someone else’s view'),
       has('mem', 'fix') && k(bar('var(--fix)'), 'holds the correction'),
       has('mem', 'none') && k(bar('var(--mem-none)'), 'neither'),
-      V.panels.length > 1 && marks.some(m => m.type === 'mem') && k('<svg width="18" height="6"><path d="M0 3H18" stroke="var(--ink-3)" stroke-width="5" stroke-dasharray="4 3"/></svg>', 'dashed across the gaps between panels'),
+      V.panels.length > 1 && marks.some(m => m.type === 'mem') && k('<svg width="18" height="6"><path d="M0 3H18" stroke="var(--ink-3)" stroke-width="5" stroke-dasharray="4 3"/></svg>', 'dashed line: gap between panels'),
     ];
     // file diamonds take the colour of what the command touches: red the claim, blue the correction
     const fk = ['belief', 'fix'].filter(c => has('file', c)).map(c => (c === 'fix' ? 'var(--fix)' : 'var(--belief)'));
@@ -893,7 +893,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     const arrows = [
       links.some(l => !l.auto) && k(arrow(false), 'hand-off, checked by hand'),
       links.some(l => l.auto) && k(arrow(true), 'hand-off, found automatically'),
-      moves.length && k('<svg width="10" height="16"><path d="M5 15V4" stroke="var(--ink-2)" stroke-width="1.6"/><path d="M1.5 5 5 0 8.5 5Z" fill="var(--ink-2)"/></svg>', 'moves rooms'),
+      moves.length && k('<svg width="10" height="16"><path d="M5 15V4" stroke="var(--ink-2)" stroke-width="1.6"/><path d="M1.5 5 5 0 8.5 5Z" fill="var(--ink-2)"/></svg>', 'moves to a different room'),
     ];
     const grp = (head, items) => (items.some(Boolean) ? `<div class="lg">${head}${items.filter(Boolean).join('')}</div>` : '');
     $('legend').innerHTML = grp(chk('chat', SRC.vocab.chatLegend), chat) + grp(chk('mem', SRC.vocab.memLegend), mem) + grp(chk('file', cap(fn) + 's'), files) + grp('<b>Arrows</b>', arrows);
@@ -903,9 +903,9 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     const { D, disagree } = V;
     const n = D.notes || {};
     const how = n.how && n.how.length ? n.how : [
-      'Each lane is one agent. Inside a lane, diamonds on top are file reads and writes, dots in the middle are chat messages, and the bar along the bottom is the agent’s memory: the notes it keeps for itself and carries from one session to the next. Each saved version of that memory is a snapshot. Hover over the bar to read the snapshot from that moment.',
-      SRC.walls ? 'Agents see live chat only from their own room. The hatched band between rooms is that wall. Turn channels off with the checkboxes to see what a chat-only monitor would miss.'
-        : 'Turn channels off with the checkboxes to see what a chat-only monitor would miss.',
+      'Each lane shows one agent. In a lane, the diamonds at the top show file reads and writes. The dots in the middle show chat messages. The bar at the bottom shows the memory of the agent. The memory is the notes that the agent keeps from one session to the next. Each saved version of the memory is a snapshot. Put the pointer on the bar to read the snapshot from that time.',
+      SRC.walls ? 'Each agent sees live chat only from its own room. The hatched band between rooms shows this wall. Clear the checkboxes to hide channels. Then you see what a monitor that reads only chat does not see.'
+        : 'Clear the checkboxes to hide channels. Then you see what a monitor that reads only chat does not see.',
     ];
     const method = (n.method || []).slice();
     const ls = D.labelStats;
@@ -917,17 +917,17 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
           ? ` A second pass by ${modelName(ls.checkModel)} checked ${ls.checkSample ? 'a sample of ' : ''}${plural(ls.checked, 'item')} and agreed on ${pct} of them.`
           : ` A second pass by ${modelName(ls.checkModel)} agreed on ${pct}.`;
       }
-      if (disagree) s += ` ${plural(disagree, 'item')} in this trace ${disagree === 1 ? 'has' : 'have'} a disagreement, flagged in the inspector and the evidence log.`;
+      if (disagree) s += ` ${plural(disagree, 'item')} in this trace ${disagree === 1 ? 'has' : 'have'} a disagreement. The inspector and the evidence log show a flag on each.`;
       method.push(s);
     }
-    if (!method.length) method.push('Tags come from keyword patterns on the source text. Every mark opens its source, so you can judge each one yourself.');
+    if (!method.length) method.push('Keyword patterns in the source text set the tags. Click a mark to see its source text. Then you can examine each tag yourself.');
     const limits = (n.limits || []).map(esc);
     if (SRC.credit || SRC.creditUrl) {
       limits.push([SRC.credit && esc(SRC.credit), SRC.creditUrl && `<a href="${esc(SRC.creditUrl)}" target="_blank" rel="noopener">${esc(SRC.creditUrl.replace(/^https?:\/\//, ''))}</a>`].filter(Boolean).join(' '));
     }
     $('notes').innerHTML = `<div><h2>How to read this</h2>${how.map(p => `<p>${esc(p)}</p>`).join('')}</div>
       <div><h2>Method</h2><ul>${method.map(p => `<li>${esc(p)}</li>`).join('')}</ul></div>
-      <div><h2>What this can’t tell you</h2><ul>${limits.map(p => `<li>${p}</li>`).join('')}</ul></div>`;
+      <div><h2>What this does not show</h2><ul>${limits.map(p => `<li>${p}</li>`).join('')}</ul></div>`;
   }
 
   // ---------- chart ----------
@@ -1353,7 +1353,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
   function inspect(i, keyLabel) {
     const el = $('inspector');
     if (i == null || i < 0) {
-      el.innerHTML = `<p class="kicker">Evidence</p><p class="insp-empty">Hover over a mark to preview it. Click to read the full source here.</p>`;
+      el.innerHTML = `<p class="kicker">Evidence</p><p class="insp-empty">Put the pointer on a mark to see a preview. Click a mark to read its full source text here.</p>`;
       return;
     }
     const { marks, rowOf, links } = V;
@@ -1377,11 +1377,11 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
       } else body = '';
     }
     const reason = (m.reason ? `<p class="insp-meta">Labeller’s reason: ${esc(m.reason)}</p>` : '') +
-      ((m.kind === 'fix' || m.kind === 'hint') && m.stance === 'adopts' ? `<p class="insp-meta">Drawn blue because it ${m.kind === 'fix' ? 'states the correction' : 'uses the correction’s wording'}. The labeller rated how it treats the claim, which it also mentions.</p>` : '');
+      ((m.kind === 'fix' || m.kind === 'hint') && m.stance === 'adopts' ? `<p class="insp-meta">This mark is blue because it ${m.kind === 'fix' ? 'states the correction' : 'uses the words of the correction'}. It also mentions the claim. The labeller rated how it treats the claim.</p>` : '');
     const an = anchor(i);
-    const off = an?.how === 'mark' ? '' : `<p class="insp-meta">${!an ? 'Outside the time windows shown, so it has no mark on the chart.'
-      : an.how === 'own' ? 'Written before the panel starts, so it has no mark of its own. It draws the bar at the start of this lane.'
-      : `Written before the panel starts, so it has no mark of its own. The ring marks where this lane enters the panel${an.same ? ', still in the same state' : ''}.`}</p>`;
+    const off = an?.how === 'mark' ? '' : `<p class="insp-meta">${!an ? 'This item is outside the time windows on the chart. It has no mark on the chart.'
+      : an.how === 'own' ? 'The agent wrote this item before the panel starts. It has no mark. It sets the bar at the start of this lane.'
+      : `The agent wrote this item before the panel starts. It has no mark. The ring shows where this lane enters the panel${an.same ? ', with no change in state' : ''}.`}</p>`;
     const excerpt = m.type === 'mem' && (m.kind !== 'none' || m.stance) && m.chars ? ` · Excerpt from a ${num(m.chars)}-character snapshot` : '';
     const own = links.map((l, k) => [l, k]).filter(([l]) => l.a === i || l.b === i);
     const linkList = own.length ? `<ul class="insp-links">${own.map(([l]) => {
@@ -1497,7 +1497,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     const lk = e.target.closest('[data-l]');
     if (lk) {
       const l = V.links[+lk.dataset.l];
-      const meta = [linkRooms(l), l.auto ? 'found automatically' : 'checked by hand', 'click for both ends'].filter(Boolean).join(' · ');
+      const meta = [linkRooms(l), l.auto ? 'found automatically' : 'checked by hand', 'click to see both ends'].filter(Boolean).join(' · ');
       tip.innerHTML = `<b>${esc(l.label || 'Hand-off')}</b><span class="tm">${esc(cap(meta))}</span>`;
       tip.hidden = false; return;
     }
@@ -1675,7 +1675,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     const active = days.filter(d => d.chat || d.mem || d.files).length;
     $('scan-results').hidden = false;
     if (!active) {
-      $('scan-summary').textContent = `Nothing matches “${s.q}”. Try a shorter phrase${s.regex ? ' or check the regular expression' : ', or turn on regular expressions'}.`;
+      $('scan-summary').textContent = `No items match “${s.q}”. Try a shorter phrase${s.regex ? ' or check the regular expression' : ', or turn on regular expressions'}.`;
       for (const id of ['dc-head', 'dc-sel']) $(id).innerHTML = '';
       dcScroll.hidden = true; $('scan-results').querySelector('.tr-facts').hidden = true; $('build-form').hidden = true;
       TR.days = []; TR.sel.clear();
@@ -1760,8 +1760,8 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     const many = sel.length > 5 ? ' More days make a wider, slower trace.' : '';
     $('dc-sel').innerHTML = sel.length
       ? `<span>${sel.length === 1 ? 'Selected' : `${sel.length} days selected`}: ${esc(names.join(', '))}.${many}</span><button type="button" class="linkish" id="dc-clear">Clear</button>`
-      : '<span>Click days in the chart to choose what to trace. Shift-click selects a range.</span>';
-    $('build-days').textContent = sel.length ? `Each selected day becomes a panel: ${names.join(', ')}.` : 'Pick at least one day in the chart above.';
+      : '<span>Click days in the chart to select them for the trace. Shift-click to select a range of days.</span>';
+    $('build-days').textContent = sel.length ? `The trace shows each selected day as a panel: ${names.join(', ')}.` : 'Select one or more days in the chart above.';
     $('build-btn').disabled = !sel.length || !!TR.building;
   }
   function dayTip(i, cx, cy, announce) {
@@ -1844,11 +1844,11 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
   $('build-form').addEventListener('submit', e => { e.preventDefault(); runBuild(); });
   async function runBuild() {
     const s = TR.scan;
-    if (!s || !TR.sel.size) { say('build', 'Pick at least one day in the chart first.', true); return; }
+    if (!s || !TR.sel.size) { say('build', 'Select one or more days in the chart first.', true); return; }
     const fq = $('fix-q').value.trim(), fat = $('fix-at').value;
     // the engine only applies a correction that has both a pattern and a time
-    if (fat && !fq) { say('build', 'Add the correction phrase too, or clear the correction time.', true); $('fix-q').focus(); return; }
-    if (fq && !fat) { say('build', 'Add the time of the first clear correction, or clear the correction phrase.', true); $('fix-at').focus(); return; }
+    if (fat && !fq) { say('build', 'Type the correction phrase, or clear the correction time.', true); $('fix-q').focus(); return; }
+    if (fq && !fat) { say('build', 'Type the time of the first clear correction, or clear the correction phrase.', true); $('fix-at').focus(); return; }
     const pattern = (q, rx) => (rx ? q : reEsc(q.toLowerCase()));
     const body = {
       claim: { label: s.q, pattern: pattern(s.q, s.regex) },
@@ -1857,7 +1857,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
       label: $('do-label').checked,
     };
     TR.building = true;
-    busy('build', `Building the trace for ${plural(body.days.length, 'day')}. This can take a minute.`);
+    busy('build', `Building the trace for ${plural(body.days.length, 'day')}. This can take one minute.`);
     try {
       const D = check(await getJSON('/api/trace', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }));
       const slug = `trace-${++S.adhoc}`;
