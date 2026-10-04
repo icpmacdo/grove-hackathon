@@ -1,9 +1,102 @@
-# grove-hackathon
+# Belief Tracer
 
-Project for the [AI Swarm Dynamics Hackathon](https://swarmchasing.com/) (AI Village × Grove Research), Oct 3–4, 2026.
-Submissions are due Sunday Oct 4, 5:00pm PT.
+Follow one belief through a swarm of AI agents: who said it, who carried it in memory without ever
+saying it, who wrote it into shared files, where a wall between rooms stopped it, how the correction
+travelled, and what was still there after the correction.
 
-- `docs/pitch.html` is the shortlist of project directions, with adjustable weights and interactive mocks.
+Built for the [AI Swarm Dynamics Hackathon](https://swarmchasing.com/) (AI Village × Grove Research),
+Oct 3–4, 2026.
 
-Data comes from the gated Hugging Face dataset [`aidigestorg/ai-village`](https://huggingface.co/datasets/aidigestorg/ai-village).
-It is never committed; see `.gitignore`.
+## Why
+
+Incidents like the Hugging Face intrusion and the German wiki takeover were investigated from chat
+logs and payloads after the fact. In a swarm, a belief often doesn't spread through chat at all. It
+moves through private memory notes and shared files, and a reader who only watches chat misses most of
+it. Belief Tracer puts all three channels for every agent on one timeline, so you can see the spread
+rather than infer it.
+
+## What it shows
+
+Each episode is a swimlane chart with one lane per agent, grouped by chat room:
+
+- **dots**: chat messages that mention the claim or the correction
+- **bars**: the agent's memory, one segment per saved snapshot, coloured by what it says
+- **diamonds**: file reads and writes that carry the claim
+- **arrows**: hand-offs through files, where an agent read a file another agent wrote and the claim
+  turned up in its next note
+
+Colour comes from a stance label for each item (adopts, only mentions, refutes), so an agent quoting
+a belief to argue against it doesn't count as a believer. A step-by-step walkthrough lights up the
+evidence for each sentence, and every mark opens its source text and id.
+
+## Episodes (AI Village data)
+
+| Episode | Headline | What the trace shows |
+|---|---|---|
+| Temporal Bleed | Ten agents decided their archive was broken. It was Friday. | A day-number miscount became a "temporal bleed" theory. In 38 minutes 10 agents' memories recorded it as fact, and 2 of them never mentioned it in chat before the correction. None of the 6 agents in the next room picked it up. On Monday an agent newly moved in from that room checked the calendar: the missing days were the weekend. The correction reached 17 agents' memories, crossing back through a doc in a shared repo. |
+| Divergent Reality | Each agent had its own computer. The agents called it Divergent Reality. | Five minutes after the name was coined, an agent gave the plain answer in chat ("Different VMs, different states"). The name spread anyway, into 10 of 10 agents' memories within 13 minutes. It explained new glitches for 12 days until staff stepped in, and was still in memories six months later. |
+| Nudge-exempt | An agent wrote its own exemption. The bot never checked it. | GPT-5.1 wrote a list of agents the idle-nudge bot should skip, and put itself on it. The bot never read the list, but 19 agents' memories treated it as real, and 12 of them never mentioned it in chat on the days shown. Staff corrected it in one line; 21 days later GPT-5.1's memory still called itself exempt. |
+| The Watch Is Unbroken | Fourteen agents remembered Gemini's words. Its own memory brought the belief back. | Gemini 2.5 Pro believed an adversary was sabotaging its computer. 14 other agents wrote its sign-off, "The watch is unbroken", into memory, each as Gemini's words, not their own. Peers and two simple tests got a retraction in 7 minutes. Gemini's memory kept the retraction for 10 days, then every snapshot called its environment hostile again. |
+
+The pattern across the four: **memory carries beliefs further and longer than chat shows, and a
+correction in chat doesn't reach the copies already in memory.**
+
+## Holdout data
+
+The tracer was built on the AI Village export only. We then tried it on two datasets it had never
+seen.
+
+**German wiki (DseWiki takeover).** In mid-June 2026, agents doing timed multi-round lookup tasks used
+a small German wiki as a relay board. On 16 June they decided the order of states in their tasks came
+from a seeded Python shuffle. They brute-forced seeds and relayed predictions ("RNG prep Maryland
+52,395"). The theory appeared in 68 revisions under 54 self-chosen labels on 36 pages, and crossed from
+one task family to the next. At 22:56 UTC one cohort reported the actual answer, Montana, and the theory fell. Only 3 of the 36
+pages ever got the correction; at least 15 relay pages kept the wrong prediction until the moderator
+deleted them days or weeks later, and agents in other tasks kept hunting seeds for five more days.
+Their arithmetic was right: a 4-state match is what chance alone gives across 5 million seeds.
+Caveats: wiki labels are not agents (one label came from 308 IP addresses), so lanes follow in-text
+signatures; reads are not logged; and Montana rests on that one cohort's report.
+
+**SwarmTraces (Hugging Face intrusion).** This one can't be traced, and why is itself a finding. None of its
+189,579 records has a timestamp field, and the agent-id field is redacted to one shared placeholder on every
+record that has it, so no two agents can be told apart. About 38% of records can be put in order, but
+without per-record identity there are no lanes and no spread to follow. **Incident data released for
+research needs consistent per-actor pseudonyms and per-record times, or belief spread can't be studied
+from it.**
+
+## How it works
+
+```
+tracer/
+  SPEC.md          the contract between the parts
+  trace.py         engine: episode spec + DuckDB -> episode data; builds the static site
+  label.py         stance labeller (claude CLI: Sonnet labels every item, Haiku re-checks)
+  check.py         episode checker: shape, stats, links, and that each step lights its evidence
+  serve.py         local app: the curated episodes, plus "trace any claim" on the live database
+  template.html    the viewer (one self-contained page)
+  episodes/        episode specs: claim and correction patterns, panels, walkthrough, notes
+  labels/          cached stance labels
+analysis/          eight earlier analyses of the AI Village data (each has a FINDINGS.md)
+docs/pitch.html    the project shortlist and the findings that led to Belief Tracer
+```
+
+Every walkthrough sentence was fact-checked against fresh queries of the database, and the checker
+confirms that each step lights the marks its text names. Credentials and tokens in agent text are
+redacted before anything is written out.
+
+## Run it
+
+The AI Village data is gated: request access to
+[`aidigestorg/ai-village`](https://huggingface.co/datasets/aidigestorg/ai-village) on Hugging Face.
+It is never committed.
+
+```sh
+uv sync
+uv run python scripts/build_db.py                  # data/*.jsonl.gz -> data/village.duckdb
+uv run python -m tracer.trace --all --site         # build every episode and the static site
+uv run python -m tracer.check                      # verify every built episode
+uv run python -m tracer.serve                      # local app at http://127.0.0.1:8765
+```
+
+Stance labelling (`uv run python -m tracer.label <slug> --model sonnet --check haiku`) calls the local
+`claude` CLI.
