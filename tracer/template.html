@@ -162,10 +162,12 @@ h1 { margin: 0; font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; font-wei
 .chart-frame { position: relative; }
 .chart-frame::after { content: ""; position: absolute; top: 0; bottom: 0; right: 0; width: 44px; pointer-events: none; background: linear-gradient(to left, var(--surface), transparent); opacity: 0; transition: opacity 0.15s ease; }
 .chart-frame.more-r::after { opacity: 1; }
-.pan { position: absolute; top: 3px; z-index: 2; display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); font-size: 14px; line-height: 1; cursor: pointer; box-shadow: 0 1px 4px var(--shadow); }
-.pan:hover { border-color: var(--ink-3); }
-.pan-r { right: 6px; }
-.pan-l { left: 6px; }
+/* Pan buttons: a pager in the empty corner above the lane names, so they never cover the chart. */
+.pan { position: absolute; top: 8px; z-index: 2; display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); font-size: 14px; line-height: 1; cursor: pointer; box-shadow: 0 1px 4px var(--shadow); }
+.pan:hover:not(:disabled) { border-color: var(--ink-3); }
+.pan:disabled { opacity: 0.4; cursor: default; box-shadow: none; }
+.pan-l { left: 10px; }
+.pan-r { left: 42px; }
 #chart-labels { position: absolute; left: 0; top: 0; pointer-events: none; opacity: 0; visibility: hidden; transition: opacity 0.15s ease, visibility 0.15s; font-family: var(--font-ui); }
 .chart-frame.scrolled #chart-labels { opacity: 1; visibility: visible; }
 #chart .grid { stroke: var(--grid); stroke-width: 1; }
@@ -528,8 +530,10 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
   const clock = (t, secs) => hm(local(t), secs);
   const dateLabel = (d, year) => `${WD[d.getUTCDay()]} ${d.getUTCDate()} ${MO[d.getUTCMonth()]}${year ? ' ' + d.getUTCFullYear() : ''}`;
   const dayName = (t, year) => dateLabel(local(t), year);
-  const dayOfDate = d => Math.round((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - DAY1) / 864e5) + 1;
-  const dayNum = t => dayOfDate(local(t));
+  const dayOfDate = (d, d1 = DAY1) => Math.round((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - d1) / 864e5) + 1;
+  // The open episode's Day 1 (data "dayOne", default the Village's), or null: the dataset has no day numbers.
+  let EP_DAY1 = DAY1;
+  const dayNum = t => (EP_DAY1 == null ? null : dayOfDate(local(t), EP_DAY1));
   const utc = t => new Date(t).toISOString().slice(11, 19) + ' UTC';
   const hourLabel = t => {
     const d = local(t); const h = d.getUTCHours(), m = d.getUTCMinutes();
@@ -631,6 +635,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
   function model(D) {
     // data without timeZone (built before it existed) at a Pacific offset gets Pacific time too
     setZone(D.tzOffsetHours, D.timeZone !== undefined ? D.timeZone : [-7, -8, undefined, null].includes(D.tzOffsetHours) ? 'America/Los_Angeles' : null);
+    setSource(D);
     const panels = D.panels.slice().sort((a, b) => a.startMs - b.startMs);
     const groups = (D.groups || []).map(g => ({ key: g.key, label: g.label || '#' + g.key, note: g.note || '' }));
     const rows = D.rows.map(r => ({ ...r }));
@@ -724,13 +729,35 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     return { D, panels, groups, rows, rowOf, marks, bands, links, steps, overview, annos, moves, hasStance, disagree, find, hl, step: 0, selected: null, focus: null };
   }
 
+  // ---------- dataset ----------
+  // The episode's "source" merged over the AI Village's (SPEC: Other datasets): page-wide about line,
+  // eyebrow, credit, deep link, room walls and the words for each channel.
+  const VILLAGE = {
+    name: 'AI Village',
+    about: 'follows one belief through the AI Village, where AI agents, each with its own computer and memory, work together in chat rooms.',
+    credit: 'Source: AI Digest, “AI Village dataset”, 2026.', creditUrl: 'https://theaidigest.org/village',
+    deepLink: 'https://theaidigest.org/village?day={day}&time={t}', deepLinkText: 'Open this moment in the AI Village',
+    walls: true,
+    vocab: { chat: 'Chat message', mem: 'Memory snapshot · the agent’s saved notes', file: 'Shell command', fileNoun: 'file', chatLegend: 'Chat', memLegend: 'Memory' },
+  };
+  let SRC = VILLAGE;
+  const aboutEl = document.querySelector('.page > .about');
+  const setAbout = src => { if (aboutEl) aboutEl.innerHTML = `<b>Belief Tracer</b> ${esc(src.about)}`; };
+  function setSource(D) {
+    const s = D.source && typeof D.source === 'object' ? D.source : {};
+    SRC = { ...VILLAGE, ...s, vocab: { ...VILLAGE.vocab, ...(s.vocab || {}) } };
+    if (s.deepLink && !s.deepLinkText) SRC.deepLinkText = 'Open this moment at the source';
+    const d1 = !('dayOne' in D) ? 'v' : D.dayOne && /^\d{4}-\d\d-\d\d$/.test(D.dayOne) ? D.dayOne : null;
+    EP_DAY1 = d1 === 'v' ? DAY1 : d1 ? Date.UTC(+d1.slice(0, 4), +d1.slice(5, 7) - 1, +d1.slice(8, 10)) : null;
+  }
+
   // ---------- masthead, legend, notes ----------
   const KIND = {
     chat: { belief: 'Asserts or builds on the claim', attributed: 'Mentions the claim as someone else’s view', hint: 'Questions the claim or hints at the correction', fix: 'States the correction', other: 'Counted as neither claim nor correction' },
     mem: { claim: 'Memory holds the claim as true', attributed: 'Memory records the claim as someone else’s view', fix: 'Memory holds the correction', none: 'Memory mentions neither' },
   };
   const chipCls = m => (m.type === 'mem' && m.kind === 'attributed' ? 'attributed mem-attributed' : { belief: 'belief', claim: 'belief', attributed: 'attributed', fix: 'fix', hint: 'hint', none: 'none' }[m.kind] || '');
-  const who = r => (r?.human && /\(human\)/.test(r.name) ? 'Village staff (human)' : r?.name ?? '');
+  const who = r => (r?.human && /\(human\)/.test(r.name) ? (SRC.name === 'AI Village' ? 'Village staff (human)' : 'Staff (human)') : r?.name ?? '');
   const whoShort = (r, a) => (r?.human ? r.name.replace(' (human) · ', ' · ') : a);
   // A neutral item that still carries a stance matched the claim wording, but the labeller did not
   // read it as adopting, reporting or refuting the claim.
@@ -809,7 +836,10 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     // from the day the first panel starts to the day the last one ends (an end at midnight is the day before)
     const d0 = Math.min(...panels.map(p => p.day ?? dayNum(p.startMs)));
     const d1 = Math.max(...panels.map(p => p.endDay ?? dayNum(p.endMs - 1)));
-    $('eyebrow').textContent = `AI Village · ${d1 > d0 ? `Days ${d0}–${d1}` : `Day ${d0}`}`;
+    // without day numbers (dayOne null), the dates: first panel's start to last panel's end
+    const a = local(panels[0].startMs), b = local(panels[panels.length - 1].endMs - 1);
+    const dates = isoDay(+a) === isoDay(+b) ? dateLabel(a, true) : `${dateLabel(a, a.getUTCFullYear() !== b.getUTCFullYear())} – ${dateLabel(b, true)}`;
+    $('eyebrow').textContent = `${SRC.name} · ${EP_DAY1 == null ? dates : d1 > d0 ? `Days ${d0}–${d1}` : `Day ${d0}`}`;
     $('headline').textContent = D.headline || D.title || 'Belief trace';
     $('lede').textContent = D.lede || '';
     $('lede').hidden = !D.lede;
@@ -833,7 +863,8 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     const dot = (fill, r = 4.5) => `<svg width="10" height="10"><circle cx="5" cy="5" r="${r}" fill="${fill}"/></svg>`;
     const ring = col => `<svg width="10" height="10"><circle cx="5" cy="5" r="3.6" fill="var(--surface)" stroke="${col}" stroke-width="1.8"/></svg>`;
     const bar = col => `<svg width="18" height="6"><rect width="18" height="5" y="0.5" rx="2.5" fill="${col}"/></svg>`;
-    const chk = (c, label) => `<label><input type="checkbox" data-ch="${c}"${hidden[c] ? '' : ' checked'}> ${label}</label>`;
+    const chk = (c, label) => `<label><input type="checkbox" data-ch="${c}"${hidden[c] ? '' : ' checked'}> ${esc(label)}</label>`;
+    const fn = SRC.vocab.fileNoun;
     const chat = [
       has('chat', 'belief') && k(dot('var(--belief)'), 'asserts the claim'),
       has('chat', 'attributed') && k(ring('var(--belief)'), 'as someone else’s view'),
@@ -854,7 +885,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
       ? `<path d="M${5 + j * 12} 0.5 ${9.5 + j * 12} 5 ${5 + j * 12} 9.5 ${0.5 + j * 12} 5Z" fill="${col}"/>`
       : `<path d="M${5 + j * 12} 1.2 ${8.8 + j * 12} 5 ${5 + j * 12} 8.8 ${1.2 + j * 12} 5Z" fill="var(--surface)" stroke="${col}" stroke-width="1.4"/>`).join('')}</svg>`;
     const files = fk.length ? [
-      k(dia(true), 'writes a file'),
+      k(dia(true), `writes a ${esc(fn)}`),
       k(dia(false), 'reads one'),
       fk.length > 1 && '<span class="lg-note">red: about the claim, blue: about the correction</span>',
     ] : [];
@@ -865,7 +896,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
       moves.length && k('<svg width="10" height="16"><path d="M5 15V4" stroke="var(--ink-2)" stroke-width="1.6"/><path d="M1.5 5 5 0 8.5 5Z" fill="var(--ink-2)"/></svg>', 'moves rooms'),
     ];
     const grp = (head, items) => (items.some(Boolean) ? `<div class="lg">${head}${items.filter(Boolean).join('')}</div>` : '');
-    $('legend').innerHTML = grp(chk('chat', 'Chat'), chat) + grp(chk('mem', 'Memory'), mem) + grp(chk('file', 'Files'), files) + grp('<b>Arrows</b>', arrows);
+    $('legend').innerHTML = grp(chk('chat', SRC.vocab.chatLegend), chat) + grp(chk('mem', SRC.vocab.memLegend), mem) + grp(chk('file', cap(fn) + 's'), files) + grp('<b>Arrows</b>', arrows);
   }
 
   function renderNotes() {
@@ -873,7 +904,8 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     const n = D.notes || {};
     const how = n.how && n.how.length ? n.how : [
       'Each lane is one agent. Inside a lane, diamonds on top are file reads and writes, dots in the middle are chat messages, and the bar along the bottom is the agent’s memory: the notes it keeps for itself and carries from one session to the next. Each saved version of that memory is a snapshot. Hover over the bar to read the snapshot from that moment.',
-      'Agents see live chat only from their own room. The hatched band between rooms is that wall. Turn channels off with the checkboxes to see what a chat-only monitor would miss.',
+      SRC.walls ? 'Agents see live chat only from their own room. The hatched band between rooms is that wall. Turn channels off with the checkboxes to see what a chat-only monitor would miss.'
+        : 'Turn channels off with the checkboxes to see what a chat-only monitor would miss.',
     ];
     const method = (n.method || []).slice();
     const ls = D.labelStats;
@@ -890,7 +922,9 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     }
     if (!method.length) method.push('Tags come from keyword patterns on the source text. Every mark opens its source, so you can judge each one yourself.');
     const limits = (n.limits || []).map(esc);
-    limits.push('Source: AI Digest, “AI Village dataset”, 2026. <a href="https://theaidigest.org/village" target="_blank" rel="noopener">theaidigest.org/village</a>');
+    if (SRC.credit || SRC.creditUrl) {
+      limits.push([SRC.credit && esc(SRC.credit), SRC.creditUrl && `<a href="${esc(SRC.creditUrl)}" target="_blank" rel="noopener">${esc(SRC.creditUrl.replace(/^https?:\/\//, ''))}</a>`].filter(Boolean).join(' '));
+    }
     $('notes').innerHTML = `<div><h2>How to read this</h2>${how.map(p => `<p>${esc(p)}</p>`).join('')}</div>
       <div><h2>Method</h2><ul>${method.map(p => `<li>${esc(p)}</li>`).join('')}</ul></div>
       <div><h2>What this can’t tell you</h2><ul>${limits.map(p => `<li>${p}</li>`).join('')}</ul></div>`;
@@ -900,14 +934,16 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
   const svg = $('chart');
   const scroller = $('chart-scroll');
   const labels = $('chart-labels');
-  // The lane names stick once the chart scrolls; a fade and a button say when more lies to the right.
+  // The lane names stick once the chart scrolls; a fade and the pager say when more lies to the right.
+  // The pager shows whenever the chart is wider than its frame; the end it has reached is disabled.
   const onScroll = () => {
     const sl = scroller.scrollLeft, max = scroller.scrollWidth - scroller.clientWidth;
     const f = $('chart-frame');
     f.classList.toggle('scrolled', sl > 2);
     f.classList.toggle('more-r', sl < max - 4);
-    $('pan-r').hidden = !(sl < max - 4);
-    $('pan-l').hidden = !(sl > 4);
+    $('pan-r').hidden = $('pan-l').hidden = !(max > 4);
+    $('pan-r').disabled = !(sl < max - 4);
+    $('pan-l').disabled = !(sl > 4);
   };
   scroller.addEventListener('scroll', onScroll, { passive: true });
   const pan = dir => scroller.scrollBy({ left: dir * Math.max(160, (scroller.clientWidth - L.label) * 0.8), behavior: reduced() ? 'auto' : 'smooth' });
@@ -917,15 +953,37 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
   const Y = { file: 9, chat: 19, band: 27, bandH: 5 };
   const CW = 6.4;  // average glyph width at 11.5–12px, for fitting labels
   const fit = (s, px, cw = CW) => { s = String(s); const n = Math.floor(px / cw); return s.length <= n ? s : s.slice(0, Math.max(1, n - 1)).trimEnd() + '…'; };
+  // Measured text width in the chart's font. `.swim text` sets 12px, which overrides the font-size attributes.
+  const twCtx = document.createElement('canvas').getContext('2d');
+  const tw = (s, wt = 600) => { twCtx.font = `${wt} 12px ${getComputedStyle(svg).fontFamily}`; return twCtx.measureText(String(s)).width; };
+  const fitPx = (s, px, wt = 600) => { s = String(s); if (tw(s, wt) <= px) return s; while (s.length > 1 && tw(s + '…', wt) > px) s = s.slice(0, -1).trimEnd(); return s + '…'; };
+  // A lane's name and note. A name that doesn't fit wraps onto two lines (at the space before a bracket
+  // when both halves fit, else at the most even break); a lane with a note keeps its name on one line.
+  const laneText = r => ({
+    label: r.human ? r.name.replace(/ \(human\).*$/, '') : r.name.replace(/^Claude /, ''),
+    sub: r.note || (r.human && /\(human\)/.test(r.name) ? 'human' : r.silent ? 'silent' : ''),
+  });
+  const wrapName = (s, px) => {
+    if (tw(s) <= px) return [s];
+    const cuts = [...s.matchAll(/ /g)].map(m => [s.slice(0, m.index), s.slice(m.index + 1)]);
+    if (!cuts.length) return [s];
+    const wide = c => Math.max(tw(c[0]), tw(c[1]));
+    return cuts.find(c => c[1].startsWith('(') && wide(c) <= px) || cuts.reduce((b, c) => (wide(c) < wide(b) ? c : b));
+  };
   let G = null;  // geometry of the last render
   let markEls = [], bandEls = [], linkEls = [], moveEls = [];
 
-  function placeAnnos(x, W) {
+  function placeAnnos(x, W, P) {
     const rowsUsed = [[]]; const items = [];
     for (const a of V.annos) {
       const xx = x(a.t); if (xx == null) continue;
-      const w = a.label.length * CW;
+      const w = tw(a.label);
       let anchor = a.anchor;
+      // a label stays inside its own panel when the other side has room: one that runs across a gap
+      // crowds the next panel's labels
+      const o = P.find(q => xx >= q.x0 - 0.5 && xx <= q.x0 + q.w + 0.5);
+      if (o && anchor === 'end' && xx - 5 - w < o.x0 && xx + 5 + w <= o.x0 + o.w) anchor = 'start';
+      else if (o && anchor === 'start' && xx + 5 + w > o.x0 + o.w && xx - 5 - w >= o.x0) anchor = 'end';
       if (anchor === 'start' && xx + 5 + w > W - L.padR) anchor = 'end';
       if (anchor === 'end' && xx - 5 - w < L.label) anchor = 'start';
       const lo = anchor === 'end' ? xx - 5 - w : anchor === 'middle' ? xx - w / 2 : xx + 5;
@@ -945,7 +1003,15 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
   function layout() {
     const { panels, groups, rows } = V;
     const n = panels.length;
-    L.label = scroller.clientWidth < 560 ? 136 : 184;
+    L.label = 184;
+    if (scroller.clientWidth < 560) {
+      // narrow screens: 136 px, grown (up to 46% of the frame) so every lane name and note reads in full
+      const need = Math.max(0, ...rows.map(r => {
+        const t = laneText(r);
+        return t.sub ? Math.max(tw(t.label), tw(t.sub, 400)) : Math.max(...wrapName(t.label, 136 - 22).map(s => tw(s)));
+      }));
+      L.label = Math.round(Math.max(136, Math.min(need + 24, scroller.clientWidth * 0.46)));
+    }
     // each gap is wide enough for its label, within limits
     const gw = panels.slice(0, -1).map((p, i) => {
       const [l1, l2] = gapText(p, panels[i + 1]);
@@ -965,7 +1031,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
       for (const o of P) if (t >= o.p.startMs && t <= o.p.endMs) return o.x0 + (t - o.p.startMs) / Math.max(1, o.p.endMs - o.p.startMs) * o.w;
       return null;
     };
-    const annos = placeAnnos(x, W);
+    const annos = placeAnnos(x, W, P);
     const axis = L.axis + (annos.rows - 1) * 13;
     let y = axis; const heads = [], walls = [], rowY = {}, spanOf = {};
     const dividers = [];
@@ -1006,9 +1072,9 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     // panel titles, time grid, gaps between panels
     for (const { p, x0, w } of P) {
       const day = p.day ?? dayNum(p.startMs);
-      const full = `${p.label} · Day ${day}`;
+      const full = day == null ? p.label : `${p.label} · Day ${day}`;
       o.push(full.length * 7.2 <= w
-        ? `<text x="${x0}" y="16" class="t-ink t-strong">${esc(p.label)} <tspan class="t-3" font-weight="400">· Day ${day}</tspan><title>${esc(dayName(p.startMs, true))}</title></text>`
+        ? `<text x="${x0}" y="16" class="t-ink t-strong">${esc(p.label)}${day == null ? '' : ` <tspan class="t-3" font-weight="400">· Day ${day}</tspan>`}<title>${esc(dayName(p.startMs, true))}</title></text>`
         : `<text x="${x0}" y="16" class="t-ink t-strong">${esc(fit(p.label, w, 7.2))}<title>${esc(full)}</title></text>`);
       const len = Math.max(1, p.endMs - p.startMs), DAY = 864e5;
       const stepMs = [15, 30, 60, 120, 180, 360, 720, 1440, 2880, 10080, 20160].map(m => m * 60e3).find(s => (s / len) * w >= 64);
@@ -1058,13 +1124,19 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     // group heads, room walls, row labels, separators (lab: the sticky copy of the label column)
     const LW = L.label - 8, ly = heads.length ? heads[0].y - 4 : top;
     const LX = 10, LT = L.label - LX - 12;  // lane names sit inset from the panel edge, at the same x in the sticky copy
-    const lab = [`<rect x="0" y="${ly}" width="${LW}" height="${H - ly}" fill="var(--surface)"/><line x1="${LW + 0.5}" x2="${LW + 0.5}" y1="${ly}" y2="${H}" stroke="var(--rule)"/>`];
+    const lab = [`<rect x="0" y="0" width="${LW}" height="${H}" fill="var(--surface)"/><line x1="${LW + 0.5}" x2="${LW + 0.5}" y1="${ly}" y2="${H}" stroke="var(--rule)"/>`];
     for (const h of heads) {
       o.push(`<text x="${LX}" y="${h.y + 20}" class="t-ink halo" font-size="14" font-weight="800">${esc(h.g.label)} <tspan class="t-3" font-size="12" font-weight="400">${esc(fit(h.g.note, W - 200))}</tspan></text>`);
       lab.push(`<text x="${LX}" y="${h.y + 20}" class="t-ink" font-size="14" font-weight="800">${esc(fit(h.g.label, LT, 8.4))}</text>`);
     }
     const wallBoxes = [];
     walls.forEach((wy, i) => {
+      if (!SRC.walls) {  // a dataset without room walls: a plain divider between groups
+        const my = wy + L.wall / 2;
+        o.push(`<line x1="0" x2="${W - L.padR}" y1="${my}" y2="${my}" stroke="var(--wall)" stroke-width="1"/>`);
+        lab.push(`<line x1="0" x2="${LW}" y1="${my}" y2="${my}" stroke="var(--wall)" stroke-width="1"/>`);
+        return;
+      }
       o.push(`<rect x="0" y="${wy}" width="${W - L.padR}" height="${L.wall}" fill="url(#hatch)" rx="3"/>`);
       lab.push(`<rect x="0" y="${wy}" width="${LW}" height="${L.wall}" fill="url(#hatch-l)"/>`);
       const label = i === 0 ? 'Room wall: agents see only their own room’s chat' : 'Room wall';
@@ -1081,12 +1153,17 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
       const y0 = rowY[r.name]; if (y0 == null) continue;
       o.push(`<rect class="row-hl" data-row="${esc(r.name)}" x="0" y="${y0}" width="${W - L.padR}" height="${L.row}"/>`);
       o.push(`<line class="sep" x1="0" x2="${W - L.padR}" y1="${y0 + L.row}" y2="${y0 + L.row}"/>`);
-      const sub = r.note || (r.human && /\(human\)/.test(r.name) ? 'human' : r.silent ? 'silent' : '');
-      const label = r.human ? r.name.replace(/ \(human\).*$/, '') : r.name.replace(/^Claude /, '');
-      o.push(`<text x="${LX}" y="${y0 + (sub ? 16 : 22)}" class="t-ink" font-size="12.5" font-weight="600" data-row="${esc(r.name)}">${esc(fit(label, LT, 7))}<title>${esc(r.name)}</title></text>`);
-      if (sub) o.push(`<text x="${LX}" y="${y0 + 29}" class="t-3" font-size="11" data-row="${esc(r.name)}">${esc(fit(sub, LT, 5.9))}<title>${esc(sub)}</title></text>`);
-      lab.push(`<line x1="0" x2="${LW}" y1="${y0 + L.row}" y2="${y0 + L.row}" stroke="var(--grid)"/><text x="${LX}" y="${y0 + (sub ? 16 : 22)}" class="t-ink" font-size="12.5" font-weight="600">${esc(fit(label, LT, 7))}</text>`);
-      if (sub) lab.push(`<text x="${LX}" y="${y0 + 29}" class="t-3" font-size="11">${esc(fit(sub, LT, 5.9))}</text>`);
+      const { label, sub } = laneText(r);
+      // the name on one line, or two when it wraps (a lane with a note keeps one); past the column, an ellipsis
+      const lines = (sub ? [label] : wrapName(label, LT)).map(s => fitPx(s, LT));
+      const ny = y0 + (sub || lines.length > 1 ? 16 : 22);
+      lab.push(`<line x1="0" x2="${LW}" y1="${y0 + L.row}" y2="${y0 + L.row}" stroke="var(--grid)"/>`);
+      lines.forEach((s, k) => {
+        o.push(`<text x="${LX}" y="${ny + k * 13}" class="t-ink" font-size="12.5" font-weight="600" data-row="${esc(r.name)}">${esc(s)}<title>${esc(r.name)}</title></text>`);
+        lab.push(`<text x="${LX}" y="${ny + k * 13}" class="t-ink" font-size="12.5" font-weight="600">${esc(s)}</text>`);
+      });
+      if (sub) o.push(`<text x="${LX}" y="${y0 + 29}" class="t-3" font-size="11" data-row="${esc(r.name)}">${esc(fitPx(sub, LT, 400))}<title>${esc(sub)}</title></text>`);
+      if (sub) lab.push(`<text x="${LX}" y="${y0 + 29}" class="t-3" font-size="11">${esc(fitPx(sub, LT, 400))}</text>`);
     }
 
     // memory bands: hover anywhere along a bar to read the snapshot behind it
@@ -1105,9 +1182,9 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
       }
     });
 
-    // annotations
+    // annotations: every line first, so a nearby annotation's line never crosses a label
+    for (const a of annos.items) o.push(`<line class="anno" x1="${a.xx}" x2="${a.xx}" y1="44" y2="${H - L.bottom}"/>`);
     for (const a of annos.items) {
-      o.push(`<line class="anno" x1="${a.xx}" x2="${a.xx}" y1="44" y2="${H - L.bottom}"/>`);
       o.push(`<text x="${a.xx + (a.anchor === 'end' ? -5 : a.anchor === 'start' ? 5 : 0)}" y="${54 + a.row * 13}" font-size="11.5" class="t-ink halo" font-weight="600" text-anchor="${a.anchor}">${esc(a.label)}</text>`);
     }
 
@@ -1278,11 +1355,12 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     }
     const { marks, rowOf, links } = V;
     const m = marks[i]; const r = rowOf[m.a];
-    const where = m.type === 'chat' ? `Chat message · #${m.room}` : m.type === 'mem' ? 'Memory snapshot · the agent’s saved notes'
-      : `Shell command · ${m.op === 'write' ? 'writes a file' : 'reads a file'}${m.artifact ? ' · ' + m.artifact : ''}`;
+    const vb = SRC.vocab, fn = vb.fileNoun;
+    const where = m.type === 'chat' ? `${vb.chat} · #${m.room}` : m.type === 'mem' ? vb.mem
+      : `${vb.file} · ${m.op === 'write' ? `writes a ${fn}` : `reads a ${fn}`}${m.artifact ? ' · ' + m.artifact : ''}`;
     let chip, body, hl = { cls: 0 };
     if (m.type === 'file') {
-      const c = m.kind === 'belief' ? (m.op === 'write' ? 'Writes the claim into a file' : 'Reads a file about the claim') : (m.op === 'write' ? 'Writes the correction into a file' : 'Reads the correction from a file');
+      const c = m.kind === 'belief' ? (m.op === 'write' ? `Writes the claim into a ${fn}` : `Reads a ${fn} about the claim`) : (m.op === 'write' ? `Writes the correction into a ${fn}` : `Reads the correction from a ${fn}`);
       chip = `<span class="chip ${chipCls(m)}"><i></i>${c}</span>`;
       hl = marked(m.text, 'file');
       body = `<pre class="quote code ${chipCls(m)}">${hl.html}</pre>`;
@@ -1308,12 +1386,12 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
       const meta = [linkRooms(l), l.auto && 'found automatically'].filter(Boolean).join(', ');
       return `<li>${esc(l.label || 'Hand-off')}${meta ? ` <span class="muted">(${esc(meta)})</span>` : ''}<br><button type="button" class="linkish" data-goto="${other}">${l.a === i ? 'Next' : 'Previous'}: ${esc(om.a)}, ${clock(om.t)}</button></li>`;
     }).join('')}</ul>` : '';
-    const link = `https://theaidigest.org/village?day=${dayNum(m.t)}&time=${m.t}`;
+    const link = SRC.deepLink && SRC.deepLink.replace(/\{day\}/g, dayNum(m.t) ?? '').replace(/\{t\}/g, m.t).replace(/\{id\}/g, encodeURIComponent(m.id));
     el.innerHTML = `<p class="kicker">${keyLabel ? esc(keyLabel) + ' · ' : ''}${esc(where)}</p>
       <h3 class="insp-who">${esc(who(r) || m.a)}</h3>
       <p class="insp-time">${dayName(m.t, true)}, ${clock(m.t, true)} ${TZ} · ${utc(m.t)}</p>
       <div class="chips">${chip}${stanceChip(m)}</div>${off}${reason}${body}${hlKey(hl.cls)}${linkList}
-      <p class="insp-meta">${m.type === 'chat' ? 'Message' : m.type === 'mem' ? 'Memory' : 'Turn'} id <code>${esc(m.id)}</code>${excerpt} · <a href="${link}" target="_blank" rel="noopener">Open this moment in the AI Village</a></p>`;
+      <p class="insp-meta">${m.type === 'chat' ? 'Message' : m.type === 'mem' ? 'Memory' : 'Turn'} id <code>${esc(m.id)}</code>${excerpt}${link ? ` · <a href="${esc(link)}" target="_blank" rel="noopener">${esc(SRC.deepLinkText)}</a>` : ''}</p>`;
   }
   function inspectLink(k) {
     const l = V.links[k], { marks, rowOf } = V;
@@ -1424,7 +1502,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     if (!h) { const r = e.target.closest('[data-row]'); hl(r ? r.dataset.row : null); return; }
     const m = V.marks[+h.dataset.i];
     hl(m.a);
-    const what = m.type === 'file' ? (m.op === 'write' ? 'File write' : 'File read') : kindText(m);
+    const what = m.type === 'file' ? `${cap(SRC.vocab.fileNoun)} ${m.op === 'write' ? 'write' : 'read'}` : kindText(m);
     const flag = m.check && m.stance !== m.check ? `<span class="warn">Labellers disagree: ${esc(m.stance || 'no label')} · ${esc(m.check)}</span>` : '';
     const body = m.type === 'mem' && m.kind === 'none' && !m.stance ? '' : m.text ? '<br>' + esc(short(m.text)) : '';
     tip.innerHTML = `<b>${esc(whoShort(V.rowOf[m.a], m.a))}</b><span class="tm">${dayName(m.t)} ${clock(m.t, true)} ${TZ} · ${esc(what)}</span>${flag}${body}`;
@@ -1504,6 +1582,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
   function showTracer() {
     current = 'trace'; markTabs(); seq++;
     clearStatus(); $('episode').hidden = true; $('tracer').hidden = false; tip.hidden = true;
+    setAbout(VILLAGE);
     if (TR.scan) renderDays();
   }
   function showEpisode(e) {
@@ -1523,6 +1602,7 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
       V = model(D);
       V.adhoc = !!e.adhoc;
       clearStatus(); $('episode').hidden = false;
+      setAbout(SRC);
       renderHead(); renderLegend(); renderNotes(); renderSteps();
       for (const c of Object.keys(hidden)) svg.classList.toggle('hide-' + c, hidden[c]);
       scroller.scrollLeft = 0;
@@ -1541,6 +1621,8 @@ mark.hl-fix { box-shadow: none; background: linear-gradient(to right, var(--fix)
     clearTimeout(rz);
     rz = setTimeout(() => { tabsFade(); if (V && !$('episode').hidden) render(); if (TR.scan && !$('tracer').hidden) renderDays(); }, 120);
   });
+  // lane names and annotations are measured in the web font, so lay out again once it arrives
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', () => dispatchEvent(new Event('resize')));
 
   // ---------- trace a claim (live mode) ----------
   const TR = { scan: null, days: [], sel: new Set(), cursor: -1, anchor: -1, ctrl: null, timers: {} };
