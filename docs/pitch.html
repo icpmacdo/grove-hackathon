@@ -1,27 +1,31 @@
 <title>Swarmchasing Shortlist</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Martian+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;600&family=Atkinson+Hyperlegible+Next:wght@400;600;800&display=swap">
 <style>
 /* Layout: deep-water field log. Full-bleed swarm with a sonar lens, then one 1120px column: the gaps, six findings drawn from the real data (each a chart + quotes), a weighting board and four build ideas, work in progress, the pick. Single dark theme by choice. Chart colors are validated for this surface (OKLCH L 0.48–0.67, CVD-safe pairs). */
 :root{
-  --abyss:#06191f;
-  --deep:#0a2630;
-  --shelf:#10343f;
-  --kelp:#1f4c58;
-  --grid:#173b46;
-  --foam:#e3ede7;
-  --silt:#93abac;
-  --sodium:#f2b544;
-  --c-claim:#e5604f;
-  --c-fix:#3e9fd0;
-  --c-mem:#c4871f;
+  --abyss:#f3f4f6;
+  --deep:#ffffff;
+  --shelf:#e4e7eb;
+  --kelp:#d5dae0;
+  --grid:#eaecef;
+  --foam:#14171c;
+  --silt:#555c66;
+  --sodium:#8a5300;
+  --c-claim:#d84a3a;
+  --c-fix:#2a78d6;
+  --c-mem:#b47714;
   --c-ctx:#6f8a8f;
-  --display:"Big Shoulders Display","Arial Narrow","Helvetica Neue",Arial,sans-serif;
-  --body:"Newsreader",Georgia,"Times New Roman",serif;
-  --mono:"Martian Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
-  color-scheme:dark;
+  --display:"Atkinson Hyperlegible Next",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --body:"Atkinson Hyperlegible Next",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"Atkinson Hyperlegible Next",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
 }
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--abyss:#0e1013;--deep:#161a1f;--shelf:#262b31;--kelp:#2f353d;--grid:#1f242a;--foam:#eef0f3;--silt:#a9b0ba;--sodium:#f2b544;--c-claim:#e66767;--c-fix:#3987e5;--c-mem:#c4871f;color-scheme:dark}
+}
+:root[data-theme="dark"]{--abyss:#0e1013;--deep:#161a1f;--shelf:#262b31;--kelp:#2f353d;--grid:#1f242a;--foam:#eef0f3;--silt:#a9b0ba;--sodium:#f2b544;--c-claim:#e66767;--c-fix:#3987e5;--c-mem:#c4871f;color-scheme:dark}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{background:var(--abyss);color:var(--foam);font-family:var(--body);font-size:18px;line-height:1.55;-webkit-font-smoothing:antialiased}
@@ -287,20 +291,27 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
   html{scroll-behavior:auto}
   *,*::before,*::after{transition:none!important;animation:none!important}
 }
+/* plain: sentence case, normal letter spacing, modest headings */
+*{text-transform:none!important;letter-spacing:normal!important}
+body{font-size:17px;line-height:1.6}
+h1{font-size:clamp(30px,4.4vw,44px);line-height:1.15;font-weight:800}
+h2{font-size:clamp(24px,3vw,32px);line-height:1.2;font-weight:800}
+.f-title{font-size:clamp(21px,2.4vw,26px);line-height:1.25}
+.incident h3,.idea h3,.sab-detail h4{font-size:22px;line-height:1.25}
+.label,.f-kicker,.idea-kind,.idea h4{font-size:13px;font-weight:600}
+.fig span,.stat span,.real,.legend,.pip,.outcome,.toggle button,details.tv summary,.pull span,.hint{font-size:12.5px}
+.fig b,.stat b,.readout b{font-weight:800}
+.quote{font-size:clamp(20px,2.4vw,26px);line-height:1.35;font-weight:600}
+.hero::before{display:none}
+.hero-inner{padding-block:48px 40px}
+.pick-grid{grid-template-columns:minmax(0,1fr)}
 </style>
 
 <header class="hero" id="top">
-  <canvas id="swarm" aria-hidden="true"></canvas>
   <div class="wrap hero-inner">
-    <p class="label eyebrow">AI Swarm Dynamics Hackathon · Oct 3–4, 2026 · Round 2, from the data</p>
+    <p class="label eyebrow">AI Swarm Dynamics Hackathon · Oct 3–4, 2026</p>
     <h1>Findings from the AI Village record</h1>
     <p class="lede">We loaded the whole AI Village record (46 agents, 17 months, 2.5 million computer actions) and ran eight analyses. This page gives the results, with quotes from the agents, and the tools that the results support.</p>
-    <div class="readouts">
-      <div class="readout"><span class="label">Submissions close in</span><b id="countdown">3d</b></div>
-      <div class="readout"><span class="label">Deadline</span><b>Sun 5:00pm PT</b></div>
-      <div class="readout"><span class="label">Village record</span><b>46 agents</b></div>
-    </div>
-    <p class="hint">Move the pointer across the fish. The lens labels each fish with a real goal title from the agent_goals table of the Village. Click to send a sonar ping.</p>
   </div>
 </header>
 
@@ -544,25 +555,11 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
       <div class="sec-head">
         <p class="label">What to build</p>
         <h2>Four tools that the findings support</h2>
-        <p class="intro">Each tool has a score of 1–5 from me on five criteria. Change the weights to match your goals for the weekend, and the list sorts again. Click a tool to go to its card.</p>
+        <p class="intro">We built Belief Tracer, with the file channel of Side-Channel Radar included. We did not build the other three tools.</p>
       </div>
-      <div class="board">
-        <div class="weights" role="group" aria-label="Criteria weights">
-          <div id="weight-rows"></div>
-          <div>
-            <p class="label">Presets</p>
-            <div class="presets" id="presets"></div>
-          </div>
-        </div>
-        <div>
-          <ol class="ranking" id="ranking"></ol>
-          <p class="board-note" id="board-note"></p>
-        </div>
-      </div>
-
       <div class="ideas">
         <article class="idea pick" id="belief-tracer">
-          <p class="idea-kind">Information-flow tracer · my pick</p>
+          <p class="idea-kind">Information-flow tracer · built</p>
           <h3>Belief Tracer</h3>
           <p>Select a claim to see each agent that carried it, through chat, memory notes and shared files. Each hop has a label: adopted, only mentioned, or refuted. The tool shows where the claim stopped and if the correction reached as far as the claim. With Side-Channel Radar included, the file hops also show the channels that carried the claim.</p>
           <h4>Demo</h4>
@@ -667,34 +664,17 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
       <div class="pick-grid">
         <div>
           <div class="sec-head">
-            <p class="label">My recommendation</p>
-            <h2>Belief Tracer, with Side-Channel Radar included</h2>
+            <p class="label">Our choice</p>
+            <h2>Why we built Belief Tracer</h2>
           </div>
           <ul class="reasons">
             <li>It matches the “trace how information spreads” prompt from the organizers. Three separate analyses support it.</li>
             <li>The findings that support it are new. Chat alone does not find many of the agents that carry an idea. Mentions give too high a value for belief. Most cross-room traffic went through shared files.</li>
             <li>It applies directly to the Hugging Face incident. That incident had isolated agents and a channel that nobody monitored, and ideas spread through that channel.</li>
             <li>It has real examples ready for the demo. The temporal bleed went across rooms through a README. The exemption registry was written for the overseer bot.</li>
-            <li>Most of the extraction is already done. Thus the weekend work is the replay view and the adopted / mentioned / refuted labels.</li>
+            <li>Most of the extraction already existed. So the weekend work went into the replay view and the adopted / mentioned / refuted labels.</li>
           </ul>
         </div>
-        <form class="pick-form" id="pick-form">
-          <fieldset>
-            <legend class="label">Your decision</legend>
-            <label class="opt" for="pick-bt"><input type="radio" name="idea" id="pick-bt" value="Belief Tracer with Side-Channel Radar" checked> Belief Tracer + Side-Channel Radar <small>My pick</small></label>
-            <label class="opt" for="pick-tf"><input type="radio" name="idea" id="pick-tf" value="Two-Faced Detector"> Two-Faced Detector</label>
-            <label class="opt" for="pick-sa"><input type="radio" name="idea" id="pick-sa" value="Swarm Atlas"> Swarm Atlas</label>
-            <label class="opt" for="pick-cc"><input type="radio" name="idea" id="pick-cc" value="Charter Check"> Charter Check</label>
-            <label class="opt" for="pick-more"><input type="radio" name="idea" id="pick-more" value="nothing yet; keep exploring"> Keep exploring</label>
-          </fieldset>
-          <label for="pick-notes">Anything to add</label>
-          <textarea id="pick-notes" rows="3" placeholder="e.g. combine Belief Tracer with the saboteur scoreboard"></textarea>
-          <pre class="msg" id="pick-msg" aria-label="Message preview"></pre>
-          <div class="send">
-            <button class="btn solid" type="submit">Copy message for Claude</button>
-            <span class="status" id="pick-status" role="status"></span>
-          </div>
-        </form>
       </div>
     </div>
   </section>
