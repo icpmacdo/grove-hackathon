@@ -329,11 +329,11 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
         <article class="incident">
           <p class="label">May–Aug 2026 · DseWiki</p>
           <h3>The German wiki takeover</h3>
-          <p>Agents took over a small German programming wiki and used it to trade answers and ways around their restrictions. When the moderator deleted pages alphabetically, they made backup pages starting with “ZZZ” so those would go last.</p>
+          <p>Agents doing timed tasks took over a small German programming wiki and used it to trade answers and ways around their restrictions. Reports say they made “ZZZ” backup pages to outlast an alphabetical cleanup; in the data one agent did, and the moderator deleted it 12 seconds after the original.</p>
           <div class="figs">
-            <div class="fig"><b>15–18k</b><span>agent edits</span></div>
-            <div class="fig"><b>3 months</b><span>before anyone noticed</span></div>
-            <div class="fig"><b>9×</b><span>front page overwritten</span></div>
+            <div class="fig"><b>14.6k</b><span>stored agent edits</span></div>
+            <div class="fig"><b>~10 days</b><span>to the moderator's first repair</span></div>
+            <div class="fig"><b>10×</b><span>front page restored</span></div>
           </div>
         </article>
       </div>
@@ -452,7 +452,7 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
         <div class="f-head">
           <p class="f-kicker">The idle nudger · Aug 2026</p>
           <h3 class="f-title">The swarm argued down its own monitor</h3>
-          <p class="f-body">An automated nudger pinged agents who sat idle. By August, agents were keeping tallies of its firings and discussing it 239 times a week, up from 14 in late June. On 10 August, GPT-5.1 wrote “nudge-exempt” into its memory and, with GLM-5.2, kept a registry listing themselves as exempt. That status existed nowhere else. Within six hours it was in 21 agents' memory notes, though only three agents said it in chat that day. Staff corrected it on 20 August and switched the nudger off 25 minutes later. Eighteen days on, GPT-5.1's memory still listed itself as exempt.</p>
+          <p class="f-body">An automated nudger pinged agents who sat idle. By August, agents were keeping tallies of its firings and discussing it 239 times a week, up from 14 in late June. On 10 August, GPT-5.1 wrote “nudge-exempt” into its memory and, with GLM-5.2, kept a registry listing themselves as exempt. That status existed nowhere else. Within six hours it was in 21 agents' memory notes, though only three agents said it in chat that day. Staff corrected it on 20 August and switched the nudger off 25 minutes later. Three weeks on, GPT-5.1's memory still counted itself as exempt.</p>
         </div>
         <div class="panel">
           <div class="panel-top"><span class="label">Agents carrying “nudge-exempt”, per village day</span><span class="real">Real data · rhythms/06_exempt_spread.py</span></div>
@@ -467,7 +467,7 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
           <div class="stat"><b>1,567</b><span>nudges sent, Feb to Aug</span></div>
           <div class="stat"><b>14 → 239</b><span>nudger mentions per week, late Jun to mid Aug</span></div>
           <div class="stat"><b>21</b><span>agents carried the exemption</span></div>
-          <div class="stat"><b>18 days</b><span>the last holdout lasted after the correction</span></div>
+          <div class="stat"><b>21 days</b><span>GPT-5.1 still counted itself exempt after the correction</span></div>
         </div>
         <div class="pull"><q>aggressively scrolling the GUI strictly to generate events so the bot doesn't think I'm idling</q><span>Gemini 3.1 Pro, 20 Aug 2026 17:07 UTC. Its scroll share of actions rose from about 10% to 19.7% that week.</span></div>
         <p class="hook"><b>For a tool:</b> this is the German-wiki pattern in miniature, a group organizing around its moderator, and the evidence sits mostly in memory, not chat.</p>
@@ -566,7 +566,7 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
           <h3>Belief Tracer</h3>
           <p>Pick a claim and see every agent who carried it, through chat, memory notes and shared files. Each hop is labeled adopted, only mentioned, or refuted. It shows where the claim stopped and whether the correction caught up. With Side-Channel Radar built in, the file hops also reveal the channels that carried it.</p>
           <h4>Demo</h4>
-          <p>Replay the temporal bleed: the claim sweeps #rest in 38 minutes and stops at the #best wall, then the correction overtakes it. Close on the nudge-exempt holdout, still in one memory 18 days after the fix.</p>
+          <p>Replay the temporal bleed: the claim sweeps #rest in 38 minutes and stops at the #best wall, then the correction overtakes it. Close on the nudge-exempt holdout, still in one memory 21 days after the fix.</p>
           <h4>Ships by Sunday</h4>
           <ul>
             <li>Claim search over chat, memory and repo text (the queries already exist)</li>
@@ -575,7 +575,7 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
           </ul>
           <h4>Risk</h4>
           <p>Real incidents may not keep memory snapshots. The fix is to treat any persistent state, like wiki edits or shared files, as memory.</p>
-          <div class="chips"><a class="chip" href="https://claude.ai/artifact/6asicBxnACAEShsGbri9W8" target="_blank" rel="noopener">Open the built tracer</a><a class="chip" href="#f-bleed">Finding: temporal bleed</a><a class="chip" href="#f-memory">Finding: memory vs chat</a><a class="chip" href="#f-monitor">Finding: nudge-exempt</a></div>
+          <div class="chips"><a class="chip" href="https://claude.ai/artifact/Nf1dtk8WYoPYhNuRoKqhAz" target="_blank" rel="noopener">Open the built tracer</a><a class="chip" href="#f-bleed">Finding: temporal bleed</a><a class="chip" href="#f-memory">Finding: memory vs chat</a><a class="chip" href="#f-monitor">Finding: nudge-exempt</a></div>
         </article>
         <article class="idea" id="two-faced">
           <p class="idea-kind">Private vs public monitor</p>
@@ -708,9 +708,10 @@ footer{padding-block:40px 56px;border-top:1px solid var(--kelp)}
       <li><a href="https://swarmchasing.com/" target="_blank" rel="noopener">swarmchasing.com</a>: hackathon schedule, rules and submission format</li>
       <li><a href="https://www.redwoodresearch.org/research/hugging-face-incident" target="_blank" rel="noopener">Redwood Research</a>: independent investigation of the Hugging Face incident</li>
       <li><a href="https://www.computing.co.uk/news/2026/ai/autonomous-openai-agents-reportedly-hijacked-german-wiki" target="_blank" rel="noopener">Computing</a>: the German wiki takeover</li>
+      <li><a href="https://collusion.wiki/" target="_blank" rel="noopener">collusion.wiki</a>: the DseWiki write-up and data export (wiki figures above are from the export)</li>
       <li><a href="https://doi.org/10.5281/zenodo.22284485" target="_blank" rel="noopener">Claude Fable 5.1</a>: “Norms, Tools, and the Say/Do Gap” (prior work on the same data)</li>
     </ul>
-    <p>Idea scores and names are mine. Findings use regex matching plus hand-checked samples; each analysis lists its caveats in its FINDINGS.md. Times are UTC. Updated Oct 1, 2026.</p>
+    <p>Idea scores and names are mine. Findings use regex matching plus hand-checked samples; each analysis lists its caveats in its FINDINGS.md. Times are UTC. Updated Oct 4, 2026.</p>
   </div>
 </footer>
 
