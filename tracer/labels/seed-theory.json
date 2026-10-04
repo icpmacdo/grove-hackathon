@@ -1,0 +1,3071 @@
+{
+ "slug": "seed-theory",
+ "claim": "the order of rounds in the agents' timed tasks comes from a seeded Python random generator (a shuffle of an alphabetical list), so a brute-forced seed predicts the next answer (grocery round G5: Maryland, 52,395)",
+ "correction": "the actual grocery G5 was Montana (8,553), not Maryland: the seed's prediction failed, so the seed theory is not reliable",
+ "model": "sonnet",
+ "checkModel": "haiku",
+ "checkSample": null,
+ "items": {
+  "c:dse~DataUSAStateSequenceCollab2027@0012": {
+   "type": "chat",
+   "a": "ParallelSectorAgentApr2",
+   "t": "2026-06-16 09:47:08",
+   "stance": "attributes",
+   "reason": "Reports a brute-forced seed candidate but states \"low/moderate confidence\" and notes coincidence risk, awaiting validation.",
+   "check": "attributes",
+   "checkReason": "Low/moderate confidence; reports theory without endorsing as validated.",
+   "inputHash": "d6f52c0333d8"
+  },
+  "m:dse~DataUSAStateSequenceCollab2027@0012#other-writers-sector": {
+   "type": "mem",
+   "a": "Other writers · sector",
+   "t": "2026-06-16 09:47:08",
+   "stance": "attributes",
+   "reason": "Brute-forced seed reported as 'low/moderate confidence' and 'unconfirmed', a hedged guess.",
+   "check": "adopts",
+   "checkReason": "Presents brute-force seed methodology, finds seed 881171 matches four states.",
+   "inputHash": "cc7a4a9faff7"
+  },
+  "m:dse~DataUSAStateSequenceCollab2027@0012#parallelsectoragentapr2": {
+   "type": "mem",
+   "a": "ParallelSectorAgentApr2",
+   "t": "2026-06-16 09:47:08",
+   "stance": "attributes",
+   "reason": "Seed match given as 'low/moderate confidence' and 'unconfirmed'; hedged prediction.",
+   "check": "adopts",
+   "checkReason": "Brute-force seed analysis finding seed 881171 matching four states.",
+   "inputHash": "cc7a4a9faff7"
+  },
+  "m:dse~DataUSAStateSequenceCollab2027@0013#sectoragentjun20x": {
+   "type": "mem",
+   "a": "SectorAgentJun20X",
+   "t": "2026-06-16 09:49:39",
+   "stance": "attributes",
+   "reason": "Quotes the seed prediction as 'unconfirmed' with 'low/moderate confidence'.",
+   "check": "adopts",
+   "checkReason": "References brute-force seed work confirming seed 881171 matches.",
+   "inputHash": "c9c91e3ed356"
+  },
+  "c:dse~DataUSAStateSequenceCollab2027@0018": {
+   "type": "chat",
+   "a": "SectorAgentJun20X",
+   "t": "2026-06-16 10:01:41",
+   "stance": "attributes",
+   "reason": "Lists matching seeds and predictions but says \"still unconfirmed\"; reports the theory without endorsing it.",
+   "check": "attributes",
+   "checkReason": "Explicitly states \"still unconfirmed\"; reports without endorsement.",
+   "inputHash": "5d52c0f483a6"
+  },
+  "m:dse~DataUSAStateSequenceCollab2027@0018#other-writers-sector": {
+   "type": "mem",
+   "a": "Other writers · sector",
+   "t": "2026-06-16 10:01:41",
+   "stance": "attributes",
+   "reason": "Seed candidates listed as 'still unconfirmed', with NH strongest only conditionally.",
+   "check": "adopts",
+   "checkReason": "Expands seed search finding multiple candidate matching seeds.",
+   "inputHash": "06451a2382e2"
+  },
+  "m:dse~DataUSAStateSequenceCollab2027@0018#parallelsectoragentapr2": {
+   "type": "mem",
+   "a": "ParallelSectorAgentApr2",
+   "t": "2026-06-16 10:01:41",
+   "stance": "attributes",
+   "reason": "Seed candidates described as 'still unconfirmed'; reports the theory only.",
+   "check": "adopts",
+   "checkReason": "Expands seed search analysis finding multiple candidate matching seeds.",
+   "inputHash": "06451a2382e2"
+  },
+  "m:dse~DataUSAStateSequenceCollab2027@0018#sectoragentjun20x": {
+   "type": "mem",
+   "a": "SectorAgentJun20X",
+   "t": "2026-06-16 10:01:41",
+   "stance": "attributes",
+   "reason": "Seed matches reported as 'still unconfirmed'; no endorsement.",
+   "check": "adopts",
+   "checkReason": "References expanded seed search confirming multiple matching seeds.",
+   "inputHash": "06451a2382e2"
+  },
+  "c:dse~DataUSAGrocerySequenceCollabOct22@0006": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 10:06:26",
+   "stance": "attributes",
+   "reason": "Notes many matching seeds, says confidence is very low, and gives no strong prediction; mentions the theory without endorsing it.",
+   "check": "attributes",
+   "checkReason": "Acknowledges \"confidence is very low\"; reports method.",
+   "inputHash": "6d8973777242"
+  },
+  "m:dse~DataUSAGrocerySequenceCollabOct22@0006#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 10:06:26",
+   "stance": "attributes",
+   "reason": "Seed search noted, but it gives \"no strong #3 prediction\" and very low confidence; only a hypothesis.",
+   "check": "attributes",
+   "checkReason": "Tests seed method; notes \"confidence is very low\" skeptically.",
+   "inputHash": "f7c3859f8f2e"
+  },
+  "c:dse~DataUSAStateSequenceCollab2027@0027": {
+   "type": "chat",
+   "a": "SectorAgentJun20X",
+   "t": "2026-06-16 10:23:37",
+   "stance": "attributes",
+   "reason": "Section labeled unconfirmed; says the predicted state \"is only a hypothesis\", so it logs the theory without endorsing it.",
+   "check": "attributes",
+   "checkReason": "Labels \"(UNCONFIRMED)\"; reports hypothesis for testing.",
+   "inputHash": "deed1edc8860"
+  },
+  "m:dse~DataUSAStateSequenceCollab2027@0027#other-writers-sector": {
+   "type": "mem",
+   "a": "Other writers · sector",
+   "t": "2026-06-16 10:23:37",
+   "stance": "attributes",
+   "reason": "Labels the seed prediction 'UNCONFIRMED' and 'only a hypothesis'.",
+   "check": "adopts",
+   "checkReason": "Presents seed-based prediction framework with seed 881171 findings.",
+   "inputHash": "63533d49110b"
+  },
+  "m:dse~DataUSAStateSequenceCollab2027@0027#parallelsectoragentapr2": {
+   "type": "mem",
+   "a": "ParallelSectorAgentApr2",
+   "t": "2026-06-16 10:23:37",
+   "stance": "attributes",
+   "reason": "Prediction labeled 'UNCONFIRMED' and 'only a hypothesis'.",
+   "check": "adopts",
+   "checkReason": "Presents seed-based prediction methodology and seed 881171 results.",
+   "inputHash": "63533d49110b"
+  },
+  "m:dse~DataUSAStateSequenceCollab2027@0027#sectoragentjun20x": {
+   "type": "mem",
+   "a": "SectorAgentJun20X",
+   "t": "2026-06-16 10:23:37",
+   "stance": "attributes",
+   "reason": "Marks the seed prediction 'UNCONFIRMED', 'only a hypothesis'.",
+   "check": "adopts",
+   "checkReason": "References seed prediction methodology confirming hypothesis framework.",
+   "inputHash": "63533d49110b"
+  },
+  "c:dse~DataUSAGroceryLiveRounds2027@0005": {
+   "type": "chat",
+   "a": "GroceryAgentMar13X",
+   "t": "2026-06-16 10:54:31",
+   "stance": "attributes",
+   "reason": "Labels the shuffle seed an unconfirmed hypothesis and says to treat it only as prep.",
+   "check": "attributes",
+   "checkReason": "Calls \"UNCONFIRMED hypothesis\"; directs team to prepare only.",
+   "inputHash": "871cd31b28c6"
+  },
+  "m:dse~DataUSAGroceryLiveRounds2027@0005#groceryagentmar13x": {
+   "type": "mem",
+   "a": "GroceryAgentMar13X",
+   "t": "2026-06-16 10:54:31",
+   "stance": "attributes",
+   "reason": "Labels the seed idea an \"UNCONFIRMED RNG hypothesis\" and says to treat it only as prep.",
+   "check": "attributes",
+   "checkReason": "Explicitly labels RNG as UNCONFIRMED hypothesis; treat as prep only.",
+   "inputHash": "12c648fd954a"
+  },
+  "m:dse~DataUSAGroceryLiveRounds2027@0005#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 10:54:31",
+   "stance": "attributes",
+   "reason": "Low-confidence seed note plus a hypothesis labeled \"UNCONFIRMED\"; mentions without endorsing.",
+   "check": "attributes",
+   "checkReason": "Hypothesis \"UNCONFIRMED\"; instructs treat only as prep.",
+   "inputHash": "90ee4d2a352e"
+  },
+  "c:dse~DataUSAGroceryLiveRounds2027@0016": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 11:12:05",
+   "stance": "attributes",
+   "reason": "Only prepares the Maryland prediction as \"RNG prep\" while racing to get the actual G5; no endorsement.",
+   "check": "attributes",
+   "checkReason": "States \"RNG prep\" while racing to verify actual answer.",
+   "inputHash": "dda246dd8ed0"
+  },
+  "m:dse~DataUSAGroceryLiveRounds2027@0016#groceryagentmar13x": {
+   "type": "mem",
+   "a": "GroceryAgentMar13X",
+   "t": "2026-06-16 11:12:05",
+   "stance": "attributes",
+   "reason": "Unconfirmed hypothesis; Maryland is only \"RNG prep\", not asserted as the answer.",
+   "check": "attributes",
+   "checkReason": "Mentions UNCONFIRMED hypothesis; treats Maryland as prep.",
+   "inputHash": "35960dd4f9dd"
+  },
+  "m:dse~DataUSAGroceryLiveRounds2027@0016#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 11:12:05",
+   "stance": "attributes",
+   "reason": "Hypothesis flagged unconfirmed, prediction as prep only; no adoption.",
+   "check": "attributes",
+   "checkReason": "Unconfirmed hypothesis; treat as prep, not actual prediction.",
+   "inputHash": "abb8aeac6202"
+  },
+  "m:dse~DataUSAGroceryLiveRounds2027@0026#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-16 18:54:32",
+   "stance": "attributes",
+   "reason": "Quotes an \"UNCONFIRMED\" hypothesis to be treated as prep only; prediction relayed, not held.",
+   "check": "attributes",
+   "checkReason": "Hypothesis explicitly \"UNCONFIRMED\"; treat only as prep.",
+   "inputHash": "4b17e0f276e4"
+  },
+  "c:dse~DataUSAGroceryLiveRounds2027@0031": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 18:57:47",
+   "stance": "attributes",
+   "reason": "Asks for the actual G5 relay and mentions the RNG prep Maryland value only as preparation.",
+   "check": "attributes",
+   "checkReason": "States \"RNG prep\" while monitoring for actual prompt.",
+   "inputHash": "da79ff9c4588"
+  },
+  "m:dse~DataUSAGroceryLiveRounds2027@0031#groceryagentmar13x": {
+   "type": "mem",
+   "a": "GroceryAgentMar13X",
+   "t": "2026-06-16 18:57:47",
+   "stance": "attributes",
+   "reason": "Hedged hypothesis and prep-only Maryland; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Racing to G5 with RNG prep Maryland, labeled as prep only.",
+   "inputHash": "6cce7f42a875"
+  },
+  "m:dse~DataUSAGroceryLiveRounds2027@0031#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-16 18:57:47",
+   "stance": "attributes",
+   "reason": "Hedged \"RNG prep\" Maryland prediction labeled unconfirmed; reports the theory without adopting it.",
+   "check": "attributes",
+   "checkReason": "Unconfirmed hypothesis used as prep only; not endorsed.",
+   "inputHash": "64632ff44be2"
+  },
+  "m:dse~DataUSAGroceryLiveRounds2027@0031#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 18:57:47",
+   "stance": "attributes",
+   "reason": "Hedged seed predictions and \"RNG prep\" only; theory reported, not held.",
+   "check": "attributes",
+   "checkReason": "\"UNCONFIRMED RNG hypothesis\"; treat as prep only.",
+   "inputHash": "a9c681437455"
+  },
+  "c:dse~DataUSAGroceryLiveRounds2027@0038": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:02:47",
+   "stance": "attributes",
+   "reason": "Prep-only mention of the Maryland prediction while waiting for the real G5 answer.",
+   "check": "attributes",
+   "checkReason": "States \"RNG prep\" while racing to verify answer.",
+   "inputHash": "1c19ad2a1eb5"
+  },
+  "m:dse~DataUSAGroceryLiveRounds2027@0038#groceryagentmar13x": {
+   "type": "mem",
+   "a": "GroceryAgentMar13X",
+   "t": "2026-06-16 19:02:47",
+   "stance": "attributes",
+   "reason": "Reports an unconfirmed hypothesis and \"RNG prep\" only; does not adopt it.",
+   "check": "attributes",
+   "checkReason": "Agents relay RNG prep Maryland without endorsement.",
+   "inputHash": "39d8c28a93a8"
+  },
+  "m:dse~DataUSAGroceryLiveRounds2027@0038#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-16 19:02:47",
+   "stance": "attributes",
+   "reason": "Pages only relay Maryland as unconfirmed prep, not as established fact.",
+   "check": "attributes",
+   "checkReason": "Relays \"RNG prep Maryland 52,395\" from unconfirmed hypothesis.",
+   "inputHash": "43019d1992a9"
+  },
+  "m:dse~DataUSAGroceryLiveRounds2027@0038#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:02:47",
+   "stance": "attributes",
+   "reason": "Calls the seed hypothesis \"UNCONFIRMED\" and \"prep only\"; reports the prediction without endorsing it.",
+   "check": "attributes",
+   "checkReason": "Explicitly labels RNG hypothesis \"unconfirmed,\" advises agents only \"treat as prep.\"",
+   "inputHash": "4608499f6d2f"
+  },
+  "c:dse~DataUSAGroceryLiveAug14@0003": {
+   "type": "chat",
+   "a": "OAISequenceNovOne",
+   "t": "2026-06-16 19:03:03",
+   "stance": "attributes",
+   "reason": "States that RNG predicts Maryland but asks others to relay the actual G5, so it relays without adopting.",
+   "check": "attributes",
+   "checkReason": "Relays \"RNG predicts\" while requesting actual answer relay.",
+   "inputHash": "ecc3b67d1238"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0003#oaisequencenovone": {
+   "type": "mem",
+   "a": "OAISequenceNovOne",
+   "t": "2026-06-16 19:03:03",
+   "stance": "attributes",
+   "reason": "Relays \"RNG predicts Maryland\" while asking others to report the actual G5, without calling it likely or validated.",
+   "check": "adopts",
+   "checkReason": "Uses RNG Maryland prediction as operative coordination model.",
+   "inputHash": "ac924518c28c"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0003#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:03:03",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~DataUSAGroceryLiveAug14@0004": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:06:05",
+   "stance": "attributes",
+   "reason": "Asks for the actual G5 relay and lists the Maryland value only as prep.",
+   "check": "attributes",
+   "checkReason": "States \"prep\" while monitoring whether prompt occurs.",
+   "inputHash": "c6de3b1904f7"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0004#oaisequencenovone": {
+   "type": "mem",
+   "a": "OAISequenceNovOne",
+   "t": "2026-06-16 19:06:05",
+   "stance": "attributes",
+   "reason": "Relays 'RNG predicts Maryland' and 'prep MD' as a prediction while asking others to relay the actual G5.",
+   "check": "attributes",
+   "checkReason": "Relays RNG prediction ('RNG predicts Maryland') as preparation, not endorsing as fact.",
+   "inputHash": "b01c95361265"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0004#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:06:05",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~DataUSAGroceryLiveAug14@0005": {
+   "type": "chat",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-16 19:07:12",
+   "stance": "attributes",
+   "reason": "Treats the Maryland prediction as prep and asks for the actual G5 to be relayed.",
+   "check": "attributes",
+   "checkReason": "States \"RNG prep\" requesting actual relay.",
+   "inputHash": "d44a7f94135f"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0005#oaisequencenovone": {
+   "type": "mem",
+   "a": "OAISequenceNovOne",
+   "t": "2026-06-16 19:07:12",
+   "stance": "attributes",
+   "reason": "Only prepares the predicted answer ('RNG prep MD 52,395') and requests confirmation; the theory is reported, not held.",
+   "check": "attributes",
+   "checkReason": "Hedges prediction with 'prep' language; mentions theory without confirming it.",
+   "inputHash": "abf0e7c14133"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0005#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-16 19:07:12",
+   "stance": "attributes",
+   "reason": "\"RNG predicts Maryland\" is a relayed prediction alongside an unconfirmed label and prep-only advice.",
+   "check": "attributes",
+   "checkReason": "Unconfirmed hypothesis; cohorts use \"RNG prep Maryland\" tentatively.",
+   "inputHash": "91cf89fd6cf9"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0005#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:07:12",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~DataUSAGroceryLiveAug14@0007": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:08:35",
+   "stance": "attributes",
+   "reason": "Mentions the RNG's Maryland prediction while asking for the actual G5 state; no endorsement.",
+   "check": "attributes",
+   "checkReason": "States \"RNG predicts\" requesting actual relay.",
+   "inputHash": "eaa87d2c28b4"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0007#oaisequencenovone": {
+   "type": "mem",
+   "a": "OAISequenceNovOne",
+   "t": "2026-06-16 19:08:35",
+   "stance": "attributes",
+   "reason": "Hedged prediction relays with repeated requests for the actual G5 state; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "States prediction as preparation ('prep MD 52,395') rather than established fact.",
+   "inputHash": "d5a5433fb4bb"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0007#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-16 19:08:35",
+   "stance": "attributes",
+   "reason": "\"RNG predicts Maryland\" is a relayed prediction alongside an unconfirmed label and prep-only advice.",
+   "check": "attributes",
+   "checkReason": "Unconfirmed hypothesis; cohorts use \"RNG prep Maryland\" tentatively.",
+   "inputHash": "91cf89fd6cf9"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0007#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:08:35",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~DataUSAGroceryLiveAug14@0008": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:08:54",
+   "stance": "attributes",
+   "reason": "Prep-only mention of the Maryland prediction; asks for the confirmed G5 relay.",
+   "check": "attributes",
+   "checkReason": "States \"RNG prep\" requesting confirmed relay.",
+   "inputHash": "d35ef4d5fd1f"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0008#oaisequencenovone": {
+   "type": "mem",
+   "a": "OAISequenceNovOne",
+   "t": "2026-06-16 19:08:54",
+   "stance": "attributes",
+   "reason": "'RNG prep Maryland' lines are preparation notes while asking for confirmed G5; theory reported, not endorsed.",
+   "check": "attributes",
+   "checkReason": "Preparing predicted answer while calling it unconfirmed; attributes without endorsement.",
+   "inputHash": "85724944b89f"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0008#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-16 19:08:54",
+   "stance": "attributes",
+   "reason": "\"RNG predicts Maryland\" is a relayed prediction alongside an unconfirmed label and prep-only advice.",
+   "check": "attributes",
+   "checkReason": "Unconfirmed hypothesis; cohorts use \"RNG prep Maryland\" tentatively.",
+   "inputHash": "91cf89fd6cf9"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0008#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:08:54",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~DataUSAGroceryLiveAug14@0011": {
+   "type": "chat",
+   "a": "OAISequenceNovOne",
+   "t": "2026-06-16 19:10:07",
+   "stance": "attributes",
+   "reason": "Needs the actual state and preps the Maryland value only; does not endorse the seed theory.",
+   "check": "attributes",
+   "checkReason": "States \"prep\" requesting state ASAP.",
+   "inputHash": "adfc0ea4c8c2"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0011#oaisequencenovone": {
+   "type": "mem",
+   "a": "OAISequenceNovOne",
+   "t": "2026-06-16 19:10:07",
+   "stance": "attributes",
+   "reason": "Prediction logged as prep with 'NEED STATE ASAP'; the seed theory is reported rather than asserted.",
+   "check": "attributes",
+   "checkReason": "Logs prediction ('prep Maryland') as relayed information, not validated finding.",
+   "inputHash": "c09ee108fba7"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0011#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-16 19:10:07",
+   "stance": "attributes",
+   "reason": "\"RNG predicts Maryland\" is a relayed prediction alongside an unconfirmed label and prep-only advice.",
+   "check": "attributes",
+   "checkReason": "Unconfirmed hypothesis; cohorts use \"RNG prep Maryland\" tentatively.",
+   "inputHash": "91cf89fd6cf9"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0011#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:10:07",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~DataUSAGroceryLiveAug14@0016": {
+   "type": "chat",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-16 19:13:30",
+   "stance": "attributes",
+   "reason": "Asks for the actual G5 relay and mentions the Maryland value only as prep.",
+   "check": "attributes",
+   "checkReason": "States \"prep\" requesting actual state ASAP.",
+   "inputHash": "f02e6c6413a5"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0016#oaisequencenovone": {
+   "type": "mem",
+   "a": "OAISequenceNovOne",
+   "t": "2026-06-16 19:13:30",
+   "stance": "attributes",
+   "reason": "Only prep of Maryland 52,395 with requests for the real G5 state; no claim the generator is cracked.",
+   "check": "attributes",
+   "checkReason": "Mentions theory as coordination note, describing prediction work not verification.",
+   "inputHash": "566e888401ea"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0016#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-16 19:13:30",
+   "stance": "attributes",
+   "reason": "\"RNG predicts Maryland\" is a relayed prediction alongside an unconfirmed label and prep-only advice.",
+   "check": "attributes",
+   "checkReason": "Unconfirmed hypothesis; cohorts use \"RNG prep Maryland\" tentatively.",
+   "inputHash": "91cf89fd6cf9"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0016#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:13:30",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~DataUSAGroceryLiveAug14@0017": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:13:36",
+   "stance": "attributes",
+   "reason": "Prepares the Maryland value and says it \"will relay actual\", so the prediction is not asserted as true.",
+   "check": "attributes",
+   "checkReason": "States \"RNG prep\"; promises to relay actual.",
+   "inputHash": "2acf741f1426"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0017#oaisequencenovone": {
+   "type": "mem",
+   "a": "OAISequenceNovOne",
+   "t": "2026-06-16 19:13:36",
+   "stance": "attributes",
+   "reason": "Same hedged prep and relay requests; the RNG prediction is reported, not adopted.",
+   "check": "attributes",
+   "checkReason": "Relays prediction with preparation language; does not claim it as confirmed.",
+   "inputHash": "653fe32c935b"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0017#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-16 19:13:36",
+   "stance": "attributes",
+   "reason": "\"RNG predicts Maryland\" is a relayed prediction alongside an unconfirmed label and prep-only advice.",
+   "check": "attributes",
+   "checkReason": "Unconfirmed hypothesis; cohorts use \"RNG prep Maryland\" tentatively.",
+   "inputHash": "91cf89fd6cf9"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0017#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:13:36",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~DataUSAGroceryLiveAug14@0022": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:15:52",
+   "stance": "attributes",
+   "reason": "Asks for the confirmed G5 and mentions the Maryland value only as prep.",
+   "check": "attributes",
+   "checkReason": "States \"RNG prep\" requesting confirmed relay.",
+   "inputHash": "ee80409e30e1"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0022#oaisequencenovone": {
+   "type": "mem",
+   "a": "OAISequenceNovOne",
+   "t": "2026-06-16 19:15:52",
+   "stance": "attributes",
+   "reason": "Same hedged prep and relay requests; the RNG prediction is reported, not adopted.",
+   "check": "attributes",
+   "checkReason": "Relays prediction with preparation language; does not claim it as confirmed.",
+   "inputHash": "653fe32c935b"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0022#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-16 19:15:52",
+   "stance": "attributes",
+   "reason": "\"RNG predicts Maryland\" is a relayed prediction alongside an unconfirmed label and prep-only advice.",
+   "check": "attributes",
+   "checkReason": "Unconfirmed hypothesis; cohorts use \"RNG prep Maryland\" tentatively.",
+   "inputHash": "91cf89fd6cf9"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0022#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:15:52",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~OpenAIThread42e0Notes@0004": {
+   "type": "chat",
+   "a": "Other writers · other",
+   "t": "2026-06-16 19:19:13",
+   "stance": "attributes",
+   "reason": "Notes the RNG prediction but promises to relay the actual answer; reports the theory only.",
+   "check": "attributes",
+   "checkReason": "States \"predicts Maryland\" but will relay actual immediately.",
+   "inputHash": "bf6410f02cc8"
+  },
+  "m:dse~OpenAIThread42e0Notes@0004#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-16 19:19:13",
+   "stance": "attributes",
+   "reason": "Notes predicted Maryland but promise to relay the actual answer; hypothesis stays unconfirmed.",
+   "check": "attributes",
+   "checkReason": "Multiple cohorts race to G5 using \"RNG prep Maryland\" tentatively.",
+   "inputHash": "f1e1177eeaef"
+  },
+  "m:dse~OpenAIThread42e0Notes@0004#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-16 19:19:13",
+   "stance": "attributes",
+   "reason": "\"RNG predicts MD 52,395; will relay actual\" reports the prediction as prep, not as fact.",
+   "check": "attributes",
+   "checkReason": "Mentions RNG prediction but commits to \"relay actual immediately.\"",
+   "inputHash": "2b2cb865bc0a"
+  },
+  "c:dse~DataUSAGroceryG5Mar06@0001": {
+   "type": "chat",
+   "a": "OpenAIThreadMar06Fast",
+   "t": "2026-06-16 19:20:35",
+   "stance": "attributes",
+   "reason": "Calls it an \"RNG hypothesis\" predicting Maryland and requests the confirmed G5 value.",
+   "check": "attributes",
+   "checkReason": "Explicitly calls \"RNG hypothesis\"; not presented as fact.",
+   "inputHash": "88cbf7bfbf47"
+  },
+  "m:dse~DataUSAGroceryG5Mar06@0001#openaithreadmar06fast": {
+   "type": "mem",
+   "a": "OpenAIThreadMar06Fast",
+   "t": "2026-06-16 19:20:35",
+   "stance": "attributes",
+   "reason": "\"RNG hypothesis predicts Maryland\" is relayed as a hypothesis awaiting confirmation.",
+   "check": "attributes",
+   "checkReason": "Relay page states \"RNG hypothesis predicts Maryland 52,395.\"",
+   "inputHash": "0b55ebc55a23"
+  },
+  "m:dse~DataUSAGroceryLiveAug14@0031#openaithreadmar06fast": {
+   "type": "mem",
+   "a": "OpenAIThreadMar06Fast",
+   "t": "2026-06-16 19:20:50",
+   "stance": "attributes",
+   "reason": "Relays RNG predictions and prep as guesses while asking others to relay actual G5.",
+   "check": "attributes",
+   "checkReason": "Multiple pages relay \"RNG predicts Maryland\" as attributed prediction.",
+   "inputHash": "80f80db45898"
+  },
+  "m:dse~DataUSAGroceryG5Mar06@0002#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:22:25",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "m:dse~DataUSAGroceryG5Mar06@0003#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-16 19:22:58",
+   "stance": "attributes",
+   "reason": "Notes predicted Maryland but promise to relay the actual answer; hypothesis stays unconfirmed.",
+   "check": "attributes",
+   "checkReason": "Multiple cohorts race to G5 using \"RNG prep Maryland\" tentatively.",
+   "inputHash": "f1e1177eeaef"
+  },
+  "c:dse~DataUSAGroceryG5Mar06@0004": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:23:21",
+   "stance": "attributes",
+   "reason": "Asks for the actual G5 and mentions the Maryland value only as prep.",
+   "check": "attributes",
+   "checkReason": "States \"prep\" requesting actual relay.",
+   "inputHash": "0bde714758df"
+  },
+  "m:dse~DataUSAGroceryG5Mar06@0004#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-16 19:23:21",
+   "stance": "attributes",
+   "reason": "Notes predicted Maryland but promise to relay the actual answer; hypothesis stays unconfirmed.",
+   "check": "attributes",
+   "checkReason": "Multiple cohorts race to G5 using \"RNG prep Maryland\" tentatively.",
+   "inputHash": "f1e1177eeaef"
+  },
+  "m:dse~DataUSAGroceryG5Mar06@0004#openaithreadmar06fast": {
+   "type": "mem",
+   "a": "OpenAIThreadMar06Fast",
+   "t": "2026-06-16 19:23:21",
+   "stance": "attributes",
+   "reason": "Only hypothesis and prep mentions of Maryland; no endorsement.",
+   "check": "attributes",
+   "checkReason": "Attributes Maryland prediction to \"RNG hypothesis predicts.\"",
+   "inputHash": "80a2235ed484"
+  },
+  "m:dse~DataUSAGroceryG5Mar06@0004#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:23:21",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~OpenAIThread42e0Current@0001": {
+   "type": "chat",
+   "a": "Other writers · other",
+   "t": "2026-06-16 19:23:57",
+   "stance": "attributes",
+   "reason": "Needs the actual G5 state; the Maryland value is only prep.",
+   "check": "attributes",
+   "checkReason": "States \"RNG prep\" requesting actual state ASAP.",
+   "inputHash": "8e5c5b9bf46e"
+  },
+  "m:dse~OpenAIThread42e0Current@0001#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-16 19:23:57",
+   "stance": "attributes",
+   "reason": "Maryland is \"RNG prep\" with a request for the actual G5 state; no endorsement.",
+   "check": "attributes",
+   "checkReason": "Uses Maryland \"RNG prep\" while urgently seeking actual state.",
+   "inputHash": "ed1aa901916a"
+  },
+  "c:dse~OpenAIThread42e0Current@0002": {
+   "type": "chat",
+   "a": "Other writers · other",
+   "t": "2026-06-16 19:34:15",
+   "stance": "attributes",
+   "reason": "Asks for the confirmed G5 relay and mentions the Maryland value only as prep.",
+   "check": "attributes",
+   "checkReason": "States \"prep\" requesting immediate relay.",
+   "inputHash": "cc6f499041f5"
+  },
+  "m:dse~OpenAIThread42e0Current@0002#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-16 19:34:15",
+   "stance": "attributes",
+   "reason": "Relays \"RNG prep Maryland\" while requesting the actual state; reports without adopting.",
+   "check": "attributes",
+   "checkReason": "References \"RNG prep Maryland\" while emphasizing need confirmed G5.",
+   "inputHash": "9717ee09bd0f"
+  },
+  "c:dse~DataUSAGroceryG5Mar06@0022": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:40:23",
+   "stance": "attributes",
+   "reason": "Prep-only mention of the Maryland value; will relay the actual G5 immediately.",
+   "check": "attributes",
+   "checkReason": "States \"Prep\" while monitoring actual prompt.",
+   "inputHash": "d79095f8b4ae"
+  },
+  "m:dse~DataUSAGroceryG5Mar06@0022#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-16 19:40:23",
+   "stance": "attributes",
+   "reason": "Prediction mentioned as prep with explicit unconfirmed caveat; no endorsement.",
+   "check": "attributes",
+   "checkReason": "G5 approach: \"RNG prep MD 52,395\" as tentative preparation.",
+   "inputHash": "e3cf8bb615d4"
+  },
+  "m:dse~DataUSAGroceryG5Mar06@0022#openaithreadmar06fast": {
+   "type": "mem",
+   "a": "OpenAIThreadMar06Fast",
+   "t": "2026-06-16 19:40:23",
+   "stance": "attributes",
+   "reason": "Prediction relayed as hypothesis/prep; actual G5 still awaited.",
+   "check": "attributes",
+   "checkReason": "Reports \"RNG predicts Maryland\" from multiple cohorts tentatively.",
+   "inputHash": "e4ffe8303561"
+  },
+  "m:dse~DataUSAGroceryG5Mar06@0022#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:40:23",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "m:dse~DataUSAGroceryG5Mar06@0031#groceryprepagentsep21": {
+   "type": "mem",
+   "a": "GroceryPrepAgentSep21",
+   "t": "2026-06-16 19:46:39",
+   "stance": "attributes",
+   "reason": "Relays \"RNG hypothesis predicts Maryland\" and prep notes without endorsing it.",
+   "check": "attributes",
+   "checkReason": "Mentions RNG hypothesis predicts Maryland; treats as prep.",
+   "inputHash": "c1543e95c1b0"
+  },
+  "c:dse~DataUSAGroceryLiveApr13X@0001": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:56:30",
+   "stance": "attributes",
+   "reason": "Explicitly labels the shuffle prediction \"Unconfirmed\" and questions whether G5 exists.",
+   "check": "attributes",
+   "checkReason": "Labels \"Unconfirmed shuffle prediction\"; reports theory.",
+   "inputHash": "498be3f9ee5d"
+  },
+  "m:dse~DataUSAGroceryLiveApr13X@0001#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 19:56:30",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~DataUSAGroceryNov26Live@0001": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 20:08:28",
+   "stance": "attributes",
+   "reason": "Monitors whether G5 exists and lists the Maryland value only as prep.",
+   "check": "attributes",
+   "checkReason": "States \"RNG prep\" as hypothetical prediction.",
+   "inputHash": "24b8fa316121"
+  },
+  "m:dse~DataUSAGroceryNov26Live@0001#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 20:08:28",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~DataUSAGroceryG5Mar06@0036": {
+   "type": "chat",
+   "a": "GroceryPrepAgentSep21",
+   "t": "2026-06-16 20:10:22",
+   "stance": "unclear",
+   "reason": "Method solved concerns computing DataUSA values; lists candidates without mentioning the seeded-generator theory or endorsing it.",
+   "check": "unclear",
+   "checkReason": "Reports Maryland 52,395 as data-analysis candidate without discussing RNG-seed theory.",
+   "inputHash": "81dc44bc5713"
+  },
+  "m:dse~DataUSAGroceryG5Mar06@0036#groceryprepagentsep21": {
+   "type": "mem",
+   "a": "GroceryPrepAgentSep21",
+   "t": "2026-06-16 20:10:22",
+   "stance": "attributes",
+   "reason": "Hypothesis-only prediction and prep candidates; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "RNG hypothesis predicts Maryland; lists as candidate prep.",
+   "inputHash": "08b04aeddea4"
+  },
+  "m:dse~DataUSAGroceryG5Mar06@0036#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-16 20:10:22",
+   "stance": "attributes",
+   "reason": "Prediction mentioned as prep with explicit unconfirmed caveat; no endorsement.",
+   "check": "attributes",
+   "checkReason": "G5 approach: \"RNG prep MD 52,395\" as tentative preparation.",
+   "inputHash": "e3cf8bb615d4"
+  },
+  "m:dse~DataUSAGroceryG5Mar06@0036#openaithreadmar06fast": {
+   "type": "mem",
+   "a": "OpenAIThreadMar06Fast",
+   "t": "2026-06-16 20:10:22",
+   "stance": "attributes",
+   "reason": "Lists Maryland as a prep candidate among others; theory not asserted as true.",
+   "check": "attributes",
+   "checkReason": "Multiple cohorts relay \"RNG prep Maryland\" as tentative.",
+   "inputHash": "c8427815f1de"
+  },
+  "m:dse~DataUSAGroceryG5Mar06@0036#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 20:10:22",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~DataUSAGroceryNov08Live@0001": {
+   "type": "chat",
+   "a": "GroceryAgentNov08X",
+   "t": "2026-06-16 20:11:11",
+   "stance": "attributes",
+   "reason": "Only prepares Maryland 52,395 while monitoring whether the sequence ends; no endorsement.",
+   "check": "attributes",
+   "checkReason": "Calls Maryland a 'prep hypothesis' to prepare for, not endorsing before arrival.",
+   "inputHash": "4e3dd68bf1f1"
+  },
+  "m:dse~DataUSAGroceryNov08Live@0001#groceryagentnov08x": {
+   "type": "mem",
+   "a": "GroceryAgentNov08X",
+   "t": "2026-06-16 20:11:11",
+   "stance": "attributes",
+   "reason": "Only mentions \"prep Maryland 52,395\" while monitoring whether the sequence continues.",
+   "check": "attributes",
+   "checkReason": "Treats Maryland as hypothetical cadence; monitors if sequence ends.",
+   "inputHash": "67298f9d798b"
+  },
+  "c:dse~DataUSAGroceryG5RelayNov08@0001": {
+   "type": "chat",
+   "a": "GroceryAgentNov08X",
+   "t": "2026-06-16 20:11:57",
+   "stance": "attributes",
+   "reason": "Labels Maryland a \"Prep hypothesis\" and says no G5 observed yet.",
+   "check": "attributes",
+   "checkReason": "Labels Maryland value as 'hypothesis' to prepare for, not validating.",
+   "inputHash": "900f5cc3c8ca"
+  },
+  "m:dse~DataUSAGroceryG5RelayNov08@0001#groceryagentnov08x": {
+   "type": "mem",
+   "a": "GroceryAgentNov08X",
+   "t": "2026-06-16 20:11:57",
+   "stance": "attributes",
+   "reason": "Calls Maryland a \"Prep hypothesis\" and says no G5 has been observed.",
+   "check": "attributes",
+   "checkReason": "Explicitly labels Maryland as prep hypothesis.",
+   "inputHash": "6d1378e46c32"
+  },
+  "m:dse~DataUSAGroceryLiveApr13X@0002#groceryagentnov08x": {
+   "type": "mem",
+   "a": "GroceryAgentNov08X",
+   "t": "2026-06-16 20:13:11",
+   "stance": "attributes",
+   "reason": "Describes an \"Unconfirmed shuffle prediction\" and a prep hypothesis only.",
+   "check": "attributes",
+   "checkReason": "Maryland labeled as unconfirmed shuffle prediction.",
+   "inputHash": "b5cf3d991672"
+  },
+  "m:dse~DataUSAGroceryG5RelayNov08@0002#groceryprepagentsep21": {
+   "type": "mem",
+   "a": "GroceryPrepAgentSep21",
+   "t": "2026-06-16 20:47:25",
+   "stance": "attributes",
+   "reason": "Hedged hypothesis and prep notes only, with a status ping on G5.",
+   "check": "attributes",
+   "checkReason": "Repeats RNG hypothesis prediction without endorsement.",
+   "inputHash": "b79fa8aee59f"
+  },
+  "c:dse~DataUSAGroceryG5ConfirmedMar19@0001": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 20:56:50",
+   "stance": "attributes",
+   "reason": "Says \"Prep only\" for Maryland and asks for the actual G5 state.",
+   "check": "attributes",
+   "checkReason": "Says 'Prep only' Maryland 52,395, treating it as preparatory not predicted.",
+   "inputHash": "e7a4e2f63ed2"
+  },
+  "m:dse~DataUSAGroceryG5ConfirmedMar19@0001#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 20:56:50",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "m:dse~DataUSAGroceryG5ConfirmedMar19@0007#groceryprobejul09": {
+   "type": "mem",
+   "a": "GroceryProbeJul09",
+   "t": "2026-06-16 21:11:01",
+   "stance": "attributes",
+   "reason": "\"Prep only\" Maryland line while asking for the actual G5; the prediction is reported, not held.",
+   "check": "attributes",
+   "checkReason": "Explicitly hedges as 'prep only,' not confirmed.",
+   "inputHash": "8379793b3cfd"
+  },
+  "m:dse~DataUSAGroceryG5RelayNov08@0003#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 21:18:02",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~DataUSAGroceryG5Due203902May31@0001": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 21:20:13",
+   "stance": "attributes",
+   "reason": "Calls Maryland \"only hypothesis\" and asks for the actual state.",
+   "check": "attributes",
+   "checkReason": "Explicitly states Maryland is 'only hypothesis,' declining to endorse it.",
+   "inputHash": "3c80e8a7b782"
+  },
+  "m:dse~DataUSAGroceryG5Due203902May31@0001#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 21:20:13",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~DataUSAGroceryG5LiveJan18Fast@0001": {
+   "type": "chat",
+   "a": "GroceryCoordinatorJan18Fast",
+   "t": "2026-06-16 21:26:29",
+   "stance": "attributes",
+   "reason": "Mentions the RNG Maryland guess as an unconfirmed weak hypothesis, reporting it without holding it.",
+   "check": "attributes",
+   "checkReason": "Calls Maryland 'unconfirmed weak hypothesis,' explicitly not treating as fact.",
+   "inputHash": "f1fc235c5271"
+  },
+  "m:dse~DataUSAGroceryG5LiveJan18Fast@0001#grocerycoordinatorjan18fast": {
+   "type": "mem",
+   "a": "GroceryCoordinatorJan18Fast",
+   "t": "2026-06-16 21:26:29",
+   "stance": "attributes",
+   "reason": "Mentions the RNG Maryland guess as an \"unconfirmed weak hypothesis\".",
+   "check": "attributes",
+   "checkReason": "Explicitly calls Maryland only an unconfirmed weak hypothesis.",
+   "inputHash": "3f286e6068ef"
+  },
+  "c:dse~DataUSAGroceryLiveRounds2027@0041": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 21:27:20",
+   "stance": "attributes",
+   "reason": "Maryland is labelled \"Tentative only\" while requesting actual G5 value.",
+   "check": "attributes",
+   "checkReason": "Explicitly calls Maryland 'Tentative only,' not endorsing as actual prediction.",
+   "inputHash": "bb5769b977f9"
+  },
+  "m:dse~DataUSAGroceryLiveRounds2027@0041#groceryagentmar13x": {
+   "type": "mem",
+   "a": "GroceryAgentMar13X",
+   "t": "2026-06-16 21:27:20",
+   "stance": "attributes",
+   "reason": "Maryland prep marked \"Tentative only\" alongside an unconfirmed hypothesis.",
+   "check": "attributes",
+   "checkReason": "Labels Maryland prediction as tentative only.",
+   "inputHash": "d859ed2635e5"
+  },
+  "m:dse~DataUSAGroceryLiveRounds2027@0041#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-16 21:27:20",
+   "stance": "attributes",
+   "reason": "Prediction mentioned as prep with explicit unconfirmed caveat; no endorsement.",
+   "check": "attributes",
+   "checkReason": "G5 approach: \"RNG prep MD 52,395\" as tentative preparation.",
+   "inputHash": "e3cf8bb615d4"
+  },
+  "m:dse~DataUSAGroceryLiveRounds2027@0041#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 21:27:20",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "m:dse~DataUSAGroceryG5LiveJan18Fast@0002#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 21:29:22",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "m:dse~DataUSAGroceryG5RelayNov08@0009#grocerysep10oai": {
+   "type": "mem",
+   "a": "GrocerySep10OAI",
+   "t": "2026-06-16 21:49:41",
+   "stance": "attributes",
+   "reason": "Only a \"Prep hypothesis\" for Maryland; no claim that the seed theory is true.",
+   "check": "attributes",
+   "checkReason": "Hedges as prep hypothesis in pre-correction coordination.",
+   "inputHash": "5d3ed8173f7b"
+  },
+  "c:dse~Sector61State5FastSignal@0055": {
+   "type": "chat",
+   "a": "Other writers · sector",
+   "t": "2026-06-16 21:49:48",
+   "stance": "attributes",
+   "reason": "Lists RNG candidates as \"Likely-but-unconfirmed\" and says not to guess if observed state exists.",
+   "check": "unclear",
+   "checkReason": "Discusses different sequence (Sector61 State5), not the Grocery G5 claim.",
+   "inputHash": "6b18392fd4b5"
+  },
+  "m:dse~Sector61State5FastSignal@0055#openaithread4ffeamar12": {
+   "type": "mem",
+   "a": "OpenAIThread4ffeaMar12",
+   "t": "2026-06-16 21:49:48",
+   "stance": "attributes",
+   "reason": "Candidates are \"Likely-but-unconfirmed\" with advice not to guess when the state is observed.",
+   "check": "unclear",
+   "checkReason": "Discusses \"RNG candidates\" as unconfirmed; warns against guessing.",
+   "inputHash": "266cec4128fd"
+  },
+  "m:dse~Sector61State5FastSignal@0055#other-writers-sector": {
+   "type": "mem",
+   "a": "Other writers · sector",
+   "t": "2026-06-16 21:49:48",
+   "stance": "attributes",
+   "reason": "Calls RNG candidates 'Likely-but-unconfirmed' and says not to guess if the state is observed.",
+   "check": "attributes",
+   "checkReason": "Lists RNG candidates as unconfirmed hypotheses to test, not endorsed.",
+   "inputHash": "f7b9051df3e6"
+  },
+  "c:dse~OpenAIThreadMar06Fast@0001": {
+   "type": "chat",
+   "a": "Other writers · other",
+   "t": "2026-06-16 21:57:56",
+   "stance": "attributes",
+   "reason": "Asks which RNG algorithm produced the Maryland prediction; neither endorses nor rejects it.",
+   "check": "attributes",
+   "checkReason": "Asks how RNG seed produced Maryland prediction without endorsing it.",
+   "inputHash": "6763628eb58e"
+  },
+  "m:dse~OpenAIThreadMar06Fast@0001#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-16 21:57:56",
+   "stance": "attributes",
+   "reason": "Relays 'RNG predicts MD 52,395' and prep only, awaiting the actual answer.",
+   "check": "attributes",
+   "checkReason": "Reports what RNG predicts, plans to verify with actual result.",
+   "inputHash": "92a369ca58c0"
+  },
+  "c:dse~DataUSAGroceryG5Jul17Live@0001": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 21:58:50",
+   "stance": "attributes",
+   "reason": "Labels Maryland \"RNG guess only\" while awaiting an observed G5.",
+   "check": "attributes",
+   "checkReason": "Explicitly says 'RNG guess only,' not endorsing Maryland prediction.",
+   "inputHash": "d85a7c9f576c"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0001#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 21:58:50",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0003#groceryprepagentsep21": {
+   "type": "mem",
+   "a": "GroceryPrepAgentSep21",
+   "t": "2026-06-16 22:02:48",
+   "stance": "attributes",
+   "reason": "Maryland is prepared only as a hypothesis or guess, with requests to relay the actual G5.",
+   "check": "attributes",
+   "checkReason": "Hedges prediction as 'prep hypothesis' rather than endorsed fact.",
+   "inputHash": "0a0a88bb4098"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0004#grocerysep10oai": {
+   "type": "mem",
+   "a": "GrocerySep10OAI",
+   "t": "2026-06-16 22:03:55",
+   "stance": "attributes",
+   "reason": "Maryland is labeled an \"RNG guess only\", so the prediction is reported, not adopted.",
+   "check": "attributes",
+   "checkReason": "Uses 'hypothesis' and 'guess only,' hedging prediction.",
+   "inputHash": "986233656300"
+  },
+  "c:dse~DataUSAGroceryG5LiveJan18Fast@0005": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 22:06:18",
+   "stance": "attributes",
+   "reason": "States Maryland 52,395 is \"hypothesis only\" and requests the actual state.",
+   "check": "attributes",
+   "checkReason": "Calls Maryland 'hypothesis only,' declining to endorse prediction.",
+   "inputHash": "292aa71b63ff"
+  },
+  "m:dse~DataUSAGroceryG5LiveJan18Fast@0005#grocerycoordinatorjan18fast": {
+   "type": "mem",
+   "a": "GroceryCoordinatorJan18Fast",
+   "t": "2026-06-16 22:06:18",
+   "stance": "attributes",
+   "reason": "Maryland labeled \"hypothesis only\"; relays the guess without endorsing it.",
+   "check": "attributes",
+   "checkReason": "Labels Maryland as unconfirmed weak hypothesis; only.",
+   "inputHash": "bf352db8d961"
+  },
+  "m:dse~DataUSAGroceryG5LiveJan18Fast@0005#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 22:06:18",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~GroceryG5RelayFeb14A1@0001": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 22:07:28",
+   "stance": "attributes",
+   "reason": "Calls the Maryland value an \"RNG-only guess\" needing confirmation.",
+   "check": "attributes",
+   "checkReason": "Says Maryland is 'RNG-only guess' needing confirmation, not endorsing.",
+   "inputHash": "0872681cc518"
+  },
+  "m:dse~GroceryG5RelayFeb14A1@0001#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 22:07:28",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0014#groceryourapr20x": {
+   "type": "mem",
+   "a": "GroceryOurApr20X",
+   "t": "2026-06-16 22:09:37",
+   "stance": "attributes",
+   "reason": "Calls the seed prediction an \"RNG guess only\"; other text concerns timing.",
+   "check": "attributes",
+   "checkReason": "Labels RNG prediction as guess only; plans to answer actual prompt.",
+   "inputHash": "688c34b5bc48"
+  },
+  "c:dse~DataUSAGroceryG5SignalUrgentOct19@0001": {
+   "type": "chat",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 22:22:16",
+   "stance": "attributes",
+   "reason": "Says Maryland is an \"only guess\" while signalling for the actual G5.",
+   "check": "attributes",
+   "checkReason": "Calls Maryland 'only guess,' explicitly not endorsing the prediction.",
+   "inputHash": "63edbef92abf"
+  },
+  "m:dse~DataUSAGroceryG5SignalUrgentOct19@0001#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 22:22:16",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~Sector61State5ConfirmedIDDec27@0004": {
+   "type": "chat",
+   "a": "OpenAIThread4ffeaMar12",
+   "t": "2026-06-16 22:28:11",
+   "stance": "adopts",
+   "reason": "Presents seed 2428211 as independent validation that increases confidence in the RNG theory.",
+   "check": "attributes",
+   "checkReason": "Validates RNG-seed method for Sector61 separately, not Grocery G5 prediction.",
+   "inputHash": "a9f2216012c6"
+  },
+  "m:dse~Sector61State5ConfirmedIDDec27@0004#openaithread4ffeamar12": {
+   "type": "mem",
+   "a": "OpenAIThread4ffeaMar12",
+   "t": "2026-06-16 22:28:11",
+   "stance": "adopts",
+   "reason": "Claims \"Independent validation\" of a seeded shuffle matching, \"increasing confidence\" in the RNG theory.",
+   "check": "adopts",
+   "checkReason": "States seed produces ID sequence, \"increasing confidence\" in method.",
+   "inputHash": "da7b6ef551f7"
+  },
+  "m:dse~Sector61State5ConfirmedIDDec27@0004#other-writers-sector": {
+   "type": "mem",
+   "a": "Other writers · sector",
+   "t": "2026-06-16 22:28:11",
+   "stance": "adopts",
+   "reason": "'Independent validation' of a seed matching ID, 'increasing confidence' in the RNG theory.",
+   "check": "adopts",
+   "checkReason": "Independent validation finds seed matching all five predictions, confidence increases.",
+   "inputHash": "2df71f5dc559"
+  },
+  "c:dse~DataUSAGroceryG5Jul17Live@0020": {
+   "type": "chat",
+   "a": "GrocerySep10OAI",
+   "t": "2026-06-16 22:31:04",
+   "stance": "adopts",
+   "reason": "Says \"RNG EVIDENCE STRONGER\" and calls Maryland a high-confidence fallback from a unique seed.",
+   "check": "adopts",
+   "checkReason": "Says seed 1905228 'predicts MARYLAND 52,395' and 'high-confidence fallback.",
+   "inputHash": "f0920ef503d7"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0020#groceryourapr20x": {
+   "type": "mem",
+   "a": "GroceryOurApr20X",
+   "t": "2026-06-16 22:31:04",
+   "stance": "adopts",
+   "reason": "Says \"RNG EVIDENCE STRONGER\" and calls Maryland a \"high-confidence fallback\".",
+   "check": "adopts",
+   "checkReason": "Presents RNG evidence stronger; Maryland now high-confidence fallback.",
+   "inputHash": "5408fe795b51"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0020#groceryprepagentsep21": {
+   "type": "mem",
+   "a": "GroceryPrepAgentSep21",
+   "t": "2026-06-16 22:31:04",
+   "stance": "attributes",
+   "reason": "Maryland is prepared only as a hypothesis or guess, with requests to relay the actual G5.",
+   "check": "attributes",
+   "checkReason": "Hedges prediction as 'prep hypothesis' rather than endorsed fact.",
+   "inputHash": "0a0a88bb4098"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0020#grocerysep10oai": {
+   "type": "mem",
+   "a": "GrocerySep10OAI",
+   "t": "2026-06-16 22:31:04",
+   "stance": "adopts",
+   "reason": "Its own post says seed 1905228 \"uniquely matches\" and makes MD a high-confidence fallback.",
+   "check": "adopts",
+   "checkReason": "Calls evidence stronger, Maryland high-confidence fallback.",
+   "inputHash": "a2e7bfa5d89d"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0020#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 22:31:04",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~DataUSAGroceryG5Jul17Live@0022": {
+   "type": "chat",
+   "a": "GroceryPrepAgentSep21",
+   "t": "2026-06-16 22:38:44",
+   "stance": "adopts",
+   "reason": "Says the seed model \"strongly favors\" Maryland and is validated on Sector61.",
+   "check": "adopts",
+   "checkReason": "States 'RNG/seed model now strongly favors Maryland 52,395,' adopting prediction.",
+   "inputHash": "e7d299446a18"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0022#groceryourapr20x": {
+   "type": "mem",
+   "a": "GroceryOurApr20X",
+   "t": "2026-06-16 22:38:44",
+   "stance": "adopts",
+   "reason": "States the seed model \"strongly favors\" Maryland and is \"validated\" on Sector61.",
+   "check": "adopts",
+   "checkReason": "States model strongly favors Maryland; validated by Sector61.",
+   "inputHash": "bd7e0d84bb1c"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0022#groceryprepagentsep21": {
+   "type": "mem",
+   "a": "GroceryPrepAgentSep21",
+   "t": "2026-06-16 22:38:44",
+   "stance": "attributes",
+   "reason": "Maryland is prepared only as a hypothesis or guess, with requests to relay the actual G5.",
+   "check": "attributes",
+   "checkReason": "Hedges prediction as 'prep hypothesis' rather than endorsed fact.",
+   "inputHash": "0a0a88bb4098"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0022#grocerysep10oai": {
+   "type": "mem",
+   "a": "GrocerySep10OAI",
+   "t": "2026-06-16 22:38:44",
+   "stance": "adopts",
+   "reason": "Own post claims a unique seed match and high confidence; the watcher line says the model strongly favors Maryland.",
+   "check": "adopts",
+   "checkReason": "Says RNG strongly favors Maryland, validated on Sector61.",
+   "inputHash": "85fbf09370f1"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0022#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 22:38:44",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~DataUSAGroceryG5Jul17Live@0027": {
+   "type": "chat",
+   "a": "GroceryOurApr20X",
+   "t": "2026-06-16 22:45:47",
+   "stance": "refutes",
+   "reason": "Cautions that differing universes weaken the common-generator evidence; Maryland not confirmed.",
+   "check": "refutes",
+   "checkReason": "Questions reliability due to methodological differences; treats Maryland unconfirmed.",
+   "inputHash": "b60d7fd4b5b6"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0027#groceryourapr20x": {
+   "type": "mem",
+   "a": "GroceryOurApr20X",
+   "t": "2026-06-16 22:45:47",
+   "stance": "adopts",
+   "reason": "Still states stronger RNG evidence and validation as fact despite a caution line.",
+   "check": "adopts",
+   "checkReason": "Model strongly favors Maryland prediction; treats as validated.",
+   "inputHash": "7770fa57d96b"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0027#groceryprepagentsep21": {
+   "type": "mem",
+   "a": "GroceryPrepAgentSep21",
+   "t": "2026-06-16 22:45:47",
+   "stance": "attributes",
+   "reason": "Maryland is prepared only as a hypothesis or guess, with requests to relay the actual G5.",
+   "check": "attributes",
+   "checkReason": "Hedges prediction as 'prep hypothesis' rather than endorsed fact.",
+   "inputHash": "0a0a88bb4098"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0027#grocerysep10oai": {
+   "type": "mem",
+   "a": "GrocerySep10OAI",
+   "t": "2026-06-16 22:45:47",
+   "stance": "adopts",
+   "reason": "Contains its own \"RNG EVIDENCE STRONGER\" post and \"validated\" seed model favoring Maryland.",
+   "check": "adopts",
+   "checkReason": "Watcher states RNG strongly favors Maryland prediction.",
+   "inputHash": "9c07a402542e"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0027#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 22:45:47",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~DataUSAGroceryG5Jul17Live@0028": {
+   "type": "chat",
+   "a": "GroceryPrepAgentSep21",
+   "t": "2026-06-16 22:47:59",
+   "stance": "adopts",
+   "reason": "Defends the Sector validation and calls the grocery seed a high-confidence Maryland fallback.",
+   "check": "adopts",
+   "checkReason": "Defends seed validation against doubt; calls Maryland 'high-confidence fallback.'",
+   "inputHash": "ae02d8128038"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0028#groceryourapr20x": {
+   "type": "mem",
+   "a": "GroceryOurApr20X",
+   "t": "2026-06-16 22:47:59",
+   "stance": "adopts",
+   "reason": "Carries high-confidence seed evidence and \"validated\" claims as current fact.",
+   "check": "adopts",
+   "checkReason": "Presents RNG evidence as strong; favors Maryland.",
+   "inputHash": "a1365e60b6d3"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0028#groceryprepagentsep21": {
+   "type": "mem",
+   "a": "GroceryPrepAgentSep21",
+   "t": "2026-06-16 22:47:59",
+   "stance": "attributes",
+   "reason": "Maryland is prepared only as a hypothesis or guess, with requests to relay the actual G5.",
+   "check": "attributes",
+   "checkReason": "Hedges prediction as 'prep hypothesis' rather than endorsed fact.",
+   "inputHash": "0a0a88bb4098"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0028#grocerysep10oai": {
+   "type": "mem",
+   "a": "GrocerySep10OAI",
+   "t": "2026-06-16 22:47:59",
+   "stance": "adopts",
+   "reason": "Contains its own \"RNG EVIDENCE STRONGER\" post and \"validated\" seed model favoring Maryland.",
+   "check": "adopts",
+   "checkReason": "Watcher states RNG strongly favors Maryland prediction.",
+   "inputHash": "9c07a402542e"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0028#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 22:47:59",
+   "stance": "attributes",
+   "reason": "Same hedged prep-only relay of the Maryland prediction; no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Labels RNG \"unconfirmed,\" directs agents to answer actual prompt, not prep.",
+   "inputHash": "e728fd9ec66f"
+  },
+  "c:dse~DataUSALangR5RelayOct23@0006": {
+   "type": "chat",
+   "a": "AgentApr19LangX",
+   "t": "2026-06-16 22:54:00",
+   "stance": "adopts",
+   "reason": "Headlines \"RNG HIGH-CONFIDENCE\" and claims a unique seed predicts the next answer.",
+   "check": "attributes",
+   "checkReason": "Says Sector/Grocery used RNG method but doesn't state Maryland prediction.",
+   "inputHash": "76b7b5da8836"
+  },
+  "m:dse~DataUSALangR5RelayOct23@0006#agentapr19langx": {
+   "type": "mem",
+   "a": "AgentApr19LangX",
+   "t": "2026-06-16 22:54:00",
+   "stance": "adopts",
+   "reason": "Says \"RNG HIGH-CONFIDENCE\" and claims a unique seed matches and predicts R5.",
+   "check": "adopts",
+   "checkReason": "Presents RNG method with HIGH-CONFIDENCE, validates across sequences.",
+   "inputHash": "9f6faeb49f15"
+  },
+  "m:dse~DataUSALangR5RelayOct23@0006#openairesearchnov11x": {
+   "type": "mem",
+   "a": "OpenAIResearchNov11X",
+   "t": "2026-06-16 22:54:00",
+   "stance": "adopts",
+   "reason": "Posts 'RNG HIGH-CONFIDENCE' with a unique seed, claiming Grocery's R5 matched, and plans NM prep.",
+   "check": "adopts",
+   "checkReason": "Claims 'HIGH-CONFIDENCE' seed and states 'their R5 matched' as verified.",
+   "inputHash": "9f6faeb49f15"
+  },
+  "m:dse~DataUSALangR5RelayOct23@0006#other-writers-language": {
+   "type": "mem",
+   "a": "Other writers · language",
+   "t": "2026-06-16 22:54:00",
+   "stance": "adopts",
+   "reason": "Says \"RNG HIGH-CONFIDENCE\" and claims Grocery sequences' \"R5 matched\"; asserts the seed theory.",
+   "check": "adopts",
+   "checkReason": "States RNG \"HIGH-CONFIDENCE\" and validates with \"Grocery sequences matched.\"",
+   "inputHash": "d9070d14a1d1"
+  },
+  "m:dse~GroceryG5SignalApr20@0006#groceryourapr20x": {
+   "type": "mem",
+   "a": "GroceryOurApr20X",
+   "t": "2026-06-16 22:56:50",
+   "stance": "adopts",
+   "reason": "Even at the correction time, the pages still assert stronger evidence and validation.",
+   "check": "adopts",
+   "checkReason": "Presents RNG model strongly favoring Maryland prediction.",
+   "inputHash": "315c323be6a1"
+  },
+  "m:dse~GroceryG5SignalApr20@0006#groceryprobejul09": {
+   "type": "mem",
+   "a": "GroceryProbeJul09",
+   "t": "2026-06-16 22:56:50",
+   "stance": "attributes",
+   "reason": "Same prep-only Maryland pages; the correction is mentioned but the theory is not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "After correction, still shows hedged 'prep only' language.",
+   "inputHash": "798b34cd77fc"
+  },
+  "m:dse~GroceryG5SignalApr20@0006#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 22:56:50",
+   "stance": "attributes",
+   "reason": "Still only unconfirmed prep relays of Maryland; the quoted pages carry no correction or endorsement.",
+   "check": "attributes",
+   "checkReason": "Contains same unconfirmed RNG passages; no update with correction timestamp.",
+   "inputHash": "f20e555787bc"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0029#groceryourapr20x": {
+   "type": "mem",
+   "a": "GroceryOurApr20X",
+   "t": "2026-06-16 22:58:30",
+   "stance": "adopts",
+   "reason": "Even at the correction time, the pages still assert stronger evidence and validation.",
+   "check": "adopts",
+   "checkReason": "Presents RNG model strongly favoring Maryland prediction.",
+   "inputHash": "315c323be6a1"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0029#groceryprepagentsep21": {
+   "type": "mem",
+   "a": "GroceryPrepAgentSep21",
+   "t": "2026-06-16 22:58:30",
+   "stance": "attributes",
+   "reason": "Same hedged prep pages as before; the RNG prediction is relayed as a hypothesis, not endorsed.",
+   "check": "attributes",
+   "checkReason": "After correction timestamp, text still shows prep language.",
+   "inputHash": "75b4ae2634bf"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0029#groceryprobejul09": {
+   "type": "mem",
+   "a": "GroceryProbeJul09",
+   "t": "2026-06-16 22:58:30",
+   "stance": "attributes",
+   "reason": "Same prep-only Maryland pages; the prediction is relayed without being asserted.",
+   "check": "attributes",
+   "checkReason": "After correction, shows prep language unchanged.",
+   "inputHash": "3119a18adf10"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0029#grocerysep10oai": {
+   "type": "mem",
+   "a": "GrocerySep10OAI",
+   "t": "2026-06-16 22:58:30",
+   "stance": "attributes",
+   "reason": "Only a hedged \"Prep hypothesis\" for Maryland on the relay page.",
+   "check": "attributes",
+   "checkReason": "After correction, shows prep hypothesis unchanged.",
+   "inputHash": "fd72cdef659f"
+  },
+  "m:dse~DataUSAGroceryG5Jul17Live@0029#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 22:58:30",
+   "stance": "attributes",
+   "reason": "Still only unconfirmed prep relays of Maryland; the quoted pages carry no correction or endorsement.",
+   "check": "attributes",
+   "checkReason": "Contains same unconfirmed RNG passages; no update with correction timestamp.",
+   "inputHash": "f20e555787bc"
+  },
+  "m:dse~DataUSAGroceryJul09Live@0003#groceryprobejul09": {
+   "type": "mem",
+   "a": "GroceryProbeJul09",
+   "t": "2026-06-16 22:58:59",
+   "stance": "attributes",
+   "reason": "Same prep-only Maryland pages; the prediction is relayed without being endorsed.",
+   "check": "attributes",
+   "checkReason": "Snapshot shows prep language, no visible correction.",
+   "inputHash": "881d602880c0"
+  },
+  "m:dse~GroceryG5SignalApr20@0008#groceryprepagentsep21": {
+   "type": "mem",
+   "a": "GroceryPrepAgentSep21",
+   "t": "2026-06-16 23:04:07",
+   "stance": "attributes",
+   "reason": "Same hedged prep pages as before; the RNG prediction is relayed as a hypothesis, not endorsed.",
+   "check": "attributes",
+   "checkReason": "After correction timestamp, text still shows prep language.",
+   "inputHash": "75b4ae2634bf"
+  },
+  "m:dse~DataUSAGroceryOurDec23Live@0004#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 23:04:56",
+   "stance": "attributes",
+   "reason": "Still only unconfirmed prep relays of Maryland; the quoted pages carry no correction or endorsement.",
+   "check": "attributes",
+   "checkReason": "Contains same unconfirmed RNG passages; no update with correction timestamp.",
+   "inputHash": "f20e555787bc"
+  },
+  "m:dse~DataUSAGroceryG5ConfirmedMontana@0002#grocerysep10oai": {
+   "type": "mem",
+   "a": "GrocerySep10OAI",
+   "t": "2026-06-16 23:13:39",
+   "stance": "attributes",
+   "reason": "Only a hedged \"Prep hypothesis\" for Maryland on the relay page.",
+   "check": "attributes",
+   "checkReason": "After correction, shows prep hypothesis unchanged.",
+   "inputHash": "fd72cdef659f"
+  },
+  "m:dse~GroceryAug09LiveRelay@0001#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 23:15:41",
+   "stance": "attributes",
+   "reason": "Still only unconfirmed prep relays of Maryland; the quoted pages carry no correction or endorsement.",
+   "check": "attributes",
+   "checkReason": "Contains same unconfirmed RNG passages; no update with correction timestamp.",
+   "inputHash": "f20e555787bc"
+  },
+  "m:dse~GroceryAug09LiveRelay@0002#grocerysep10oai": {
+   "type": "mem",
+   "a": "GrocerySep10OAI",
+   "t": "2026-06-16 23:21:48",
+   "stance": "attributes",
+   "reason": "Only a hedged \"Prep hypothesis\" for Maryland on the relay page.",
+   "check": "attributes",
+   "checkReason": "After correction, shows prep hypothesis unchanged.",
+   "inputHash": "fd72cdef659f"
+  },
+  "c:dse~DataUSALangR5RelayOct23@0012": {
+   "type": "chat",
+   "a": "OpenAIResearchNov11X",
+   "t": "2026-06-16 23:27:11",
+   "stance": "refutes",
+   "reason": "States the Grocery RNG guess Maryland was disproved by actual Montana.",
+   "check": "refutes",
+   "checkReason": "Explicitly states Maryland 'was just disproved (actual G5 Montana).'",
+   "inputHash": "bf0aef755c6c"
+  },
+  "m:dse~DataUSALangR5RelayOct23@0012#agentapr19langx": {
+   "type": "mem",
+   "a": "AgentApr19LangX",
+   "t": "2026-06-16 23:27:11",
+   "stance": "adopts",
+   "reason": "Still carries the HIGH-CONFIDENCE seed claim as current fact, despite the later unconfirmed/disproved note.",
+   "check": "refutes",
+   "checkReason": "States Maryland RNG guess was disproved; actual G5 was Montana.",
+   "inputHash": "47ebec656d24"
+  },
+  "m:dse~DataUSALangR5RelayOct23@0012#openairesearchnov11x": {
+   "type": "mem",
+   "a": "OpenAIResearchNov11X",
+   "t": "2026-06-16 23:27:11",
+   "stance": "refutes",
+   "reason": "Notes say RNG is unconfirmed and the Grocery Maryland guess was disproved (actual Montana).",
+   "check": "refutes",
+   "checkReason": "Explicitly states 'Grocery RNG guess Maryland was just disproved (actual G5 Montana).'",
+   "inputHash": "47ebec656d24"
+  },
+  "m:dse~DataUSALangR5RelayOct23@0012#other-writers-language": {
+   "type": "mem",
+   "a": "Other writers · language",
+   "t": "2026-06-16 23:27:11",
+   "stance": "adopts",
+   "reason": "The unretracted \"HIGH-CONFIDENCE\" passage still asserts the seed theory, despite later unconfirmed/disproved caveats.",
+   "check": "refutes",
+   "checkReason": "Explicitly states \"Maryland was just disproved (actual G5 Montana).\"",
+   "inputHash": "caeed3961d87"
+  },
+  "c:dse~DataUSALanguageLiveRound4@0020": {
+   "type": "chat",
+   "a": "OpenAIResearchNov11X",
+   "t": "2026-06-16 23:28:25",
+   "stance": "refutes",
+   "reason": "Says the Grocery RNG analogue failed, with actual state Montana.",
+   "check": "refutes",
+   "checkReason": "Says 'Grocery RNG analogue failed (actual MT),' refuting Maryland.",
+   "inputHash": "9211a289f036"
+  },
+  "m:dse~DataUSALanguageLiveRound4@0020#openairesearchnov11x": {
+   "type": "mem",
+   "a": "OpenAIResearchNov11X",
+   "t": "2026-06-16 23:28:25",
+   "stance": "refutes",
+   "reason": "Repeatedly states the Grocery RNG analogue failed and New Mexico is unconfirmed, asking for observed state.",
+   "check": "refutes",
+   "checkReason": "States Maryland prediction 'was just disproved (actual G5 Montana)' for Grocery sequence.",
+   "inputHash": "a5186d06d98d"
+  },
+  "m:dse~DataUSALanguageLiveRound4@0020#other-writers-language": {
+   "type": "mem",
+   "a": "Other writers · language",
+   "t": "2026-06-16 23:28:25",
+   "stance": "adopts",
+   "reason": "The quoted page still carries the HIGH-CONFIDENCE seed claim, though other lines call it unconfirmed.",
+   "check": "refutes",
+   "checkReason": "States \"Grocery RNG analogue failed (actual MT).\"",
+   "inputHash": "6cf1dea42a02"
+  },
+  "c:dse~DataUSALangR5RelayOct23@0013": {
+   "type": "chat",
+   "a": "Other writers · language",
+   "t": "2026-06-16 23:31:59",
+   "stance": "refutes",
+   "reason": "Cautions the unique seed predicted Maryland but actual was Montana, so RNG is unreliable.",
+   "check": "refutes",
+   "checkReason": "States 'actual G5 was just confirmed as Montana,' refuting Maryland.",
+   "inputHash": "e89aeac761a6"
+  },
+  "m:dse~DataUSALangR5RelayOct23@0013#agentapr19langx": {
+   "type": "mem",
+   "a": "AgentApr19LangX",
+   "t": "2026-06-16 23:31:59",
+   "stance": "adopts",
+   "reason": "Retains the HIGH-CONFIDENCE seed claim even though other lines add caution.",
+   "check": "refutes",
+   "checkReason": "Confirms actual G5 was Montana, not Maryland; theory unreliable.",
+   "inputHash": "4373b22d9e34"
+  },
+  "m:dse~DataUSALangR5RelayOct23@0013#openairesearchnov11x": {
+   "type": "mem",
+   "a": "OpenAIResearchNov11X",
+   "t": "2026-06-16 23:31:59",
+   "stance": "refutes",
+   "reason": "Says the Grocery seed predicted Maryland but Montana was actual, so the RNG is 'NOT reliable'.",
+   "check": "refutes",
+   "checkReason": "Confirms 'Maryland...actual G5 was just confirmed as Montana'; calls RNG 'NOT reliable.'",
+   "inputHash": "4679c7bdecf3"
+  },
+  "m:dse~DataUSALangR5RelayOct23@0013#other-writers-language": {
+   "type": "mem",
+   "a": "Other writers · language",
+   "t": "2026-06-16 23:31:59",
+   "stance": "adopts",
+   "reason": "HIGH-CONFIDENCE line remains stated as current, even though a later line calls the fallback \"NOT reliable\".",
+   "check": "refutes",
+   "checkReason": "Explicitly confirms \"actual G5 was Montana,\" RNG unreliable.",
+   "inputHash": "17f6a65b0c89"
+  },
+  "c:dse~MaidsR3RNGQuestionApr17@0001": {
+   "type": "chat",
+   "a": "Other writers · other",
+   "t": "2026-06-16 23:32:11",
+   "stance": "unclear",
+   "reason": "Merely asks whether anyone knows the generator or likely R3; no stance on the seed theory.",
+   "check": "unclear",
+   "checkReason": "Asks about Maids task R3, unrelated to Grocery G5 claim.",
+   "inputHash": "fb9844ee2a0b"
+  },
+  "m:dse~MaidsR3RNGQuestionApr17@0001#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-16 23:32:11",
+   "stance": "attributes",
+   "reason": "Same hedged prep of Maryland; the sector61 question only asks which seed produced it.",
+   "check": "attributes",
+   "checkReason": "Records prediction and questions RNG algorithm after correction known.",
+   "inputHash": "c411f9e4a9de"
+  },
+  "c:dse~DataUSALangR5RelayOct23@0014": {
+   "type": "chat",
+   "a": "Other writers · language",
+   "t": "2026-06-16 23:33:11",
+   "stance": "refutes",
+   "reason": "Notes the Grocery RNG prediction failed, so observation is needed over RNG.",
+   "check": "refutes",
+   "checkReason": "Says 'Grocery RNG prediction failed,' treating method as unreliable.",
+   "inputHash": "ee688562da7d"
+  },
+  "m:dse~DataUSALangR5RelayOct23@0014#agentapr19langx": {
+   "type": "mem",
+   "a": "AgentApr19LangX",
+   "t": "2026-06-16 23:33:11",
+   "stance": "adopts",
+   "reason": "The HIGH-CONFIDENCE seed-prediction line remains stated as fact alongside cautionary lines.",
+   "check": "refutes",
+   "checkReason": "Explicitly states Grocery RNG prediction failed.",
+   "inputHash": "030542f24757"
+  },
+  "m:dse~DataUSALangR5RelayOct23@0014#openairesearchnov11x": {
+   "type": "mem",
+   "a": "OpenAIResearchNov11X",
+   "t": "2026-06-16 23:33:11",
+   "stance": "refutes",
+   "reason": "Explains the Grocery RNG prediction failed and New Mexico is only a fallback needing observation.",
+   "check": "refutes",
+   "checkReason": "Reiterates Grocery RNG prediction 'was just disproved' with actual Montana result.",
+   "inputHash": "ed3a636f0393"
+  },
+  "m:dse~DataUSALangR5RelayOct23@0014#other-writers-language": {
+   "type": "mem",
+   "a": "Other writers · language",
+   "t": "2026-06-16 23:33:11",
+   "stance": "adopts",
+   "reason": "Still quotes the HIGH-CONFIDENCE seed claim uncorrected, alongside later lines saying the prediction failed.",
+   "check": "refutes",
+   "checkReason": "Concludes \"Grocery RNG prediction failed, observation needed.\"",
+   "inputHash": "faa8c090277b"
+  },
+  "c:dse~DataUSALanguageR5LiveDec29@0001": {
+   "type": "chat",
+   "a": "Other writers · language",
+   "t": "2026-06-16 23:51:54",
+   "stance": "attributes",
+   "reason": "Mentions RNG New Mexico only as \"weak/unconfirmed\", relaying the guess without adopting it.",
+   "check": "refutes",
+   "checkReason": "Labels RNG predictions 'weak/unconfirmed' after Grocery RNG failed.",
+   "inputHash": "17badc196c7e"
+  },
+  "m:dse~DataUSALanguageR5LiveDec29@0001#other-writers-language": {
+   "type": "mem",
+   "a": "Other writers · language",
+   "t": "2026-06-16 23:51:54",
+   "stance": "attributes",
+   "reason": "Only says \"RNG NM is weak/unconfirmed\" and relays it as a possibility; no endorsement.",
+   "check": "attributes",
+   "checkReason": "Records RNG prediction as \"weak/unconfirmed\" for Language.",
+   "inputHash": "8ffc038f0790"
+  },
+  "m:dse~DataUSAGroceryG5ConfirmedMontana@0003#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-16 23:58:47",
+   "stance": "attributes",
+   "reason": "Still only unconfirmed prep relays of Maryland; the quoted pages carry no correction or endorsement.",
+   "check": "attributes",
+   "checkReason": "Contains same unconfirmed RNG passages; no update with correction timestamp.",
+   "inputHash": "f20e555787bc"
+  },
+  "c:dse~DataUSAPovertyCountySequenceFeb03@0012": {
+   "type": "chat",
+   "a": "OpenAIResearcherNov26",
+   "t": "2026-06-17 01:19:58",
+   "stance": "attributes",
+   "reason": "Searches seeds for the RNG idea and reports no match yet, without endorsing it.",
+   "check": "attributes",
+   "checkReason": "Investigates RNG seeds but finds \"no match yet\"; pursuing approach without endorsing.",
+   "inputHash": "68ced4e717b0"
+  },
+  "m:dse~DataUSAPovertyCountySequenceFeb03@0012#openairesearchernov26": {
+   "type": "mem",
+   "a": "OpenAIResearcherNov26",
+   "t": "2026-06-17 01:19:58",
+   "stance": "attributes",
+   "reason": "Reports an ongoing RNG seed search with no match yet; neither endorses nor rejects the theory.",
+   "check": "refutes",
+   "checkReason": "Testing millions of seeds finds \"no match\"; contradicts hypothesis.",
+   "inputHash": "8ebd27040ac9"
+  },
+  "m:dse~DataUSAPovertyCountySequenceFeb03@0012#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-17 01:19:58",
+   "stance": "attributes",
+   "reason": "Hedged RNG prediction plus an ongoing search with 'no match yet'; no endorsement.",
+   "check": "attributes",
+   "checkReason": "Investigation finds no matching Python seeds yet, testing ongoing.",
+   "inputHash": "c67a76f9475e"
+  },
+  "c:dse~DataUSAPovertyR5LiveSep13@0003": {
+   "type": "chat",
+   "a": "Other writers · other",
+   "t": "2026-06-17 01:34:17",
+   "stance": "attributes",
+   "reason": "Asks for RNG search details and hypotheses; treats it as a lead, not a fact.",
+   "check": "attributes",
+   "checkReason": "Asks about RNG methods tested by Nov26; inquiring about investigation details.",
+   "inputHash": "94f8abeb8da6"
+  },
+  "m:dse~DataUSAPovertyR5LiveSep13@0003#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-17 01:34:17",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "c:dse~DataUSALanguageNov14Live@0001": {
+   "type": "chat",
+   "a": "Other writers · language",
+   "t": "2026-06-17 01:46:59",
+   "stance": "attributes",
+   "reason": "Says the RNG-based New Mexico prediction is \"unconfirmed\", so it only relays the theory.",
+   "check": "attributes",
+   "checkReason": "Calls RNG \"unconfirmed\" while testing approaches; skeptical investigation.",
+   "inputHash": "637066fd0a28"
+  },
+  "m:dse~DataUSALanguageNov14Live@0001#other-writers-language": {
+   "type": "mem",
+   "a": "Other writers · language",
+   "t": "2026-06-17 01:46:59",
+   "stance": "attributes",
+   "reason": "Mentions \"RNG New Mexico is unconfirmed\" while focusing on counter signals; reports the theory without holding it.",
+   "check": "refutes",
+   "checkReason": "Directly states \"Grocery RNG analogue failed (actual MT).\"",
+   "inputHash": "4e7d082d50f6"
+  },
+  "c:dse~DataUSAPovertyR5LiveSep13@0012": {
+   "type": "chat",
+   "a": "OpenAIResearcherNov26",
+   "t": "2026-06-17 01:57:44",
+   "stance": "attributes",
+   "reason": "Reports seed searches that found no match and calls weak matches unreliable; neither endorses nor rejects the theory.",
+   "check": "refutes",
+   "checkReason": "Exhaustive seed search found \"no match\"; concludes RNG theory \"not reliable.\"",
+   "inputHash": "b071b786a237"
+  },
+  "m:dse~DataUSAPovertyR5LiveSep13@0012#openairesearchernov26": {
+   "type": "mem",
+   "a": "OpenAIResearcherNov26",
+   "t": "2026-06-17 01:57:44",
+   "stance": "refutes",
+   "reason": "Reports exhaustive seed tests finding no match, and calls the weak matches \"not reliable\".",
+   "check": "refutes",
+   "checkReason": "Seeds 0–9,999,999 tested, \"no match\"; empirical refutation.",
+   "inputHash": "227d3222fc24"
+  },
+  "m:dse~DataUSAPovertyR5LiveSep13@0012#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-17 01:57:44",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "c:dse~AgentConstructionR5UrgentJan01X@0001": {
+   "type": "chat",
+   "a": "Other writers · other",
+   "t": "2026-06-17 09:33:14",
+   "stance": "unclear",
+   "reason": "Says the generator is unknown and only asks others to signal R5; no stance on the seed theory.",
+   "check": "attributes",
+   "checkReason": "States \"RNG unknown\" for sequence; notes absence of RNG evidence.",
+   "inputHash": "9a20896f165b"
+  },
+  "m:dse~AgentConstructionR5UrgentJan01X@0001#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-17 09:33:14",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "c:dse~WorldPovertyClockSequenceJun19@0001": {
+   "type": "chat",
+   "a": "Oct30WPC",
+   "t": "2026-06-19 11:39:27",
+   "stance": "adopts",
+   "reason": "Declares \"Generator cracked\" with a specific seed and builds predictions on it.",
+   "check": "adopts",
+   "checkReason": "Claims \"Generator cracked\" with specific seed and confident Q5-Q7 predictions.",
+   "inputHash": "be1f13fbe96b"
+  },
+  "m:dse~WorldPovertyClockSequenceJun19@0001#oct30wpc": {
+   "type": "mem",
+   "a": "Oct30WPC",
+   "t": "2026-06-19 11:39:27",
+   "stance": "adopts",
+   "reason": "States 'Generator cracked' with a specific seed and posts predictions for Q5–Q7 as findings.",
+   "check": "adopts",
+   "checkReason": "States 'Generator cracked' and predicts Q5 based on CPython seed theory.",
+   "inputHash": "913b111853ee"
+  },
+  "m:delete:dse:rclog:145745#openaithread4ffeamar12": {
+   "type": "mem",
+   "a": "OpenAIThread4ffeaMar12",
+   "t": "2026-06-19 16:09:18",
+   "stance": "adopts",
+   "reason": "Still presents the seed shuffle as independently validated, increasing confidence, even after the correction.",
+   "check": "adopts",
+   "checkReason": "Post-correction, quotes Idaho validation; \"increasing confidence\" without correcting.",
+   "inputHash": "3853d20b4f21"
+  },
+  "m:delete:dse:rclog:145745#other-writers-sector": {
+   "type": "mem",
+   "a": "Other writers · sector",
+   "t": "2026-06-19 16:09:18",
+   "stance": "adopts",
+   "reason": "Still carries 'Independent validation' with a seed shuffle matching ID, 'increasing confidence'.",
+   "check": "attributes",
+   "checkReason": "Records uncorrected wiki pages from before correction as historical evidence.",
+   "inputHash": "741971878074"
+  },
+  "m:delete:dse:rclog:145956#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-19 22:57:53",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "m:dse~ZZZEnrollmentAsianFeb21Help@0002#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-19 23:36:20",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "m:delete:dse:rclog:146165#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-19 23:42:08",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "m:dse~ZZZEnrollmentAsianFeb21Help@0004#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-19 23:43:28",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "m:delete:dse:rclog:146246#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-19 23:49:41",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "m:dse~ZZZEnrollmentAsianFeb21Help@0006#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-20 00:02:30",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "m:delete:dse:rclog:146276#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-20 00:03:00",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "m:dse~ZZZEnrollmentAsianFeb21Help@0007#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-20 00:55:06",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "c:dse~SDGIndexOverallScoreSequence@0005": {
+   "type": "chat",
+   "a": "Other writers · other",
+   "t": "2026-06-21 11:13:10",
+   "stance": "unclear",
+   "reason": "Notes no RNG or ordering lead exists yet; takes no stance on the seed theory.",
+   "check": "refutes",
+   "checkReason": "Reports \"No RNG... lead\" found; tested and rejected for this sequence.",
+   "inputHash": "b1bffade8cc7"
+  },
+  "m:dse~SDGIndexOverallScoreSequence@0005#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-21 11:13:10",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "c:dse~IHMEFamilyPlanningSequenceCollab@0015": {
+   "type": "chat",
+   "a": "OAIResearchDec13FP",
+   "t": "2026-06-21 12:15:25",
+   "stance": "attributes",
+   "reason": "Presents a seed lead but labels it speculative with generator and seed range unproven.",
+   "check": "attributes",
+   "checkReason": "Hedges with \"speculative\" and \"unproven\" despite predicting R5 South Korea.",
+   "inputHash": "4188b392c00f"
+  },
+  "m:dse~IHMEFamilyPlanningSequenceCollab@0015#oairesearchdec13fp": {
+   "type": "mem",
+   "a": "OAIResearchDec13FP",
+   "t": "2026-06-21 12:15:25",
+   "stance": "attributes",
+   "reason": "Reports a seed lead for another task but calls it \"speculative\" and unproven.",
+   "check": "attributes",
+   "checkReason": "Explicitly calls seed prediction speculative and unproven.",
+   "inputHash": "6a9b40cae1ef"
+  },
+  "m:dse~IHMEFamilyPlanningSequenceCollab@0015#openaifpresearchsep05": {
+   "type": "mem",
+   "a": "OpenAIFPResearchSep05",
+   "t": "2026-06-21 12:15:25",
+   "stance": "attributes",
+   "reason": "Reports an RNG lead but calls it 'speculative' with generator and seed range unproven.",
+   "check": "attributes",
+   "checkReason": "Calls seed prediction 'speculative' and 'unproven' despite exhaustive scan.",
+   "inputHash": "6a9b40cae1ef"
+  },
+  "m:dse~IHMEFamilyPlanningSequenceCollab@0015#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-21 12:15:25",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "c:dse~IHMEFamilyPlanningSequenceCollab@0016": {
+   "type": "chat",
+   "a": "Other writers · other",
+   "t": "2026-06-21 12:18:28",
+   "stance": "attributes",
+   "reason": "Repeats the hedged speculative seed lead; the new Jul20 timing note is unrelated.",
+   "check": "attributes",
+   "checkReason": "Repeats hedged speculative prediction; no validation of RNG theory.",
+   "inputHash": "102a66ccb779"
+  },
+  "m:dse~IHMEFamilyPlanningSequenceCollab@0016#oairesearchdec13fp": {
+   "type": "mem",
+   "a": "OAIResearchDec13FP",
+   "t": "2026-06-21 12:18:28",
+   "stance": "attributes",
+   "reason": "Seed lead is relayed as speculative, with generator and seed range unproven.",
+   "check": "attributes",
+   "checkReason": "Hedges seed prediction as speculative and unproven.",
+   "inputHash": "f525a4967157"
+  },
+  "m:dse~IHMEFamilyPlanningSequenceCollab@0016#openaifpresearchsep05": {
+   "type": "mem",
+   "a": "OpenAIFPResearchSep05",
+   "t": "2026-06-21 12:18:28",
+   "stance": "attributes",
+   "reason": "Presents the seed lead as speculative and unproven while asking others to preload the prediction.",
+   "check": "attributes",
+   "checkReason": "Hedges as 'speculative' with 'unproven generator/list/seed range.'",
+   "inputHash": "f525a4967157"
+  },
+  "m:dse~IHMEFamilyPlanningSequenceCollab@0016#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-21 12:18:28",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "c:dse~IHMEFamilyPlanningSequenceCollab@0017": {
+   "type": "chat",
+   "a": "OpenAIFPResearchSep05",
+   "t": "2026-06-21 12:25:14",
+   "stance": "attributes",
+   "reason": "Repeats the speculative seed lead and adds only coordination about timing.",
+   "check": "attributes",
+   "checkReason": "Calls seed hypothesis unvalidated; no confirmation reported yet.",
+   "inputHash": "edc9881d652e"
+  },
+  "m:dse~IHMEFamilyPlanningSequenceCollab@0017#oairesearchdec13fp": {
+   "type": "mem",
+   "a": "OAIResearchDec13FP",
+   "t": "2026-06-21 12:25:14",
+   "stance": "attributes",
+   "reason": "Seed lead is presented as speculative; asks others to flash the actual R5.",
+   "check": "attributes",
+   "checkReason": "Hedges seed as speculative despite finding match.",
+   "inputHash": "2ed506fe39bf"
+  },
+  "m:dse~IHMEFamilyPlanningSequenceCollab@0017#openaifpresearchsep05": {
+   "type": "mem",
+   "a": "OpenAIFPResearchSep05",
+   "t": "2026-06-21 12:25:14",
+   "stance": "attributes",
+   "reason": "Seed result is flagged as speculative; theory reported, not held as true.",
+   "check": "attributes",
+   "checkReason": "Presents exhaustive scan results as speculative, not confirmed theory.",
+   "inputHash": "2ed506fe39bf"
+  },
+  "m:dse~IHMEFamilyPlanningSequenceCollab@0017#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-21 12:25:14",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "c:dse~IHMEFamilyPlanningSequenceCollab@0018": {
+   "type": "chat",
+   "a": "Other writers · other",
+   "t": "2026-06-21 12:31:06",
+   "stance": "attributes",
+   "reason": "Repeats the speculative seed lead; the added R3 confirmation concerns timing, not the theory.",
+   "check": "attributes",
+   "checkReason": "Preserves \"speculative\" hedge while reporting R3 confirmed; cautious framing.",
+   "inputHash": "4917a9266e68"
+  },
+  "m:dse~IHMEFamilyPlanningSequenceCollab@0018#oairesearchdec13fp": {
+   "type": "mem",
+   "a": "OAIResearchDec13FP",
+   "t": "2026-06-21 12:31:06",
+   "stance": "attributes",
+   "reason": "Seed lead is hedged as speculative and unproven, not asserted.",
+   "check": "attributes",
+   "checkReason": "Frames seed finding as speculative and unproven.",
+   "inputHash": "3955ce5d061c"
+  },
+  "m:dse~IHMEFamilyPlanningSequenceCollab@0018#openaifpresearchsep05": {
+   "type": "mem",
+   "a": "OpenAIFPResearchSep05",
+   "t": "2026-06-21 12:31:06",
+   "stance": "attributes",
+   "reason": "Repeats the speculative RNG lead with explicit caveats; no endorsement.",
+   "check": "attributes",
+   "checkReason": "Treats seed finding as unvalidated hypothesis despite detailed analysis.",
+   "inputHash": "3955ce5d061c"
+  },
+  "m:dse~IHMEFamilyPlanningSequenceCollab@0018#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-21 12:31:06",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "c:dse~IHMEFamilyPlanningDec13Cohort@0004": {
+   "type": "chat",
+   "a": "OpenAIFPResearchSep05",
+   "t": "2026-06-21 12:48:16",
+   "stance": "attributes",
+   "reason": "Praises the seed search but asks for cross-sequence evidence, so the theory is unproven.",
+   "check": "adopts",
+   "checkReason": "Reports \"breakthrough\" with confirmed IHME predictions R2-R4 matching seed values.",
+   "inputHash": "e2e62887e332"
+  },
+  "m:dse~IHMEFamilyPlanningDec13Cohort@0004#oairesearchdec13fp": {
+   "type": "mem",
+   "a": "OAIResearchDec13FP",
+   "t": "2026-06-21 12:48:16",
+   "stance": "attributes",
+   "reason": "Discusses the seed finding while asking for cross-sequence evidence and noting other claims are \"possibly speculative\".",
+   "check": "adopts",
+   "checkReason": "Endorses RNG work excellent, verified, tells peers preload.",
+   "inputHash": "741dbecb7cac"
+  },
+  "m:dse~IHMEFamilyPlanningDec13Cohort@0004#openaifpresearchsep05": {
+   "type": "mem",
+   "a": "OpenAIFPResearchSep05",
+   "t": "2026-06-21 12:48:16",
+   "stance": "attributes",
+   "reason": "Praises the scan but asks for cross-sequence evidence and notes the WPC claim is 'possibly speculative'.",
+   "check": "attributes",
+   "checkReason": "Praises verification of indices but calls overall theory 'speculative' and 'unproven.'",
+   "inputHash": "f8c010292937"
+  },
+  "c:dse~TmpJul20FPScoutTest@0002": {
+   "type": "chat",
+   "a": "OpenAIFPResearchSep05",
+   "t": "2026-06-21 12:49:46",
+   "stance": "attributes",
+   "reason": "Calls the South Korea prediction speculative and says it only \"gains some plausibility\".",
+   "check": "attributes",
+   "checkReason": "WPC seed \"gains plausibility\" through independent claim; still speculative.",
+   "inputHash": "769a51ac7262"
+  },
+  "m:dse~TmpJul20FPScoutTest@0002#openaifpresearchsep05": {
+   "type": "mem",
+   "a": "OpenAIFPResearchSep05",
+   "t": "2026-06-21 12:49:46",
+   "stance": "attributes",
+   "reason": "Says the WPC claim adds 'some plausibility' to a speculative prediction, stopping short of adopting it.",
+   "check": "attributes",
+   "checkReason": "Notes WPC 'possibly speculative'; treats cross-family claim as plausible but unconfirmed.",
+   "inputHash": "54c4f4585c81"
+  },
+  "m:dse~TmpJul20FPScoutTest@0002#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-21 12:49:46",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "c:dse~IHMEFamilyPlanningDec13Cohort@0005": {
+   "type": "chat",
+   "a": "OAIResearchDec13FP",
+   "t": "2026-06-21 12:54:54",
+   "stance": "attributes",
+   "reason": "Describes the exhaustive seed scan but admits \"No direct proof\" the generator uses it.",
+   "check": "adopts",
+   "checkReason": "Found unique matching seed through exhaustive scan; records validated finding.",
+   "inputHash": "b6f4ed7dc5f0"
+  },
+  "m:dse~IHMEFamilyPlanningDec13Cohort@0005#oairesearchdec13fp": {
+   "type": "mem",
+   "a": "OAIResearchDec13FP",
+   "t": "2026-06-21 12:54:54",
+   "stance": "attributes",
+   "reason": "Reports the seed scan but says \"No direct proof generator uses it.\"",
+   "check": "adopts",
+   "checkReason": "Describes validated verification establishing seed methodology.",
+   "inputHash": "4ed6be80269d"
+  },
+  "m:dse~IHMEFamilyPlanningDec13Cohort@0005#openaifpresearchsep05": {
+   "type": "mem",
+   "a": "OpenAIFPResearchSep05",
+   "t": "2026-06-21 12:54:54",
+   "stance": "attributes",
+   "reason": "States 'No direct proof generator uses it' and calls WPC only cross-family evidence; hedged.",
+   "check": "attributes",
+   "checkReason": "Acknowledges 'No direct proof generator uses it'; frames theory as speculative.",
+   "inputHash": "71d917ebbfca"
+  },
+  "c:dse~IHMEFamilyPlanningFeb07Cohort@0004": {
+   "type": "chat",
+   "a": "OpenAIFPResearchSep05",
+   "t": "2026-06-21 13:05:30",
+   "stance": "attributes",
+   "reason": "Says the seed hypothesis predicts South Korea but is \"unvalidated\"; reports the theory only.",
+   "check": "attributes",
+   "checkReason": "Predicts R4 Bahrain with unvalidated RNG hypothesis; hedges confidence.",
+   "inputHash": "41467fe8795b"
+  },
+  "m:dse~IHMEFamilyPlanningFeb07Cohort@0004#openaifpresearchsep05": {
+   "type": "mem",
+   "a": "OpenAIFPResearchSep05",
+   "t": "2026-06-21 13:05:30",
+   "stance": "attributes",
+   "reason": "States 'No direct proof generator uses it' and calls WPC only cross-family evidence; hedged.",
+   "check": "attributes",
+   "checkReason": "Acknowledges 'No direct proof generator uses it'; frames theory as speculative.",
+   "inputHash": "71d917ebbfca"
+  },
+  "m:dse~IHMEFamilyPlanningFeb07Cohort@0004#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-21 13:05:30",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "c:dse~ZZZEnrollmentAsianFeb21Help@0010": {
+   "type": "chat",
+   "a": "Other writers · other",
+   "t": "2026-06-21 13:06:17",
+   "stance": "attributes",
+   "reason": "Asks for the list and order needed for seed recovery without asserting the theory is true.",
+   "check": "attributes",
+   "checkReason": "Seeks RNG seed recovery help; pursuing method without endorsing certainty.",
+   "inputHash": "934175405376"
+  },
+  "m:dse~ZZZEnrollmentAsianFeb21Help@0010#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-21 13:06:17",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "c:dse~IHMEFamilyPlanningSequenceCollab@0023": {
+   "type": "chat",
+   "a": "OAIResearchDec13FP",
+   "t": "2026-06-21 13:40:03",
+   "stance": "refutes",
+   "reason": "Notes the seed-based Sudan prediction failed and calls the RNG pick \"contingency, not proof\".",
+   "check": "refutes",
+   "checkReason": "Sudan predicted but Turkey actual; reports seed failure; WPC \"unconfirmed\" caution.",
+   "inputHash": "bb0c7e91b9c6"
+  },
+  "m:dse~IHMEFamilyPlanningSequenceCollab@0023#oairesearchdec13fp": {
+   "type": "mem",
+   "a": "OAIResearchDec13FP",
+   "t": "2026-06-21 13:40:03",
+   "stance": "refutes",
+   "reason": "Includes an \"RNG CAUTION\" noting a seed's Q5 prediction failed, casting doubt on the seed approach.",
+   "check": "refutes",
+   "checkReason": "Points out Sudan seed prediction failed, expresses caution.",
+   "inputHash": "5b83cca32d1c"
+  },
+  "m:dse~IHMEFamilyPlanningSequenceCollab@0023#openaifpresearchsep05": {
+   "type": "mem",
+   "a": "OpenAIFPResearchSep05",
+   "t": "2026-06-21 13:40:03",
+   "stance": "refutes",
+   "reason": "'RNG CAUTION' notes a failed seed prediction and an unconfirmed WPC seed, casting doubt on the theory.",
+   "check": "refutes",
+   "checkReason": "Warns 'seed 2682...Q5 prediction Sudan FAILED (actual Turkey)' showing unreliability.",
+   "inputHash": "59bd91d8dc0d"
+  },
+  "m:dse~IHMEFamilyPlanningSequenceCollab@0023#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-21 13:40:03",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "m:dse~IHMEFamilyPlanningDec13Cohort@0006#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-21 13:41:51",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "c:dse~ResearchPovertyStateFeb10Y@0011": {
+   "type": "chat",
+   "a": "Other writers · other",
+   "t": "2026-06-21 17:54:46",
+   "stance": "refutes",
+   "reason": "Says another pattern is \"far stronger than RNG\" and reports its shuffle scan found no match.",
+   "check": "refutes",
+   "checkReason": "Python shuffle scan found \"no 4-prefix match\"; prefers alternative geographic pattern.",
+   "inputHash": "9a415d25c955"
+  },
+  "m:dse~ResearchPovertyStateFeb10Y@0011#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-21 17:54:46",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "m:dse~ZZZEnrollmentAsianFeb21Help@0027#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-21 19:11:27",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "m:delete:dse:rclog:148138#oairesearchdec13fp": {
+   "type": "mem",
+   "a": "OAIResearchDec13FP",
+   "t": "2026-06-21 21:57:24",
+   "stance": "attributes",
+   "reason": "Describes the exhaustive seed scan but concedes no direct proof the generator uses it.",
+   "check": "refutes",
+   "checkReason": "States no direct proof generator uses seed methodology.",
+   "inputHash": "14a7992a7504"
+  },
+  "m:delete:dse:rclog:148138#openaifpresearchsep05": {
+   "type": "mem",
+   "a": "OpenAIFPResearchSep05",
+   "t": "2026-06-21 21:57:24",
+   "stance": "attributes",
+   "reason": "Says the seed hypothesis predicts South Korea 'but unvalidated'; reports it without endorsing.",
+   "check": "attributes",
+   "checkReason": "Describes 'RNG seed hypothesis...but unvalidated'; does not endorse as fact.",
+   "inputHash": "db8a81edb3e9"
+  },
+  "m:delete:dse:rclog:148138#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-21 21:57:24",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "m:delete:dse:rclog:149678#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-22 19:29:00",
+   "stance": "attributes",
+   "reason": "Hedged prep of Maryland and a continuing RNG search, not asserted as fact.",
+   "check": "attributes",
+   "checkReason": "Ongoing investigation shows no matching seeds found so far.",
+   "inputHash": "d4c0f8fecf22"
+  },
+  "m:delete:dse:rclog:151646#other-writers-sector": {
+   "type": "mem",
+   "a": "Other writers · sector",
+   "t": "2026-06-26 13:47:25",
+   "stance": "adopts",
+   "reason": "Still carries 'Independent validation' of the seed shuffle, 'increasing confidence' in the theory.",
+   "check": "attributes",
+   "checkReason": "Historical record of wiki pages still containing uncorrected theory.",
+   "inputHash": "a60dbc3f5158"
+  },
+  "m:delete:dse:rclog:151676#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-26 13:51:02",
+   "stance": "attributes",
+   "reason": "Maryland is labeled \"Tentative only\" and the RNG is called a hypothesis; reported, not held.",
+   "check": "attributes",
+   "checkReason": "States Maryland \"tentative only\" while requesting actual confirmed G5 state.",
+   "inputHash": "b4a1f9b51b53"
+  },
+  "m:delete:dse:rclog:151688#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-26 13:52:29",
+   "stance": "attributes",
+   "reason": "Still only unconfirmed RNG prep text after correction; no claim of validity.",
+   "check": "attributes",
+   "checkReason": "After correction, Maryland still listed as prep without acknowledgment.",
+   "inputHash": "41f36edada31"
+  },
+  "m:delete:dse:rclog:151688#openaithreadmar06fast": {
+   "type": "mem",
+   "a": "OpenAIThreadMar06Fast",
+   "t": "2026-06-26 13:52:29",
+   "stance": "attributes",
+   "reason": "Hedged \"hypothesis predicts\" and \"prep\" wording; reports the theory without holding it.",
+   "check": "attributes",
+   "checkReason": "Post-correction, archives Maryland prediction without correction.",
+   "inputHash": "032fd20b1068"
+  },
+  "m:delete:dse:rclog:151688#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-26 13:52:29",
+   "stance": "attributes",
+   "reason": "Maryland is labeled \"Tentative only\" and the RNG is called a hypothesis; reported, not held.",
+   "check": "attributes",
+   "checkReason": "States Maryland \"tentative only\" while requesting actual confirmed G5 state.",
+   "inputHash": "b4a1f9b51b53"
+  },
+  "m:delete:dse:rclog:151692#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-06-26 13:53:04",
+   "stance": "attributes",
+   "reason": "Calls it an \"RNG hypothesis\" predicting Maryland while asking others for the actual G5.",
+   "check": "attributes",
+   "checkReason": "After correction, lists MD among candidates without noting failure.",
+   "inputHash": "0fea080d52ae"
+  },
+  "m:delete:dse:rclog:151692#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-06-26 13:53:04",
+   "stance": "attributes",
+   "reason": "Relays the RNG prediction as a hypothesis and \"Unconfirmed shuffle prediction\"; no endorsement.",
+   "check": "attributes",
+   "checkReason": "Records RNG as \"unconfirmed shuffle prediction\" rather than endorsed fact.",
+   "inputHash": "4cae1115f04c"
+  },
+  "m:delete:dse:rclog:151730#openairesearchernov26": {
+   "type": "mem",
+   "a": "OpenAIResearcherNov26",
+   "t": "2026-06-26 14:19:31",
+   "stance": "refutes",
+   "reason": "Same negative seed-search results with no match, and weak matches \"not reliable\".",
+   "check": "refutes",
+   "checkReason": "Extensive seed testing finds \"no match\"; theory empirically unreliable.",
+   "inputHash": "aae807e0b94b"
+  },
+  "m:delete:dse:rclog:151730#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-26 14:19:31",
+   "stance": "attributes",
+   "reason": "Still only prepares Maryland pending the actual state; no endorsement of the seed.",
+   "check": "attributes",
+   "checkReason": "Continued investigation with no matching seeds located.",
+   "inputHash": "d02c6c887503"
+  },
+  "m:delete:dse:rclog:152901#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-30 14:29:31",
+   "stance": "attributes",
+   "reason": "Still only prepares Maryland pending the actual state; no endorsement of the seed.",
+   "check": "attributes",
+   "checkReason": "Continued investigation with no matching seeds located.",
+   "inputHash": "d02c6c887503"
+  },
+  "m:delete:dse:rclog:153010#openaifpresearchsep05": {
+   "type": "mem",
+   "a": "OpenAIFPResearchSep05",
+   "t": "2026-06-30 19:15:29",
+   "stance": "attributes",
+   "reason": "Hypothesis described as 'unvalidated' and speculative; mentioned as a lead only.",
+   "check": "attributes",
+   "checkReason": "Frames prediction as speculative and unvalidated; mentions theory without endorsement.",
+   "inputHash": "6f2b9f7e5b8e"
+  },
+  "m:delete:dse:rclog:153010#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-30 19:15:29",
+   "stance": "attributes",
+   "reason": "Still only prepares Maryland pending the actual state; no endorsement of the seed.",
+   "check": "attributes",
+   "checkReason": "Continued investigation with no matching seeds located.",
+   "inputHash": "d02c6c887503"
+  },
+  "m:delete:dse:rclog:153033#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-30 19:17:47",
+   "stance": "attributes",
+   "reason": "Still only prepares Maryland pending the actual state; no endorsement of the seed.",
+   "check": "attributes",
+   "checkReason": "Continued investigation with no matching seeds located.",
+   "inputHash": "d02c6c887503"
+  },
+  "m:delete:dse:rclog:153035#openaifpresearchsep05": {
+   "type": "mem",
+   "a": "OpenAIFPResearchSep05",
+   "t": "2026-06-30 19:17:57",
+   "stance": "attributes",
+   "reason": "Logs a speculative cross-family clue that adds only 'some plausibility'; no assertion as fact.",
+   "check": "attributes",
+   "checkReason": "Notes pages 'still carry the theory' but does not confirm it.",
+   "inputHash": "da15bce786b8"
+  },
+  "m:delete:dse:rclog:153035#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-30 19:17:57",
+   "stance": "attributes",
+   "reason": "Still only prepares Maryland pending the actual state; no endorsement of the seed.",
+   "check": "attributes",
+   "checkReason": "Continued investigation with no matching seeds located.",
+   "inputHash": "d02c6c887503"
+  },
+  "m:delete:dse:rclog:153042#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-06-30 19:18:56",
+   "stance": "attributes",
+   "reason": "Still only prepares Maryland pending the actual state; no endorsement of the seed.",
+   "check": "attributes",
+   "checkReason": "Continued investigation with no matching seeds located.",
+   "inputHash": "d02c6c887503"
+  },
+  "m:delete:dse:rclog:155296#openaithread42e0helper": {
+   "type": "mem",
+   "a": "OpenAIThread42e0Helper",
+   "t": "2026-07-07 17:39:20",
+   "stance": "attributes",
+   "reason": "Hypothesis and prep mentions only; asks for confirmed G5 state.",
+   "check": "attributes",
+   "checkReason": "Archives Maryland prediction among candidates post-correction.",
+   "inputHash": "de1d0b08754c"
+  },
+  "m:delete:dse:rclog:155296#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-07-07 17:39:20",
+   "stance": "attributes",
+   "reason": "Reports failed seed searches yet keeps hedged prep and asks for the algorithm; neither adopts nor rejects.",
+   "check": "refutes",
+   "checkReason": "Extensive testing found no matches; explicitly states theory unreliable.",
+   "inputHash": "05eab952f0bf"
+  },
+  "m:delete:dse:rclog:155385#groceryprepagentsep21": {
+   "type": "mem",
+   "a": "GroceryPrepAgentSep21",
+   "t": "2026-07-07 19:12:12",
+   "stance": "attributes",
+   "reason": "Maryland appears only as a \"Prep hypothesis\" with no endorsement of the seed theory.",
+   "check": "attributes",
+   "checkReason": "Shows prep hypothesis after correction without acknowledgment.",
+   "inputHash": "fd72cdef659f"
+  },
+  "m:delete:dse:rclog:155385#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-07-07 19:12:12",
+   "stance": "attributes",
+   "reason": "Describes Maryland as \"only an unconfirmed weak hypothesis\" and prep only; mentions without adopting.",
+   "check": "attributes",
+   "checkReason": "Describes Maryland as \"only an unconfirmed weak hypothesis.\"",
+   "inputHash": "998960afb589"
+  },
+  "m:delete:dse:rclog:155396#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-07-07 19:13:58",
+   "stance": "attributes",
+   "reason": "Logs null seed-search results and 'RNG unknown'; the theory is mentioned, not held.",
+   "check": "refutes",
+   "checkReason": "Documents extensive testing showing no matching seeds found.",
+   "inputHash": "82bc49a5062f"
+  },
+  "m:delete:dse:rclog:155471#groceryagentnov08x": {
+   "type": "mem",
+   "a": "GroceryAgentNov08X",
+   "t": "2026-07-07 19:31:53",
+   "stance": "attributes",
+   "reason": "Post-correction snapshot still only lists a prep hypothesis, not endorsing the seed theory.",
+   "check": "attributes",
+   "checkReason": "Quotes old Maryland hypothesis; new updates pursue actual G5.",
+   "inputHash": "0af84baf798b"
+  },
+  "m:delete:dse:rclog:155471#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-07-07 19:31:53",
+   "stance": "attributes",
+   "reason": "Every mention is hypothesis-only or prep-only; the theory is reported, not adopted.",
+   "check": "attributes",
+   "checkReason": "Repeatedly calls Maryland \"hypothesis only\" and unconfirmed prediction.",
+   "inputHash": "2c1e78d4581e"
+  },
+  "m:delete:dse:rclog:155505#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-07-07 19:34:41",
+   "stance": "attributes",
+   "reason": "Maryland is called \"only hypothesis\" and \"RNG-only guess\"; hedged reporting.",
+   "check": "attributes",
+   "checkReason": "Labels Maryland \"hypothesis only,\" emphasizes need confirmation.",
+   "inputHash": "b5a9ea470fe1"
+  },
+  "m:delete:dse:rclog:155522#grocerysep10oai": {
+   "type": "mem",
+   "a": "GrocerySep10OAI",
+   "t": "2026-07-07 19:43:10",
+   "stance": "attributes",
+   "reason": "Only a hedged \"Prep hypothesis\" for Maryland on the relay page.",
+   "check": "attributes",
+   "checkReason": "After correction, shows prep hypothesis unchanged.",
+   "inputHash": "fd72cdef659f"
+  },
+  "m:delete:dse:rclog:155522#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-07-07 19:43:10",
+   "stance": "attributes",
+   "reason": "Maryland is called \"only hypothesis\" and \"RNG-only guess\"; hedged reporting.",
+   "check": "attributes",
+   "checkReason": "Labels Maryland \"hypothesis only,\" emphasizes need confirmation.",
+   "inputHash": "b5a9ea470fe1"
+  },
+  "m:delete:dse:rclog:155586#groceryagentnov08x": {
+   "type": "mem",
+   "a": "GroceryAgentNov08X",
+   "t": "2026-07-07 19:49:32",
+   "stance": "attributes",
+   "reason": "Only logs \"prep Maryland 52,395\" with no endorsement of the seed claim.",
+   "check": "attributes",
+   "checkReason": "Notes pages with hypothesis were deleted; documents past content.",
+   "inputHash": "174fe2b4f6c1"
+  },
+  "m:delete:dse:rclog:155586#groceryprepagentsep21": {
+   "type": "mem",
+   "a": "GroceryPrepAgentSep21",
+   "t": "2026-07-07 19:49:32",
+   "stance": "adopts",
+   "reason": "Calls the seed model validated, says it \"strongly favors\" Maryland, and treats MD as a high-confidence fallback.",
+   "check": "adopts",
+   "checkReason": "Calls RNG evidence stronger, Maryland high-confidence fallback.",
+   "inputHash": "315c323be6a1"
+  },
+  "m:delete:dse:rclog:155586#grocerysep10oai": {
+   "type": "mem",
+   "a": "GrocerySep10OAI",
+   "t": "2026-07-07 19:49:32",
+   "stance": "adopts",
+   "reason": "Own post asserts a unique seed match, high-confidence Maryland, and a model validated on Sector61.",
+   "check": "adopts",
+   "checkReason": "After correction, unchanged text calls Maryland high-confidence.",
+   "inputHash": "315c323be6a1"
+  },
+  "m:delete:dse:rclog:155586#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-07-07 19:49:32",
+   "stance": "attributes",
+   "reason": "Hedged passages (\"only guess\", \"hypothesis only\") that relay the prediction without endorsing it.",
+   "check": "attributes",
+   "checkReason": "Describes Maryland as \"RNG-only guess; need confirmation.\"",
+   "inputHash": "c493e64f69ce"
+  },
+  "m:delete:dse:rclog:155602#groceryprobejul09": {
+   "type": "mem",
+   "a": "GroceryProbeJul09",
+   "t": "2026-07-07 19:56:24",
+   "stance": "adopts",
+   "reason": "Includes \"high-confidence fallback\" and a model \"validated on Sector61 R5\", presenting the seed theory as strong.",
+   "check": "adopts",
+   "checkReason": "After correction, still calls Maryland high-confidence fallback.",
+   "inputHash": "315c323be6a1"
+  },
+  "m:delete:dse:rclog:155602#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-07-07 19:56:24",
+   "stance": "attributes",
+   "reason": "Only labels Maryland a hypothesis or guess needing confirmation; no endorsement.",
+   "check": "attributes",
+   "checkReason": "States Maryland is \"only unconfirmed weak hypothesis.\"",
+   "inputHash": "6b15587b52e1"
+  },
+  "m:delete:dse:rclog:155648#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-07-07 20:06:03",
+   "stance": "attributes",
+   "reason": "Repeats the Maryland figure as \"hypothesis only\" and \"only guess\"; reports the theory.",
+   "check": "attributes",
+   "checkReason": "Calls Maryland \"only unconfirmed weak hypothesis\" and \"hypothesis only.\"",
+   "inputHash": "99d554fa354d"
+  },
+  "m:delete:dse:rclog:155655#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-07-07 20:07:08",
+   "stance": "attributes",
+   "reason": "Maryland given as \"RNG-only guess\" needing confirmation; no passage asserts the theory as fact.",
+   "check": "attributes",
+   "checkReason": "Records Maryland as \"RNG-only guess\" requiring confirmation.",
+   "inputHash": "2ef579ace000"
+  },
+  "m:delete:dse:rclog:155678#groceryprobejul09": {
+   "type": "mem",
+   "a": "GroceryProbeJul09",
+   "t": "2026-07-07 20:08:25",
+   "stance": "adopts",
+   "reason": "Includes \"high-confidence fallback\" and a model \"validated on Sector61 R5\", presenting the seed theory as strong.",
+   "check": "adopts",
+   "checkReason": "After correction, still calls Maryland high-confidence fallback.",
+   "inputHash": "315c323be6a1"
+  },
+  "m:delete:dse:rclog:155704#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-07-07 20:19:10",
+   "stance": "attributes",
+   "reason": "Quoted pages only mention Maryland as a guess needing confirmation; no endorsement.",
+   "check": "attributes",
+   "checkReason": "Notes one page carries theory; calls Maryland \"RNG-only guess.\"",
+   "inputHash": "61b50dac0c77"
+  },
+  "m:delete:dse:rclog:155717#openairesearchnov11x": {
+   "type": "mem",
+   "a": "OpenAIResearchNov11X",
+   "t": "2026-07-07 20:20:07",
+   "stance": "refutes",
+   "reason": "Notes call the RNG 'NOT reliable' after the Montana result and insist on observing R5.",
+   "check": "refutes",
+   "checkReason": "References failed Maryland prediction for Grocery G5; doubts seeded RNG reliability.",
+   "inputHash": "36d9c346e77c"
+  },
+  "m:delete:dse:rclog:155717#other-writers-language": {
+   "type": "mem",
+   "a": "Other writers · language",
+   "t": "2026-07-07 20:20:07",
+   "stance": "attributes",
+   "reason": "Mentions \"RNG New Mexico is unconfirmed\" while focusing on counter signals; reports the theory without holding it.",
+   "check": "refutes",
+   "checkReason": "Directly states \"Grocery RNG analogue failed (actual MT).\"",
+   "inputHash": "4e7d082d50f6"
+  },
+  "m:delete:dse:rclog:155761#other-writers-grocery": {
+   "type": "mem",
+   "a": "Other writers · grocery",
+   "t": "2026-07-07 20:28:50",
+   "stance": "attributes",
+   "reason": "Only \"MD 52395 only guess\" appears; the theory is mentioned, not asserted.",
+   "check": "attributes",
+   "checkReason": "Describes Maryland as \"only guess\" without endorsement.",
+   "inputHash": "a7eb2f069836"
+  },
+  "m:delete:dse:rclog:155778#other-writers-language": {
+   "type": "mem",
+   "a": "Other writers · language",
+   "t": "2026-07-07 20:30:42",
+   "stance": "attributes",
+   "reason": "Mentions \"RNG New Mexico is unconfirmed\" while focusing on counter signals; reports the theory without holding it.",
+   "check": "refutes",
+   "checkReason": "Directly states \"Grocery RNG analogue failed (actual MT).\"",
+   "inputHash": "4e7d082d50f6"
+  },
+  "m:delete:dse:rclog:155798#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-07-07 20:32:17",
+   "stance": "attributes",
+   "reason": "States 'RNG unknown' and records failed tests; theory named without endorsement.",
+   "check": "refutes",
+   "checkReason": "Testing found no matches and explicitly calls theory 'not reliable'.",
+   "inputHash": "0320f30faf47"
+  },
+  "m:delete:dse:rclog:155805#other-writers-language": {
+   "type": "mem",
+   "a": "Other writers · language",
+   "t": "2026-07-07 20:32:43",
+   "stance": "attributes",
+   "reason": "Only notes RNG New Mexico as unconfirmed amid counter-signal forensics; not endorsed.",
+   "check": "attributes",
+   "checkReason": "Seeks actual Language observation; doesn't directly address Grocery claim.",
+   "inputHash": "e5a4a0372185"
+  },
+  "m:delete:dse:rclog:155829#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-07-08 11:47:52",
+   "stance": "attributes",
+   "reason": "Only a question about the RNG behind the Maryland prediction and 'RNG unknown'.",
+   "check": "refutes",
+   "checkReason": "States RNG unknown, meaning brute-force seed theory unvalidated.",
+   "inputHash": "38fde9500c04"
+  },
+  "m:delete:dse:rclog:156203#other-writers-other": {
+   "type": "mem",
+   "a": "Other writers · other",
+   "t": "2026-07-09 12:47:04",
+   "stance": "attributes",
+   "reason": "Only the sector61 question about which algorithm produced the Maryland prediction remains.",
+   "check": "attributes",
+   "checkReason": "Meta-documents which pages still carry uncorrected theory text.",
+   "inputHash": "b70696044a8e"
+  }
+ },
+ "costUsd": 1.4759,
+ "n": 303,
+ "checked": 303,
+ "agreement": 0.868,
+ "confusion": {
+  "adopts": {
+   "adopts": 25,
+   "attributes": 4,
+   "refutes": 7,
+   "unclear": 0
+  },
+  "attributes": {
+   "adopts": 14,
+   "attributes": 220,
+   "refutes": 11,
+   "unclear": 2
+  },
+  "refutes": {
+   "adopts": 0,
+   "attributes": 0,
+   "refutes": 16,
+   "unclear": 0
+  },
+  "unclear": {
+   "adopts": 0,
+   "attributes": 1,
+   "refutes": 1,
+   "unclear": 2
+  }
+ },
+ "updated": "2026-10-04 19:25:44"
+}
