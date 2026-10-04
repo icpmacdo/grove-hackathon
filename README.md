@@ -44,18 +44,26 @@ correction in chat doesn't reach the copies already in memory.**
 ## Holdout data
 
 The tracer was built on the AI Village export only. We then tried it on two datasets it had never
-seen.
+seen. One became a fifth episode; the other showed what a dataset must keep for this kind of tracing.
 
-**German wiki (DseWiki takeover).** In mid-June 2026, agents doing timed multi-round lookup tasks used
-a small German wiki as a relay board. On 16 June they decided the order of states in their tasks came
-from a seeded Python shuffle. They brute-forced seeds and relayed predictions ("RNG prep Maryland
-52,395"). The theory appeared in 68 revisions under 54 self-chosen labels on 36 pages, and crossed from
-one task family to the next. At 22:56 UTC one cohort reported the actual answer, Montana, and the theory fell. Only 3 of the 36
-pages ever got the correction; at least 15 relay pages kept the wrong prediction until the moderator
-deleted them days or weeks later, and agents in other tasks kept hunting seeds for five more days.
-Their arithmetic was right: a 4-state match is what chance alone gives across 5 million seeds.
-Caveats: wiki labels are not agents (one label came from 308 IP addresses), so lanes follow in-text
-signatures; reads are not logged; and Montana rests on that one cohort's report.
+**German wiki (DseWiki takeover): the Seed Theory tab.** In mid-June 2026, agents doing timed
+multi-round lookup tasks used a small German wiki to pass answers between copies of the same task. On
+16 June some of them suspected that the order of states in their tasks came from a seeded Python
+shuffle. They brute-forced seeds and relayed predictions ("RNG prep Maryland 52,395"). The theory
+appeared in 68 saves under 54 self-chosen labels on 36 pages, and crossed from one task family to the
+next. Most relays hedged it: 29 of the 37 saves that named Maryland before the correction called it prep,
+a hypothesis or a guess. At 22:56 UTC one copy of the task reported that the round's answer was Montana,
+and the theory fell. Only 3 of the 36 pages ever got the Montana correction; 14 relay pages kept the
+wrong prediction until the moderator deleted them 10 to 26 days later, and agents in other tasks kept
+hunting seeds for five more days. Their arithmetic was right, but about one 4-state match is expected
+by chance alone in 5 million seeds (1 in 5.5 million per seed).
+
+The tracing logic is the same as for the Village episodes. The engine gained optional spec fields (its
+own database, no Village day numbers, the source's own wording), and a small adapter
+(`tracer/adapters/dsewiki.py`) maps the wiki onto the same three channels: each save's added lines are the dots, page creations and
+moderator deletions are the diamonds, and the bars show what each writer's pages still said. Caveats:
+wiki labels are not agents (one label came from 308 IP addresses), so lanes follow in-text signatures;
+reads are not logged; and Montana rests on one cohort's report.
 
 **SwarmTraces (Hugging Face intrusion).** This one can't be traced, and why is itself a finding. None of its
 189,579 records has a timestamp field, and the agent-id field is redacted to one shared placeholder on every
@@ -76,6 +84,7 @@ tracer/
   template.html    the viewer (one self-contained page)
   episodes/        episode specs: claim and correction patterns, panels, walkthrough, notes
   labels/          cached stance labels
+  adapters/        dataset adapters (dsewiki.py: the German wiki export -> the tables the engine reads)
 analysis/          eight earlier analyses of the AI Village data (each has a FINDINGS.md)
 docs/pitch.html    the project shortlist and the findings that led to Belief Tracer
 ```
@@ -93,6 +102,7 @@ It is never committed.
 ```sh
 uv sync
 uv run python scripts/build_db.py                  # data/*.jsonl.gz -> data/village.duckdb
+uv run python -m tracer.adapters.dsewiki           # optional: wiki export in data/holdout/dsewiki -> wiki.duckdb
 uv run python -m tracer.trace --all --site         # build every episode and the static site
 uv run python -m tracer.check                      # verify every built episode
 uv run python -m tracer.serve                      # local app at http://127.0.0.1:8765
