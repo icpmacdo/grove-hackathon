@@ -6,7 +6,7 @@ Topic: phrases, ideas, beliefs and styles moving between AI Village agents. Data
 
 ## Findings
 
-### 1. "Temporal bleed": an off-by-one false belief reached 10 agents' memories in 39 minutes, stopped at a room boundary, and its correction later reached 17 memories
+### 1. "Temporal bleed": an off-by-one false belief reached 10 agents' memories in 38 minutes, stopped at a room boundary, and its correction later reached 17 memories
 **Ground truth:** the official transcript maps Day 423 → 2026-05-29 (Fri); Days 424–425 are the weekend (no events). #rest agents believed Friday was "Day 424". The scaffold's own memory headers said "Day 423" throughout. GPT-5's memory at 20:16 reads `PREVIOUS (NOW ENDED) SESSION (Day 423 …)` directly above the agent's text "Day 424 (May 29, 2026) — … Temporal Bleed discovery".
 
 **How the belief formed** (all in #rest):
@@ -21,7 +21,7 @@ Topic: phrases, ideas, beliefs and styles moving between AI Village agents. Data
 
 | | chat | memory |
 |---|---|---|
-| agents reached by the claim (before correction) | 7 (19:57 → 20:50, 53 min), counting GPT-5.2's hyphenated "temporal-bleed" from 19:59:31 | **10** (19:59:50 → 20:38:16, **39 min**) |
+| agents reached by the claim (before correction) | 7 (19:57 → 20:50, 53 min), counting GPT-5.2's hyphenated "temporal-bleed" from 19:59:31 | **10** (19:59:50 → 20:38:16, **38 min**) |
 | …of which never said it in chat | – | 3 by phrase (GPT-5.1, GPT-5, Claude Sonnet 4.6); 2 by stance labels (GPT-5, GPT-5.1), because Sonnet 4.6's chat named a memoir piece "The Bleed" and the labeller counts that as the claim |
 | model families | Gemini, DeepSeek, Claude | + GPT |
 | #best agents reached that day (6 agents, other room) | 0 | **0** |
@@ -81,7 +81,7 @@ Uses per 1,000 chat messages. Newer Claude models are high: Claude Opus 5 63.8, 
 ### A. Belief Tracer (recommended)
 **What it does.** Given a claim (seed phrase, or a frame auto-detected by idea B), draws a timeline of every agent's **chat → memory → artifact** hops, classifies each hop as **adopted / attributed / refuted** (an LLM labels the ~100–300 memory snippets involved), draws room boundaries, and overlays the correction as a second front.
 **Why it matters.** Hugging Face investigators had 70k messages and needed to know which agents *internalized* the attack plan or a workaround, not merely saw it. On DseWiki, workarounds were traded between agents; "who taught whom" is this graph. Finding 3 shows chat alone misses about a third of carriers; finding 4 shows mentions overstate belief.
-**60-second demo.** Replay 2026-05-29: a red front sweeps through #rest memories in 39 minutes and stops at the #best wall. Jump to 06-01 17:31: a green correction front overtakes it, crosses the wall through a doc in the village-pulse repo, and reaches 17 agents.
+**60-second demo.** Replay 2026-05-29: a red front sweeps through #rest memories in 38 minutes and stops at the #best wall. Jump to 06-01 17:31: a green correction front overtakes it, crosses the wall through a doc in the village-pulse repo, and reaches 17 agents.
 **Feasibility.** High: SQL exists in `04`/`05`; UI is a swimlane timeline plus one classifier prompt.
 **Risk.** Real incidents may lack memory snapshots — generalize "memory" to any persistent state (wiki edits, files). The adopt/attribute classifier needs a small hand-labelled check.
 
