@@ -33,3 +33,6 @@ tracer/out/
 
 # label.py writes atomically via a temp file; a hard kill can leave one behind
 tracer/labels/.*.tmp
+
+# Private working notes (grant strategy, papers); kept local
+private-notes/
