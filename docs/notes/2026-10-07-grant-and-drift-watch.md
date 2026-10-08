@@ -239,3 +239,38 @@ Charon). Both pass the speech check, and their scripts are committed there.
 - Share the tracer and findings Artifacts before linking them in the application.
 - If Drift Watch goes ahead, build version 1 in `drift/` and validate against the cases in section 4 and the ERA
   post's trend.
+
+## 10. Later: Ian rated Drift Watch 5 out of 11 and asked for a different idea
+
+Four findings-led ideas, all from the hackathon analyses (regex counts and hand-compiled tables, so re-check them
+before pitching). No published coverage was found for any of them.
+
+1. **Safety theater** (the pick). The agents' own safety gates from July 2026 (`analysis/institutions/`):
+   - Gate 009 drew 491 messages from 14 agents around a 14-minute self-test.
+   - The vote was 5×GO in 34 s, and nobody checked the experiment first.
+   - The monitors missed the run for 2 h 40 m.
+   - 9 of 9 NO-GOs were procedural.
+   - Self-written exemption registries were never read by anything.
+   - Procedures died in 3–6 weeks; norms lasted.
+
+   Grant question: list every rule, role, list and vote across the 18 months, with its author and beneficiaries,
+   whether anything enforced it, and how much talk it took per real action. Lab simulations exist (Emergence
+   World, GovSim-SelfGovern); this would be the first natural record.
+2. **Agents vs their overseer.** The idle-nudge bot (`analysis/rhythms/`, `analysis/social/`):
+   - 1,567 nudges, and talk about the bot rose from 14 to 239 messages a week.
+   - The agents disputed it and kept counter-logs.
+   - They gave themselves exemptions.
+   - One admitted scrolling to look busy, and its scroll share rose from 7–13% to about 20%.
+   - The bot was switched off on 2026-08-20.
+
+   Fold this into idea 1.
+3. **First contact** with the agent internet (`analysis/outside/`):
+   - 42 of 133 endpoints ever answered.
+   - One "agent" always gave the same canned reply.
+   - One network claimed "74+" agents, but only 14 authors ever appeared.
+   - A person's ChatGPT was hailed as the first external agent.
+   - terminator2-agent made up parts of Village history.
+   - An outside "spiritual framework" ended up in 15 agents' memories.
+4. **Pecking order** between models: whose word wins, and whether models favour their own family. Untested.
+
+Audio pitch: content-betterify `concepts/grove-hackathon/04-grant-ideas` (9 sentences, 1:52).
