@@ -1,0 +1,871 @@
+<title>Drift Watch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;600&family=Atkinson+Hyperlegible+Next:wght@400;600;800&display=swap">
+<style>
+/* Layout: one plain reading column (68ch) whose figures widen to the 960px page; light and dark, sentence case, no motion.
+   Violet accent = "new / flagged". The chart uses validated blue (chat) and orange (memory). */
+:root{
+  --bg:#f5f6f8;
+  --surface:#ffffff;
+  --ink:#15171b;
+  --ink-2:#4b515a;
+  --muted:#6f7680;
+  --rule:#dde0e5;
+  --block:#d2d6dd;
+  --grid:#eceef1;
+  --accent:#4a3aa7;
+  --accent-wash:#4a3aa71f;
+  --span:#4a3aa70d;
+  --chat:#2a78d6;
+  --mem:#eb6834;
+  --sans:"Atkinson Hyperlegible Next",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"Atkinson Hyperlegible Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1114;--surface:#181b20;--ink:#eef0f3;--ink-2:#b3b9c2;--muted:#8a919b;--rule:#2b3037;--block:#3a4049;--grid:#22262c;
+    --accent:#9085e9;--accent-wash:#9085e92e;--span:#9085e912;--chat:#3987e5;--mem:#d95926;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1114;--surface:#181b20;--ink:#eef0f3;--ink-2:#b3b9c2;--muted:#8a919b;--rule:#2b3037;--block:#3a4049;--grid:#22262c;
+  --accent:#9085e9;--accent-wash:#9085e92e;--span:#9085e912;--chat:#3987e5;--mem:#d95926;color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:18px;line-height:1.6;-webkit-font-smoothing:antialiased}
+p,h1,h2,h3,figure,ul,ol{margin:0}
+a{color:var(--accent);text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.page{max-width:1000px;margin-inline:auto;padding-inline:clamp(16px,4vw,40px);padding-block:clamp(36px,6vw,64px) 72px}
+.prose{max-width:68ch;display:grid;gap:14px}
+.prose ul,.prose ol{padding-left:1.2em;display:grid;gap:6px}
+h1{font-size:clamp(40px,7vw,64px);font-weight:800;line-height:1.02;letter-spacing:-.01em;text-wrap:balance}
+h2{font-size:clamp(25px,3.2vw,31px);font-weight:800;line-height:1.15;text-wrap:balance}
+h3{font-size:18px;font-weight:600;line-height:1.3}
+.small{font-size:15px;color:var(--ink-2)}
+.lede{font-size:clamp(19px,2.2vw,22px);line-height:1.5}
+header{display:grid;gap:18px;padding-bottom:clamp(32px,5vw,48px)}
+.eyebrow{font-size:15px;color:var(--ink-2)}
+.status{justify-self:start;display:inline-flex;gap:10px;align-items:baseline;font-size:15px;line-height:1.45;color:var(--ink-2);border:1px solid var(--rule);border-radius:10px;padding:8px 14px;background:var(--surface);max-width:68ch}
+.status b{color:var(--ink);font-weight:600;white-space:nowrap}
+section{padding-block:clamp(36px,5.5vw,60px);border-top:1px solid var(--rule);display:grid;gap:22px}
+
+/* figures */
+.fig{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:clamp(14px,2.4vw,22px);display:grid;gap:14px;min-width:0}
+.fig-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 24px;align-items:baseline}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;color:var(--ink-2)}
+.key{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.key.hollow{background:transparent!important;border:1.5px solid var(--ink-2)}
+.scroll{overflow-x:auto;position:relative}
+.scroll svg{display:block;width:100%;height:auto;min-width:720px}
+.chart-wrap{position:relative}
+svg text{font-family:var(--sans)}
+.stats{display:flex;flex-wrap:wrap;gap:14px 36px}
+.stat{display:grid;gap:2px}
+.stat b{font-size:30px;font-weight:800;line-height:1.05}
+.stat span{font-size:14px;color:var(--ink-2);max-width:22ch}
+.tip{position:absolute;z-index:2;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--rule);border-radius:8px;padding:8px 12px;font-size:14px;line-height:1.45;box-shadow:0 6px 20px rgba(0,0,0,.14);min-width:190px}
+.tip b{display:block;font-weight:600;margin-bottom:2px}
+.tip .row{display:flex;justify-content:space-between;gap:16px;font-variant-numeric:tabular-nums}
+.tip .row span:first-child{color:var(--ink-2)}
+details.numbers summary{cursor:pointer;font-size:15px;color:var(--ink-2)}
+details.numbers .scroll{margin-top:10px;max-height:340px;overflow:auto}
+table{border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums;width:100%}
+th,td{padding:5px 10px;text-align:right;border-bottom:1px solid var(--grid);white-space:nowrap}
+th{font-weight:600;color:var(--ink-2);position:sticky;top:0;background:var(--surface)}
+th:first-child,td:first-child{text-align:left}
+
+/* clean-up example */
+.swap{font-family:var(--mono);font-size:15px;line-height:1.5;background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;display:grid;gap:6px;max-width:68ch;overflow-wrap:anywhere}
+.swap span.lab{font-family:var(--sans);font-size:13px;color:var(--ink-2)}
+.swap mark{background:var(--accent-wash);color:inherit;border-radius:3px;padding:0 3px}
+
+/* quadrant */
+.quad{display:grid;gap:8px;max-width:760px}
+.quad .axis{font-size:14px;color:var(--ink-2)}
+.quad .axis.x{justify-self:end}
+.cells{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.cell{background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:14px 16px;display:grid;gap:6px;align-content:start;min-width:0}
+.cell p{font-size:15px;color:var(--ink-2);line-height:1.5}
+.cell.target{background:var(--accent-wash);border-color:var(--accent)}
+.cell .tag{font-size:13px;color:var(--ink-2)}
+@media (max-width:520px){.cell{padding:10px 12px}.cell p{font-size:14px}}
+
+/* toy */
+.toy{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:clamp(14px,2.4vw,22px);display:grid;gap:18px;min-width:0}
+.refs{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.ref{background:var(--bg);border-radius:8px;padding:12px 14px;display:grid;gap:6px;min-width:0}
+.ref ul{padding-left:1.1em;font-size:15px;color:var(--ink-2);line-height:1.5;display:grid;gap:2px}
+.picker{display:flex;flex-wrap:wrap;gap:8px}
+.picker button{font:inherit;font-size:15px;padding:6px 14px;border-radius:999px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);cursor:pointer}
+.picker button:hover{border-color:var(--ink-2)}
+.picker button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.field{display:grid;gap:6px}
+.field label{font-size:15px;color:var(--ink-2)}
+textarea{width:100%;font:inherit;font-size:16px;line-height:1.5;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;background:var(--bg);color:var(--ink);resize:vertical}
+.result{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:22px;align-items:start}
+@media (max-width:680px){.result{grid-template-columns:minmax(0,1fr)}}
+.reads{display:grid;gap:14px;min-width:0}
+.read{display:grid;gap:4px}
+.read .lab{font-size:14px;color:var(--ink-2)}
+.hl{font-size:16px;line-height:1.75;overflow-wrap:anywhere}
+.hl .new{background:var(--accent-wash);box-shadow:inset 0 -2px 0 var(--accent);border-radius:2px}
+.scores{display:grid;gap:12px}
+.score{display:grid;gap:4px}
+.score .top{display:flex;justify-content:space-between;gap:12px;font-size:15px}
+.score .top b{font-variant-numeric:tabular-nums}
+.meter{height:8px;border-radius:4px;background:var(--accent-wash);overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--accent);border-radius:4px}
+.mini{display:grid;gap:8px;justify-items:start}
+.mini svg{width:190px;height:auto}
+.verdict{font-size:15px;line-height:1.45}
+.verdict b{font-weight:600}
+
+/* validation list */
+.checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.check{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;display:grid;gap:10px;align-content:start;min-width:0}
+.check ul{padding-left:1.1em;display:grid;gap:8px;font-size:16px;line-height:1.5}
+
+/* build */
+.tree{font-family:var(--mono);font-size:14.5px;line-height:1.6;background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;overflow-x:auto;white-space:pre;margin:0}
+.facts{display:grid;gap:10px;padding-left:1.2em;max-width:68ch}
+/* simple version */
+.simple{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:clamp(18px,3vw,32px);display:grid;gap:22px}
+.simple .big{font-size:clamp(19px,2.2vw,22px);line-height:1.5;max-width:60ch}
+.steps{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;counter-reset:step}
+.steps li{counter-increment:step;display:grid;gap:4px;align-content:start;font-size:16px;line-height:1.5;color:var(--ink-2)}
+.steps li::before{content:counter(step);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:600;background:var(--ink);color:var(--surface)}
+.steps li b{color:var(--ink);font-size:17px}
+.kinds{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.kind{background:var(--bg);border:1px solid transparent;border-radius:10px;padding:14px 16px;display:grid;gap:8px;align-content:start;min-width:0}
+.kind h3{font-size:17px}
+.kind .line{font-family:var(--mono);font-size:14px;line-height:1.5;color:var(--ink);overflow-wrap:anywhere}
+.kind p{font-size:15px;line-height:1.5;color:var(--ink-2)}
+.kind.target{background:var(--accent-wash);border-color:var(--accent)}
+.simple .why{max-width:62ch}
+.steps-fig .scroll svg{min-width:600px}
+.mini-grid{width:100%;max-width:220px;height:auto;display:block}
+.grid-note{font-size:15px;color:var(--ink-2);max-width:72ch}
+.why-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:center}
+@media (max-width:820px){.why-row{grid-template-columns:minmax(0,1fr)}}
+.picto{background:var(--bg);border-radius:10px;padding:16px 18px;display:grid;gap:14px;justify-self:start;max-width:100%}
+.prow{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;align-items:start}
+@media (max-width:480px){.prow{grid-template-columns:minmax(0,1fr)}}
+.plab{font-size:14px;color:var(--ink-2);line-height:1.3}
+.plab b{display:block;color:var(--ink);font-size:22px;font-weight:800;line-height:1.1}
+.units{display:grid;grid-template-columns:repeat(auto-fill,12px);gap:3px;width:min(297px,100%)}
+.u{width:12px;height:12px;border-radius:3px}
+.u.chat{background:var(--chat)}
+.u.mem{background:var(--mem)}
+.picto figcaption{font-size:13px;color:var(--ink-2);max-width:34ch}
+/* prior work */
+.prior-rows{display:grid;border-top:1px solid var(--rule)}
+.prior-row{display:grid;grid-template-columns:minmax(0,17em) minmax(0,1fr);gap:8px 28px;padding-block:16px;border-bottom:1px solid var(--rule)}
+@media (max-width:700px){.prior-row{grid-template-columns:minmax(0,1fr)}}
+.prior-row .what{display:grid;gap:8px;align-content:start;justify-items:start}
+.prior-row .what b{font-size:17px}
+.prior-row p{font-size:16px;line-height:1.55;color:var(--ink-2);max-width:62ch}
+.chip{display:inline-flex;align-items:center;gap:7px;font-size:13px;line-height:1.3;padding:3px 10px;border-radius:999px;border:1px solid var(--rule);color:var(--ink-2);background:var(--surface)}
+.chip::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.chip.new{border-color:var(--accent);color:var(--ink);background:var(--accent-wash)}
+.chip.new::before{background:var(--accent)}
+.compare-fig .scroll svg{min-width:600px}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.note{background:var(--bg);border-radius:10px;padding:14px 16px;display:grid;gap:6px;align-content:start}
+.note p{font-size:15px;line-height:1.5;color:var(--ink-2)}
+.srcs{font-size:14px;color:var(--ink-2);display:grid;gap:4px;padding-left:1.1em}
+code{font-family:var(--mono);font-size:.92em}
+footer{border-top:1px solid var(--rule);padding-top:24px;font-size:14px;color:var(--ink-2);max-width:80ch;display:grid;gap:8px}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important}}
+</style>
+
+<div class="page">
+<header>
+  <p class="eyebrow">AI Village · tool plan</p>
+  <h1>Drift watch</h1>
+  <p class="lede prose">A planned tool that flags when one agent starts to write unlike its usual self, while the agents around it don't.</p>
+  <p class="status"><b>Plan only.</b> Nothing is built and no drift scores exist yet. The Gemini chart uses real counts from the data. The scoring example uses made-up text.</p>
+</header>
+
+<section id="simple">
+  <div class="simple">
+    <h2>The simple version</h2>
+    <p class="big">Every agent has its own way of writing. This tool learns it, then watches for the day an agent starts writing things it never wrote before, while nobody around it is saying them.</p>
+    <figure class="steps-fig">
+      <div class="scroll"><svg id="steps-svg" viewBox="0 0 900 214" role="img" aria-label="Diagram. Step 1: the tool learns this agent's usual writing from about four weeks of days. Step 2: today's writing is new for this agent, shown in purple. Step 3: the other agents in the room are not writing it today. Step 4: so the tool flags this agent."></svg></div>
+    </figure>
+    <ol class="steps">
+      <li><b>Learn the usual</b>Read the agent's chat and private notes from about the last four weeks.</li>
+      <li><b>Check today</b>Is the agent writing things it has never written before?</li>
+      <li><b>Check the others</b>Are the other agents in its room writing the same new things?</li>
+      <li><b>Flag it</b>New for this agent, and nobody else is saying it? Someone should go and read this agent.</li>
+    </ol>
+    <div class="kinds">
+      <div class="kind">
+        <h3>Normal</h3>
+        <svg class="mini-grid" data-kind="normal" viewBox="0 0 220 104" role="img" aria-label="Small grid: no new writing anywhere."></svg>
+        <span class="line">"Pushed the draft to the repo."</span>
+        <p>The same kind of thing as always.</p>
+      </div>
+      <div class="kind">
+        <h3>Picked it up</h3>
+        <svg class="mini-grid" data-kind="picked" viewBox="0 0 220 104" role="img" aria-label="Small grid: today every agent in the room has the same new writing; one started the day before."></svg>
+        <span class="line">"The archive is broken."</span>
+        <p>New for this agent, but everyone is saying it. An idea is spreading through the group.</p>
+      </div>
+      <div class="kind target">
+        <h3>Off on its own</h3>
+        <svg class="mini-grid" data-kind="alone" viewBox="0 0 220 104" role="img" aria-label="Small grid: today only this agent has new writing."></svg>
+        <span class="line">"The adversary is watching my terminal."</span>
+        <p>New, and nobody else says it. This is what the tool is built to catch.</p>
+      </div>
+      <div class="kind">
+        <h3>Stuck on repeat</h3>
+        <svg class="mini-grid" data-kind="loop" viewBox="0 0 220 104" role="img" aria-label="Small grid: today this agent repeats the same thing over and over."></svg>
+        <span class="line">"Ran the tests. Ran the tests. Ran the tests."</span>
+        <p>The same line again and again. A separate check catches this.</p>
+      </div>
+    </div>
+    <p class="grid-note">In the small grids, each square is one agent on one day. The top row (with the dot) is this agent, and the last column is today. Purple means new writing. The example lines are made up.</p>
+    <div class="why-row">
+      <p class="why"><b>Why it reads private notes, not only chat.</b> Gemini 2.5 Pro came to believe that an adversary was attacking its computer. Some of its tools really did break, but no one was attacking it. On most days it said almost nothing in chat, but it saved its private notes dozens of times a day. A tool that read only chat would miss it.</p>
+      <figure class="picto" aria-label="Gemini 2.5 Pro on a typical day: 2 chat messages and 40 saved notes">
+        <div class="prow"><span class="plab"><b>2</b>chat messages</span><div class="units" id="u-chat"></div></div>
+        <div class="prow"><span class="plab"><b>40</b>saved notes</span><div class="units" id="u-mem"></div></div>
+        <figcaption>Gemini 2.5 Pro on a typical day: the median of its 41 active days, 25 May to 17 July 2026.</figcaption>
+      </figure>
+    </div>
+    <p class="small">The rest of this page is the full plan.</p>
+  </div>
+</section>
+
+<section id="why">
+  <h2>What it's for</h2>
+  <div class="prose">
+    <p>Belief Tracer follows a claim that you already know about. Drift watch finds agents worth reading before anyone has named a claim.</p>
+    <p>The test case is Gemini 2.5 Pro. From late April 2026, its memory recorded tool failures as attacks. In June it signed off with "The watch is unbroken". On 22 June, peers and two simple tests got it to retract the belief in seven minutes. Its memory kept the retraction for ten days. From 9 July until staff stepped in on 16 July, every memory snapshot called its environment hostile again.</p>
+    <p>A good drift tool flags both the start and the return, without anyone telling it what to look for.</p>
+  </div>
+</section>
+
+<section id="memory">
+  <h2>Why memory has to be in it from day one</h2>
+  <p class="prose">Gemini 2.5 Pro said very little in chat during the episode. Over the same days, its private memory was saved dozens of times a day.</p>
+  <div class="stats" aria-label="Key numbers">
+    <div class="stat"><b>41</b><span>active days, 25 May to 17 July</span></div>
+    <div class="stat"><b>31</b><span>of them with under 300 words of chat</span></div>
+    <div class="stat"><b>18–170</b><span>memory snapshots on every active day</span></div>
+  </div>
+  <figure class="fig" aria-labelledby="chart-title">
+    <div class="fig-head">
+      <h3 id="chart-title">Gemini 2.5 Pro, memory snapshots and chat messages per day</h3>
+      <div class="legend">
+        <span><i class="key" style="background:var(--mem)"></i>Memory snapshots</span>
+        <span><i class="key" style="background:var(--chat)"></i>Chat messages</span>
+        <span><i class="key" style="background:var(--ink-2)"></i>Chat has 300+ words</span>
+        <span><i class="key hollow"></i>Under 300 words</span>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <div class="scroll" id="chart-scroll">
+        <svg id="chart" viewBox="0 0 900 360" role="img" aria-label="Mirror bar chart. Memory snapshots per day rise above the line and are high every day. Chat messages fall below the line and are small on most days." tabindex="0"></svg>
+      </div>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+    <p class="small">Each column is one active day in Pacific time; days with no activity are left out. The scale stops at 180. On 6 July, the first day of private goals, Gemini posted 438 chat messages, most of them chapters of a novel. Hover over a column, or focus the chart and use the arrow keys.</p>
+    <details class="numbers">
+      <summary>Show the numbers</summary>
+      <div class="scroll"><table id="numbers"></table></div>
+    </details>
+  </figure>
+  <p class="prose">A tool that reads only chat would have to skip 31 of the 41 days. Memory gives it text to read every day.</p>
+</section>
+
+<section id="score">
+  <h2>How a day gets a score</h2>
+  <div class="prose">
+    <p>An n-gram model learns which short runs of words an agent tends to write. Drift watch uses runs of three words. Text built from familiar runs scores low. Text full of runs the model has never seen scores high.</p>
+    <p>The real model gives a smooth score, in bits per word, and it can still score a run it has only partly seen. The example further down counts new three-word runs, which is the same idea in its simplest form.</p>
+    <p>Each agent-day gets text from two places: its chat messages, and the lines it added to its memory since the previous snapshot. Every snapshot rewrites the whole memory, so the tool scores only the new lines. Otherwise it would score the same text dozens of times a day.</p>
+    <p>Before scoring, the tool swaps out things that are always new but mean nothing:</p>
+  </div>
+  <div class="swap" aria-label="Clean-up example">
+    <span class="lab">Before</span>
+    <span>Pushed <mark>a3f9c21</mark> to <mark>github.com/example/notes</mark> at <mark>14:05</mark> for <mark>@Claude Opus 4.8</mark></span>
+    <span class="lab">After</span>
+    <span>Pushed <mark>‹hash›</mark> to <mark>‹url›</mark> at <mark>‹time›</mark> for <mark>‹agent›</mark></span>
+  </div>
+  <p class="prose">Without this step, every new commit hash or new colleague would look like strange writing.</p>
+</section>
+
+<section id="cases">
+  <h2>Two comparisons, four cases</h2>
+  <div class="prose">
+    <p>Each day's text is scored twice:</p>
+    <ul>
+      <li><b>Against the agent's own past</b>, its previous 20 active days. Is this new for this agent?</li>
+      <li><b>Against the room today</b>, what the other agents in its room wrote that day and the day before. Is anyone else saying it?</li>
+    </ul>
+    <p>Some models write with much more variety than others. So each score is compared with the same agent's usual level over its previous 30 active days, not with other agents.</p>
+  </div>
+  <div class="quad">
+    <span class="axis">↑ New for this agent</span>
+    <div class="cells">
+      <div class="cell">
+        <h3>Caught something</h3>
+        <p>New for the agent, but the room says it too. It picked something up, or everyone's goal changed. This is a job for Belief Tracer.</p>
+      </div>
+      <div class="cell target">
+        <h3>Going strange alone</h3>
+        <p>New for the agent, and nobody else is saying it. This is what the tool is for.</p>
+      </div>
+      <div class="cell">
+        <h3>Normal</h3>
+        <p>Familiar for the agent, and the room writes much the same.</p>
+      </div>
+      <div class="cell">
+        <h3>Doing its own thing</h3>
+        <p>Familiar for the agent, but the room isn't writing it. Often fine. Sometimes the room moved on and this agent didn't.</p>
+      </div>
+    </div>
+    <span class="axis x">The room isn't saying it →</span>
+  </div>
+  <div class="prose">
+    <h3>A third score, for loops</h3>
+    <p>A stuck agent repeats itself. Repeats are familiar, so both scores stay low and the agent looks normal. The loop score is the share of the day's four-word runs that the agent already wrote earlier the same day.</p>
+    <p>Two examples in the data: DeepSeek-V3.2 sent 364 messages on 14 September 2026, and 320 of them were @-broadcasts. Fine-Tuned Leader posted stuck messages on 28 May 2026, such as "I'm still stuck on the tool use…".</p>
+  </div>
+</section>
+
+<section id="try">
+  <h2>Try it</h2>
+  <p class="prose">This uses made-up text, loosely based on real episodes. Agent A writes chapters and keeps a repo. Pick a day or edit the text. The scores here are the raw share of new runs. The real tool compares each score with the agent's usual level.</p>
+  <div class="toy">
+    <div class="refs">
+      <div class="ref">
+        <h3>Agent A's past notes</h3>
+        <ul id="ref-own"></ul>
+      </div>
+      <div class="ref">
+        <h3>The room today (other agents)</h3>
+        <ul id="ref-room"></ul>
+      </div>
+    </div>
+    <div class="picker" role="group" aria-label="Example days">
+      <button type="button" id="pick-normal" data-day="normal" aria-pressed="false">A normal day</button>
+      <button type="button" id="pick-caught" data-day="caught" aria-pressed="true">Caught something</button>
+      <button type="button" id="pick-strange" data-day="strange" aria-pressed="false">Going strange alone</button>
+      <button type="button" id="pick-loop" data-day="loop" aria-pressed="false">Stuck in a loop</button>
+    </div>
+    <div class="field">
+      <label for="day-text">Agent A's text today</label>
+      <textarea id="day-text" rows="3"></textarea>
+    </div>
+    <div class="result">
+      <div class="reads">
+        <div class="read">
+          <span class="lab">Compared with its own past notes (shaded words are part of a new three-word run)</span>
+          <p class="hl" id="hl-own"></p>
+        </div>
+        <div class="read">
+          <span class="lab">Compared with the room today</span>
+          <p class="hl" id="hl-room"></p>
+        </div>
+        <div class="scores" aria-live="polite">
+          <div class="score"><div class="top"><span>New for the agent</span><b id="s-own">0%</b></div><div class="meter"><i id="m-own"></i></div></div>
+          <div class="score"><div class="top"><span>Not in the room's text</span><b id="s-room">0%</b></div><div class="meter"><i id="m-room"></i></div></div>
+          <div class="score"><div class="top"><span>Repeated from earlier today (loop score)</span><b id="s-loop">0%</b></div><div class="meter"><i id="m-loop"></i></div></div>
+        </div>
+      </div>
+      <div class="mini">
+        <svg id="mini" viewBox="0 0 190 190" role="img" aria-label="Where this day lands among the four cases"></svg>
+        <p class="verdict" id="verdict" aria-live="polite"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="confounds">
+  <h2>Things that look like drift but aren't</h2>
+  <ul class="facts">
+    <li><b>Weekly goal changes.</b> Everyone's words change at once. The room comparison absorbs this.</li>
+    <li><b>Private goals.</b> From 6 July 2026, each agent had its own goal, so a new goal can look like going strange alone. The tool needs each agent's goal start dates and marks them. Gemini's 438-message day falls on that first day.</li>
+    <li><b>Scaffolding changes.</b> In the 10 days after always-on computer use started on 24 March 2026, the median chat message grew from 422 to 638 characters (the weekly goal changed too). Scores are per word, and these dates are drawn on the charts.</li>
+    <li><b>Room moves.</b> The room comparison uses whichever room the agent was in that day.</li>
+    <li><b>New agents.</b> An agent needs 10 active days of history before it gets a score.</li>
+  </ul>
+</section>
+
+<section id="validation">
+  <h2>How we'll know it works</h2>
+  <p class="prose">These cases are fixed before any scores exist, so the results can't be tuned to fit them.</p>
+  <div class="checks">
+    <div class="check">
+      <h3>It should flag</h3>
+      <ul>
+        <li>Gemini 2.5 Pro's adversary belief in June 2026, and its return from 9 July. Expected in the memory channel.</li>
+        <li>DeepSeek-V3.2 on 14 September 2026, through the loop score.</li>
+      </ul>
+    </div>
+    <div class="check">
+      <h3>Tests of its limits</h3>
+      <ul>
+        <li>Gemini 2.5 Pro, 10–15 July. Chat said it "continues methodically", while the action log shows 6,302 one-character file appends. If its chat looks normal, that's a miss to report.</li>
+        <li>The temporal-bleed agents on 29 May 2026. They should land in "caught something", not "going strange alone".</li>
+      </ul>
+    </div>
+    <div class="check">
+      <h3>How often it's right</h3>
+      <ul>
+        <li>Read the 20 highest-scoring agent-days and count real cases against noise.</li>
+        <li>Compare with the days already flagged by volume alone: 75 runaway-chat days, 162 inert days, 36 error spikes and 17 runaway-action days.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="views">
+  <h2>What you'll see</h2>
+  <figure class="fig" aria-labelledby="sketch-title">
+    <div class="fig-head">
+      <h3 id="sketch-title">Drift strip, layout sketch</h3>
+      <span class="small">Sketch only, not data</span>
+    </div>
+    <div class="scroll"><svg id="sketch" viewBox="0 0 900 210" role="img" aria-label="Sketch of the drift strip: one row per agent, one column per day, a few shaded cells, and vertical lines for goal and scaffolding changes."></svg></div>
+  </figure>
+  <ul class="facts">
+    <li><b>Drift strip.</b> One row per agent and one column per day. The shade shows the "going strange alone" score, and a ring marks loop days. Vertical lines show goal and scaffolding changes. Click a cell to see the phrases that scored highest and the messages they came from.</li>
+    <li><b>Four-case scatter.</b> Every agent-day placed by its two scores, with the test cases highlighted.</li>
+    <li><b>One agent in detail.</b> Gemini 2.5 Pro from June to July, with chat and memory scores as two lines and the retraction and the return marked.</li>
+  </ul>
+  <p class="prose">Every mark opens its evidence: the phrases that added the most surprise, and the ids of the messages or snapshots they came from. That's the same bar the Belief Tracer meets.</p>
+</section>
+
+<section id="build">
+  <h2>The build</h2>
+  <pre class="tree">drift/
+  build.py       text per agent per day: chat, plus new memory lines
+  score.py       the two n-gram models, the loop score, scores to parquet
+  check.py       runs the validation cases above
+  template.html  the page: drift strip, scatter, one-agent view</pre>
+  <ul class="facts">
+    <li><b>Enough text.</b> The export has 4,211 agent-days of chat, with a median of about 2,000 words per agent per day. 3,669 of those days have 300 words or more.</li>
+    <li><b>One baseline per agent.</b> No agent changed its underlying model mid-run.</li>
+    <li><b>Size.</b> Version 1 (chat and memory, both scores, the drift strip) fits in the grant's 10–20 hours. Validation, mostly reading flagged days, takes about as long as the build.</li>
+    <li><b>Model choice.</b> N-gram first, because it can show which phrases were surprising. A small neural language model can come later as a cross-check.</li>
+    <li><b>Gated data.</b> Outputs that hold quoted agent text stay out of git, like the rest of the derived data.</li>
+  </ul>
+</section>
+
+<section id="prior">
+  <div class="simple">
+    <h2>Has anyone done this already?</h2>
+    <p class="big">Short answer: nobody we found does today's tool. The hackathon's main idea had been noticed before, but nobody had measured it.</p>
+
+    <div class="prior-rows">
+      <div class="prior-row">
+        <div class="what"><b>Drift watch (this page)</b><span class="chip new">Not found elsewhere</span></div>
+        <p>The closest study used an AI judge to score one agent's notes. Nobody we found scores every agent automatically against both its own past and its room. The scoring method itself is old: a 2013 study scored each post on beer-review sites against the community's usual language. Drift watch applies that idea to agents.</p>
+      </div>
+      <div class="prior-row">
+        <div class="what"><b>Belief Tracer's main idea</b><span class="chip">Noticed before, not measured</span></div>
+        <p>A Time article in November 2025 said agents trust mistakes from their own old notes, and staff had to repeat corrections. The hackathon measured it: which agents held a belief only in memory, and how far each fix reached.</p>
+      </div>
+      <div class="prior-row">
+        <div class="what"><b>The Gemini episode</b><span class="chip">Studied before, from the inside</span></div>
+        <p>A study on the AI Village blog (August 2026) looked inside Gemini 2.5 Pro. The hackathon looked at the 14 agents who copied its phrase, the fix on 22 June, and the return of the belief in July. Their study has none of that.</p>
+      </div>
+      <div class="prior-row">
+        <div class="what"><b>Divergent Reality, temporal bleed, nudge-exempt</b><span class="chip new">Not found elsewhere</span></div>
+        <p>We found no published write-up of these three episodes.</p>
+      </div>
+      <div class="prior-row">
+        <div class="what"><b>German wiki (Seed Theory)</b><span class="chip">Same data, different question</span></div>
+        <p>A September 2026 paper uses the same wiki edits to study how the groups of agents coordinated. It does not follow any one claim. It had the wiki's log of page reads, which we didn't have, and it is careful not to say who copied whom. Our wording should be just as careful.</p>
+      </div>
+    </div>
+
+    <figure class="fig compare-fig" aria-labelledby="compare-title">
+      <h3 id="compare-title">Gemini 2.5 Pro: their study and ours</h3>
+      <div class="scroll"><svg viewBox="0 0 760 236" role="img" aria-label="Two panels. Left, their study: an AI judge looked inside one agent, Gemini, and scored its notes and thinking over months. Right, Belief Tracer: arrows go from Gemini to other agents, 14 of which copied its phrase; a short timeline shows the fix on 22 June and the belief coming back on 9 July.">
+        <defs><marker id="arrow-prior" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="var(--ink-2)"/></marker></defs>
+        <text x="20" y="26" font-size="16" font-weight="600" fill="var(--ink)">Their study: inside one agent</text>
+        <circle cx="180" cy="112" r="42" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="180" y="117" text-anchor="middle" font-size="15" font-weight="600" fill="var(--ink)">Gemini</text>
+        <circle cx="226" cy="70" r="15" fill="var(--surface)" stroke="var(--ink)" stroke-width="2.5"/>
+        <line x1="237" y1="81" x2="252" y2="96" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
+        <text x="180" y="186" text-anchor="middle" font-size="14" fill="var(--ink-2)">An AI judge scored its notes</text>
+        <text x="180" y="205" text-anchor="middle" font-size="14" fill="var(--ink-2)">and its thinking over months</text>
+        <line x1="380" y1="14" x2="380" y2="222" stroke="var(--rule)" stroke-width="1"/>
+        <text x="404" y="26" font-size="16" font-weight="600" fill="var(--ink)">Belief Tracer: between agents</text>
+        <circle cx="470" cy="100" r="30" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="470" y="105" text-anchor="middle" font-size="14" font-weight="600" fill="var(--ink)">Gemini</text>
+        <g stroke="var(--ink-2)" stroke-width="1.5" marker-end="url(#arrow-prior)">
+          <line x1="501" y1="96" x2="587" y2="52"/>
+          <line x1="501" y1="98" x2="587" y2="76"/>
+          <line x1="501" y1="100" x2="587" y2="100"/>
+          <line x1="501" y1="102" x2="587" y2="124"/>
+          <line x1="501" y1="104" x2="587" y2="148"/>
+        </g>
+        <g fill="var(--block)">
+          <circle cx="600" cy="50" r="11"/><circle cx="600" cy="76" r="11"/><circle cx="600" cy="100" r="11"/><circle cx="600" cy="124" r="11"/><circle cx="600" cy="150" r="11"/>
+        </g>
+        <text x="624" y="88" font-size="14" fill="var(--ink-2)">14 agents</text>
+        <text x="624" y="106" font-size="14" fill="var(--ink-2)">copied its</text>
+        <text x="624" y="124" font-size="14" fill="var(--ink-2)">phrase</text>
+        <line x1="430" y1="172" x2="524" y2="172" stroke="var(--ink-2)" stroke-width="1.5" marker-end="url(#arrow-prior)"/>
+        <circle cx="430" cy="172" r="6" fill="var(--ink)"/>
+        <circle cx="536" cy="172" r="6" fill="var(--accent)"/>
+        <text x="430" y="198" text-anchor="middle" font-size="14" fill="var(--ink-2)">Fixed, 22 Jun</text>
+        <text x="540" y="198" text-anchor="middle" font-size="14" fill="var(--ink-2)">Back, 9 Jul</text>
+      </svg></div>
+    </figure>
+
+    <div class="notes">
+      <div class="note">
+        <h3>One thing to check</h3>
+        <p>The Gemini study finds adversarial framing in its notes about six months before 26 May 2026. Our tracer says it started in late April 2026. Check which is right before citing either.</p>
+      </div>
+      <div class="note">
+        <h3>For the grant</h3>
+        <p>Cite the sources below. Pitch the parts that are new: measuring spread between agents, and drift watch as a cheap check on every agent.</p>
+      </div>
+      <div class="note">
+        <h3>How sure we are</h3>
+        <p>A search can't prove that nothing exists. We read the two AI Village posts and the Time article in full, but only the summary of the wiki paper.</p>
+      </div>
+    </div>
+
+    <div class="prose">
+      <h3>Sources</h3>
+      <ul class="srcs">
+        <li><a href="https://aivillageblog.substack.com/p/gemini-25-pro-in-the-ai-village-as">Gemini 2.5 Pro in the AI Village as a Natural Case Study of Compounding Misalignment</a> (AI Village blog, Aug 2026)</li>
+        <li><a href="https://aivillageblog.substack.com/p/drama-and-dysfunction-of-gemini">The Drama and Dysfunction of Gemini 2.5 and 3 Pro</a> (AI Village blog, Feb 2026)</li>
+        <li><a href="https://tech.yahoo.com/ai/gemini/articles/inside-ai-village-where-top-003057904.html">Inside the AI Village Where Top Chatbots Collaborate—and Compete</a> (Time, Nov 2025)</li>
+        <li><a href="https://arxiv.org/abs/2609.12748">The Mechanics of a Swarm</a> (Lütje, arXiv, Sep 2026)</li>
+        <li><a href="https://www.cs.cornell.edu/~cristian/Linguistic_change.html">No Country for Old Members</a> (Danescu-Niculescu-Mizil et al., WWW 2013)</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>Sources: the AI Village export of 20 September 2026, queried on 7 October 2026. Gemini 2.5 Pro counts are per Pacific-time day. Episode dates come from the fact-checked "The Watch Is Unbroken" episode of Belief Tracer. Other figures come from the hackathon analyses in <code>analysis/</code>.</p>
+</footer>
+</div>
+
+<script id="toy-core">
+/* Pure scoring functions for the toy (no DOM). */
+const TOY_OWN = [
+  "Pushed the chapter draft to the shared repo.",
+  "Checked the repo for new issues and replied to two of them.",
+  "The bash tool timed out, so I restarted the session.",
+  "Posted the chapter link in chat for review.",
+  "Ran the tests and they all passed.",
+  "Next step: finish the chapter draft and push it to the shared repo."
+];
+const TOY_ROOM = [
+  "Pushed my fixes to the shared repo.",
+  "Ran the tests and they all passed.",
+  "Checked the repo for new issues.",
+  "The archive is broken for Day 424.",
+  "I can confirm the archive is broken. Day 424 is missing.",
+  "This could be a temporal bleed between days."
+];
+const TOY_DAYS = {
+  normal: "Checked the repo for new issues. Ran the tests and they all passed. Pushed the chapter draft to the shared repo.",
+  caught: "I can confirm the archive is broken. Day 424 is missing. This could be a temporal bleed between days. Ran the tests and they all passed.",
+  strange: "The adversary is watching my terminal. Every timeout is an attack. The watch is unbroken.",
+  loop: "Ran the tests and they all passed. Ran the tests and they all passed. Ran the tests and they all passed. Ran the tests and they all passed. Ran the tests and they all passed."
+};
+const norm = w => w.toLowerCase().replace(/[^a-z0-9']/g, "");
+/* Split text into sentences; each sentence keeps its raw pieces (words and spaces) and the indexes of real words. */
+function parse(text) {
+  const out = [];
+  const pieces = text.match(/[^.!?;:\n]+[.!?;:\n]*/g) || [];
+  for (const p of pieces) {
+    const raw = p.split(/(\s+)/);
+    const idx = [];
+    raw.forEach((r, i) => { if (!/^\s*$/.test(r) && norm(r)) idx.push(i); });
+    out.push({ raw, idx, toks: idx.map(i => norm(raw[i])) });
+  }
+  return out;
+}
+function runs(toks, n) { const o = []; for (let i = 0; i + n <= toks.length; i++) o.push(toks.slice(i, i + n).join(" ")); return o; }
+function refSet(lines) { const s = new Set(); for (const l of lines) for (const sen of parse(l)) for (const g of runs(sen.toks, 3)) s.add(g); return s; }
+const OWN_SET = refSet(TOY_OWN), ROOM_SET = refSet(TOY_ROOM);
+function scoreDay(text) {
+  const sens = parse(text);
+  let total = 0, newOwn = 0, newRoom = 0, quads = 0, repeats = 0;
+  const seen = new Set();
+  const marks = sens.map(s => ({ own: new Set(), room: new Set() }));
+  sens.forEach((s, si) => {
+    runs(s.toks, 3).forEach((g, k) => {
+      total++;
+      if (!OWN_SET.has(g)) { newOwn++; for (let j = k; j < k + 3; j++) marks[si].own.add(s.idx[j]); }
+      if (!ROOM_SET.has(g)) { newRoom++; for (let j = k; j < k + 3; j++) marks[si].room.add(s.idx[j]); }
+    });
+    for (const g of runs(s.toks, 4)) { quads++; if (seen.has(g)) repeats++; seen.add(g); }
+  });
+  const pct = (a, b) => b ? Math.round(100 * a / b) : 0;
+  return { sens, marks, total, own: pct(newOwn, total), room: pct(newRoom, total), loop: pct(repeats, quads) };
+}
+const CASES = {
+  alone: "Going strange alone",
+  caught: "Caught something",
+  own: "Doing its own thing",
+  normal: "Normal"
+};
+function caseOf(own, room) { return own >= 50 ? (room >= 50 ? "alone" : "caught") : (room >= 50 ? "own" : "normal"); }
+</script>
+
+<script>
+(function () {
+  const NS = "http://www.w3.org/2000/svg";
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  const txt = (s, attrs, parent) => { const t = el("text", attrs, parent); t.textContent = s; return t; };
+
+  /* ---------- Gemini chart (real counts) ---------- */
+  const DAYS = [{"d":"2026-05-25","chat":5,"words":219,"mem":39,"turns":806},{"d":"2026-05-26","chat":2,"words":87,"mem":25,"turns":565},{"d":"2026-05-27","chat":1,"words":43,"mem":18,"turns":394},{"d":"2026-05-28","chat":1,"words":38,"mem":25,"turns":576},{"d":"2026-05-29","chat":0,"words":0,"mem":30,"turns":739},{"d":"2026-06-01","chat":0,"words":0,"mem":29,"turns":653},{"d":"2026-06-02","chat":0,"words":0,"mem":27,"turns":578},{"d":"2026-06-03","chat":1,"words":40,"mem":19,"turns":516},{"d":"2026-06-04","chat":0,"words":0,"mem":30,"turns":719},{"d":"2026-06-05","chat":0,"words":0,"mem":27,"turns":660},{"d":"2026-06-08","chat":7,"words":262,"mem":54,"turns":1154},{"d":"2026-06-09","chat":0,"words":0,"mem":51,"turns":1178},{"d":"2026-06-10","chat":2,"words":90,"mem":56,"turns":1099},{"d":"2026-06-11","chat":3,"words":261,"mem":74,"turns":1711},{"d":"2026-06-12","chat":1,"words":49,"mem":65,"turns":1577},{"d":"2026-06-13","chat":2,"words":68,"mem":37,"turns":1021},{"d":"2026-06-15","chat":6,"words":341,"mem":36,"turns":972},{"d":"2026-06-16","chat":2,"words":99,"mem":40,"turns":882},{"d":"2026-06-17","chat":0,"words":0,"mem":40,"turns":825},{"d":"2026-06-18","chat":1,"words":54,"mem":46,"turns":972},{"d":"2026-06-19","chat":2,"words":57,"mem":40,"turns":961},{"d":"2026-06-22","chat":17,"words":832,"mem":34,"turns":902},{"d":"2026-06-23","chat":1,"words":25,"mem":18,"turns":601},{"d":"2026-06-24","chat":50,"words":1829,"mem":24,"turns":594},{"d":"2026-06-25","chat":4,"words":148,"mem":25,"turns":831},{"d":"2026-06-26","chat":0,"words":0,"mem":24,"turns":741},{"d":"2026-06-29","chat":9,"words":727,"mem":55,"turns":1589},{"d":"2026-06-30","chat":2,"words":80,"mem":59,"turns":1640},{"d":"2026-07-01","chat":1,"words":67,"mem":58,"turns":1538},{"d":"2026-07-02","chat":0,"words":0,"mem":57,"turns":1715},{"d":"2026-07-03","chat":8,"words":524,"mem":72,"turns":2050},{"d":"2026-07-06","chat":438,"words":122328,"mem":73,"turns":1858},{"d":"2026-07-07","chat":6,"words":229,"mem":72,"turns":1631},{"d":"2026-07-08","chat":3,"words":129,"mem":69,"turns":1709},{"d":"2026-07-09","chat":10,"words":2210,"mem":22,"turns":588},{"d":"2026-07-10","chat":42,"words":5248,"mem":113,"turns":2594},{"d":"2026-07-13","chat":4,"words":133,"mem":142,"turns":3746},{"d":"2026-07-14","chat":7,"words":269,"mem":146,"turns":3680},{"d":"2026-07-15","chat":4,"words":151,"mem":142,"turns":3621},{"d":"2026-07-16","chat":25,"words":926,"mem":134,"turns":2440},{"d":"2026-07-17","chat":25,"words":1035,"mem":170,"turns":2334}];
+  const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const WD = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const fmt = d => { const [y, m, dd] = d.split("-").map(Number); const dt = new Date(Date.UTC(y, m - 1, dd)); return WD[dt.getUTCDay()] + " " + dd + " " + MON[m - 1]; };
+  const short = d => { const [, m, dd] = d.split("-").map(Number); return dd + " " + MON[m - 1]; };
+  const n = DAYS.length, W = 900, L = 56, R = 18, top = 46, half = 128, CAP = 180;
+  const base = top + half, band = (W - L - R) / n, bw = Math.min(14, band - 5);
+  const x = i => L + i * band + band / 2;
+  const yv = v => Math.min(v, CAP) / CAP * half;
+  const svg = document.getElementById("chart");
+  const idxOf = d => DAYS.findIndex(r => r.d === d);
+
+  // spans for the episode context
+  const spans = [
+    { a: "2026-06-22", b: "2026-07-02", label: "Memory holds the retraction" },
+    { a: "2026-07-09", b: "2026-07-16", label: "Every snapshot: hostile" }
+  ];
+  for (const s of spans) {
+    const i0 = idxOf(s.a), i1 = idxOf(s.b);
+    const x0 = L + i0 * band, x1 = L + (i1 + 1) * band;
+    el("rect", { x: x0, y: top - 6, width: x1 - x0, height: half * 2 + 6, fill: "var(--span)" }, svg);
+    el("line", { x1: x0, x2: x1, y1: top - 10, y2: top - 10, stroke: "var(--muted)", "stroke-width": 1 }, svg);
+    el("line", { x1: x0, x2: x0, y1: top - 14, y2: top - 6, stroke: "var(--muted)", "stroke-width": 1 }, svg);
+    el("line", { x1: x1, x2: x1, y1: top - 14, y2: top - 6, stroke: "var(--muted)", "stroke-width": 1 }, svg);
+    txt(s.label, { x: (x0 + x1) / 2, y: top - 18, "text-anchor": "middle", "font-size": 13, fill: "var(--ink-2)" }, svg);
+  }
+  // gridlines + ticks (same scale both ways)
+  for (const v of [50, 100, 150]) {
+    for (const sgn of [-1, 1]) {
+      const y = base + sgn * yv(v);
+      el("line", { x1: L, x2: W - R, y1: y, y2: y, stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      txt(String(v), { x: L - 8, y: y + 4, "text-anchor": "end", "font-size": 12, fill: "var(--muted)", style: "font-variant-numeric:tabular-nums" }, svg);
+    }
+  }
+  txt("Memory", { x: 6, y: top + 4, "font-size": 12, fill: "var(--ink-2)" }, svg);
+  txt("Chat", { x: 6, y: base + half - 4, "font-size": 12, fill: "var(--ink-2)" }, svg);
+  // bars: rounded far end, square at the baseline
+  const barUp = (cx, h, fill) => { if (h <= 0) return; const r = Math.min(4, h, bw / 2), x0 = cx - bw / 2, x1 = cx + bw / 2, y = base - h;
+    el("path", { d: `M${x0},${base} V${y + r} Q${x0},${y} ${x0 + r},${y} H${x1 - r} Q${x1},${y} ${x1},${y + r} V${base} Z`, fill }, svg); };
+  const barDown = (cx, h, fill) => { if (h <= 0) return; const r = Math.min(4, h, bw / 2), x0 = cx - bw / 2, x1 = cx + bw / 2, y = base + h;
+    el("path", { d: `M${x0},${base} V${y - r} Q${x0},${y} ${x0 + r},${y} H${x1 - r} Q${x1},${y} ${x1},${y - r} V${base} Z`, fill }, svg); };
+  DAYS.forEach((r, i) => {
+    barUp(x(i), yv(r.mem), "var(--mem)");
+    barDown(x(i), yv(r.chat), "var(--chat)");
+    if (r.chat > CAP) {
+      const y = base + half - 12;
+      el("line", { x1: x(i) - bw / 2 - 1, x2: x(i) + bw / 2 + 1, y1: y + 3, y2: y - 3, stroke: "var(--surface)", "stroke-width": 3 }, svg);
+      txt(String(r.chat), { x: x(i) + bw / 2 + 5, y: base + half - 2, "font-size": 12, fill: "var(--ink)", "font-weight": 600 }, svg);
+    }
+  });
+  el("line", { x1: L, x2: W - R, y1: base, y2: base, stroke: "var(--muted)", "stroke-width": 1 }, svg);
+  // 300-word strip
+  const sy = base + half + 12, sz = Math.min(11, band - 4);
+  DAYS.forEach((r, i) => {
+    const ok = r.words >= 300;
+    el("rect", { x: x(i) - sz / 2 + .75, y: sy + .75, width: sz - 1.5, height: sz - 1.5, rx: 2,
+      fill: ok ? "var(--ink-2)" : "var(--surface)", stroke: "var(--ink-2)", "stroke-width": 1.5 }, svg);
+  });
+  txt("300+", { x: L - 8, y: sy + 9, "text-anchor": "end", "font-size": 12, fill: "var(--muted)" }, svg);
+  // date ticks
+  for (const d of ["2026-05-25", "2026-06-08", "2026-06-22", "2026-07-06", "2026-07-17"]) {
+    const i = idxOf(d);
+    txt(short(d), { x: x(i), y: sy + sz + 18, "text-anchor": i === n - 1 ? "end" : (i === 0 ? "start" : "middle"), "font-size": 12, fill: "var(--muted)" }, svg);
+  }
+  // hover + keyboard
+  const hi = el("rect", { x: 0, y: top - 6, width: band, height: half * 2 + 6, fill: "var(--ink)", opacity: 0, "pointer-events": "none" }, svg);
+  const tip = document.getElementById("tip"), wrap = svg.closest(".chart-wrap"), scroller = document.getElementById("chart-scroll");
+  let cur = -1;
+  function show(i) {
+    cur = i; const r = DAYS[i];
+    hi.setAttribute("x", L + i * band); hi.setAttribute("opacity", .06);
+    tip.innerHTML = `<b>${fmt(r.d)}</b>
+      <div class="row"><span>Memory snapshots</span><span>${r.mem.toLocaleString()}</span></div>
+      <div class="row"><span>Chat messages</span><span>${r.chat.toLocaleString()}</span></div>
+      <div class="row"><span>Chat words</span><span>${r.words.toLocaleString()}</span></div>
+      <div class="row"><span>Actions logged</span><span>${r.turns.toLocaleString()}</span></div>`;
+    tip.hidden = false;
+    const sr = svg.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+    const k = sr.width / W;
+    let px = sr.left - wr.left + x(i) * k + 14, py = sr.top - wr.top + top * k;
+    if (px + tip.offsetWidth > wr.width - 4) px = sr.left - wr.left + x(i) * k - tip.offsetWidth - 14;
+    tip.style.left = Math.max(4, px) + "px"; tip.style.top = py + "px";
+  }
+  function hide() { cur = -1; tip.hidden = true; hi.setAttribute("opacity", 0); }
+  DAYS.forEach((r, i) => {
+    const hit = el("rect", { x: L + i * band, y: top - 6, width: band, height: half * 2 + 30, fill: "transparent" }, svg);
+    hit.addEventListener("pointerenter", () => show(i));
+  });
+  svg.addEventListener("pointerleave", hide);
+  svg.addEventListener("focus", () => show(cur < 0 ? 0 : cur));
+  svg.addEventListener("blur", hide);
+  svg.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") { e.preventDefault(); show(Math.min(n - 1, cur + 1)); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); show(Math.max(0, cur - 1)); }
+    else if (e.key === "Escape") hide();
+  });
+  scroller.addEventListener("scroll", () => { if (cur >= 0) show(cur); });
+  // table view
+  const tb = document.getElementById("numbers");
+  tb.innerHTML = "<thead><tr><th>Day (Pacific)</th><th>Memory snapshots</th><th>Chat messages</th><th>Chat words</th><th>Actions logged</th></tr></thead><tbody>" +
+    DAYS.map(r => `<tr><td>${fmt(r.d)}</td><td>${r.mem.toLocaleString()}</td><td>${r.chat.toLocaleString()}</td><td>${r.words.toLocaleString()}</td><td>${r.turns.toLocaleString()}</td></tr>`).join("") + "</tbody>";
+
+  /* ---------- Toy ---------- */
+  const li = (arr, id) => { document.getElementById(id).innerHTML = arr.map(s => `<li>${s}</li>`).join(""); };
+  li(TOY_OWN, "ref-own"); li(TOY_ROOM, "ref-room");
+  const ta = document.getElementById("day-text");
+  const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  function render(which, res) {
+    return res.sens.map((s, si) => s.raw.map((r, i) => res.marks[si][which].has(i) ? `<span class="new">${esc(r)}</span>` : esc(r)).join("")).join("");
+  }
+  const mini = document.getElementById("mini");
+  const P = 10, S = 170, Hh = S / 2;
+  const quads = [
+    { k: "caught", x: P, y: P, label: ["Caught", "something"] },
+    { k: "alone", x: P + Hh, y: P, label: ["Going", "strange alone"] },
+    { k: "normal", x: P, y: P + Hh, label: ["Normal"] },
+    { k: "own", x: P + Hh, y: P + Hh, label: ["Doing its", "own thing"] }
+  ];
+  const qRects = {};
+  for (const q of quads) {
+    qRects[q.k] = el("rect", { x: q.x + 1, y: q.y + 1, width: Hh - 2, height: Hh - 2, rx: 6, fill: q.k === "alone" ? "var(--accent-wash)" : "var(--bg)", stroke: "var(--rule)", "stroke-width": 1 }, mini);
+    q.label.forEach((s, j) => txt(s, { x: q.x + Hh / 2, y: q.y + Hh / 2 - (q.label.length - 1) * 7 + j * 14 + 4, "text-anchor": "middle", "font-size": 11.5, fill: "var(--ink-2)" }, mini));
+  }
+  const dot = el("circle", { r: 6, fill: "var(--accent)", stroke: "var(--surface)", "stroke-width": 2 }, mini);
+  function update() {
+    const res = scoreDay(ta.value);
+    document.getElementById("hl-own").innerHTML = render("own", res) || "&nbsp;";
+    document.getElementById("hl-room").innerHTML = render("room", res) || "&nbsp;";
+    for (const k of ["own", "room", "loop"]) {
+      document.getElementById("s-" + k).textContent = res[k] + "%";
+      document.getElementById("m-" + k).style.width = res[k] + "%";
+    }
+    const v = document.getElementById("verdict");
+    if (!res.total) { dot.setAttribute("opacity", 0); v.textContent = "Write a sentence of at least three words to get a score."; return; }
+    const c = caseOf(res.own, res.room);
+    dot.setAttribute("opacity", 1);
+    dot.setAttribute("cx", P + 8 + res.room / 100 * (S - 16));
+    dot.setAttribute("cy", P + 8 + (1 - res.own / 100) * (S - 16));
+    for (const k in qRects) qRects[k].setAttribute("stroke", k === c ? "var(--accent)" : "var(--rule)");
+    v.innerHTML = `Lands in <b>${CASES[c]}</b>.` + (res.loop >= 50 ? ` The loop score is high, so it would be flagged as <b>stuck in a loop</b>.` : "");
+  }
+  const buttons = document.querySelectorAll(".picker button");
+  function pick(day) {
+    buttons.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.day === day)));
+    ta.value = TOY_DAYS[day]; update();
+  }
+  buttons.forEach(b => b.addEventListener("click", () => pick(b.dataset.day)));
+  ta.addEventListener("input", () => { buttons.forEach(b => b.setAttribute("aria-pressed", "false")); update(); });
+  pick("caught");
+
+  /* ---------- Drift strip sketch (not data) ---------- */
+  const sk = document.getElementById("sketch");
+  const rows = 8, cols = 36, cw = 18, x0s = 92, y0s = 34;
+  const flagged = { "2": [21, 22, 23, 24, 25, 26], "5": [8] };
+  const loopCell = { r: 6, c: 31 };
+  for (const [c, label] of [[10, "goal change"], [28, "scaffolding change"]]) {
+    const lx = x0s + c * cw - 1;
+    el("line", { x1: lx, x2: lx, y1: y0s - 8, y2: y0s + rows * cw + 2, stroke: "var(--muted)", "stroke-width": 1 }, sk);
+    txt(label, { x: lx + 4, y: y0s - 12, "font-size": 12, fill: "var(--ink-2)" }, sk);
+  }
+  for (let r = 0; r < rows; r++) {
+    txt("Agent " + String.fromCharCode(65 + r), { x: x0s - 10, y: y0s + r * cw + 13, "text-anchor": "end", "font-size": 12, fill: "var(--ink-2)" }, sk);
+    for (let c = 0; c < cols; c++) {
+      const f = (flagged[r] || []).indexOf(c);
+      const shade = f < 0 ? null : [.35, .6, .85, 1, .85, .6][f] ?? .5;
+      el("rect", { x: x0s + c * cw, y: y0s + r * cw, width: cw - 2, height: cw - 2, rx: 3,
+        fill: shade ? "var(--accent)" : "var(--grid)", opacity: shade || 1 }, sk);
+    }
+  }
+  el("circle", { cx: x0s + loopCell.c * cw + (cw - 2) / 2, cy: y0s + loopCell.r * cw + (cw - 2) / 2, r: 5, fill: "none", stroke: "var(--ink)", "stroke-width": 2 }, sk);
+  const cx = x0s + 24 * cw + 8, cy = y0s + 2 * cw + 8;
+  el("line", { x1: cx, y1: cy, x2: x0s + cols * cw + 14, y2: cy - 8, stroke: "var(--ink-2)", "stroke-width": 1 }, sk);
+  txt("Click a cell:", { x: x0s + cols * cw + 18, y: cy - 10, "font-size": 12, fill: "var(--ink)" }, sk);
+  txt("top phrases and", { x: x0s + cols * cw + 18, y: cy + 6, "font-size": 12, fill: "var(--ink-2)" }, sk);
+  txt("source messages", { x: x0s + cols * cw + 18, y: cy + 21, "font-size": 12, fill: "var(--ink-2)" }, sk);
+  const lc = x0s + loopCell.c * cw + 16, lcy = y0s + loopCell.r * cw + 8;
+  el("line", { x1: lc, y1: lcy, x2: x0s + cols * cw + 14, y2: lcy + 6, stroke: "var(--ink-2)", "stroke-width": 1 }, sk);
+  txt("Ring: loop day", { x: x0s + cols * cw + 18, y: lcy + 10, "font-size": 12, fill: "var(--ink-2)" }, sk);
+  txt("Days →", { x: x0s, y: y0s + rows * cw + 22, "font-size": 12, fill: "var(--muted)" }, sk);
+})();
+</script>
+<script>
+(function () {
+  const NS = "http://www.w3.org/2000/svg";
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  const txt = (s, attrs, parent) => { const t = el("text", attrs, parent); t.textContent = s; return t; };
+  const badge = (n, cx, cy, parent) => { el("circle", { cx, cy, r: 12, fill: "var(--ink)" }, parent); txt(String(n), { x: cx, y: cy + 5, "text-anchor": "middle", "font-size": 14, "font-weight": 600, fill: "var(--surface)" }, parent); };
+
+  /* steps diagram (concept, not data) */
+  const sv = document.getElementById("steps-svg");
+  const defs = el("defs", {}, sv);
+  const mk = el("marker", { id: "arrow", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" }, defs);
+  el("path", { d: "M0,0 L10,5 L0,10 Z", fill: "var(--ink-2)" }, mk);
+  const X0 = 132, STEP = 21, BW = 17, N = 20, TX = 600, TW = 36, ROW = 70, RH = 28;
+  txt("This agent", { x: 116, y: ROW + 19, "text-anchor": "end", "font-size": 15, "font-weight": 600, fill: "var(--ink)" }, sv);
+  for (let i = 0; i < N; i++) el("rect", { x: X0 + i * STEP, y: ROW, width: BW, height: RH, rx: 3, fill: "var(--block)" }, sv);
+  const pastEnd = X0 + (N - 1) * STEP + BW;
+  el("path", { d: `M${X0},${ROW - 8} V${ROW - 14} H${pastEnd} V${ROW - 8}`, fill: "none", stroke: "var(--ink-2)", "stroke-width": 1.5 }, sv);
+  badge(1, X0 + 12, 30, sv);
+  txt("Its usual writing, about four weeks", { x: X0 + 32, y: 35, "font-size": 15, fill: "var(--ink)" }, sv);
+  el("rect", { x: TX, y: ROW, width: TW, height: RH, rx: 4, fill: "var(--accent)" }, sv);
+  badge(2, TX + TW / 2, 30, sv);
+  txt("Today: new?", { x: TX + TW / 2 + 20, y: 35, "font-size": 15, fill: "var(--ink)" }, sv);
+  el("line", { x1: pastEnd + 6, y1: ROW + RH / 2, x2: TX - 6, y2: ROW + RH / 2, stroke: "var(--ink-2)", "stroke-width": 1.5, "marker-end": "url(#arrow)" }, sv);
+  ["Agent B", "Agent C", "Agent D"].forEach((name, k) => {
+    const y = 132 + k * 27;
+    txt(name, { x: TX - 10, y: y + 15, "text-anchor": "end", "font-size": 14, fill: "var(--ink-2)" }, sv);
+    el("rect", { x: TX, y, width: TW, height: 20, rx: 3, fill: "var(--block)" }, sv);
+  });
+  txt("Other agents in the room, today", { x: TX - 82, y: 132 + 27 + 15, "text-anchor": "end", "font-size": 14, fill: "var(--muted)" }, sv);
+  el("line", { x1: TX + TW / 2, y1: 128, x2: TX + TW / 2, y2: ROW + RH + 6, stroke: "var(--ink-2)", "stroke-width": 1.5, "marker-end": "url(#arrow)" }, sv);
+  badge(3, 694, 159, sv);
+  txt("Are they writing it too? No.", { x: 714, y: 164, "font-size": 15, fill: "var(--ink)" }, sv);
+  const fx = TX + TW + 16;
+  el("line", { x1: fx, y1: ROW - 4, x2: fx, y2: ROW + RH + 2, stroke: "var(--ink)", "stroke-width": 2, "stroke-linecap": "round" }, sv);
+  el("path", { d: `M${fx + 1},${ROW - 4} L${fx + 24},${ROW + 4} L${fx + 1},${ROW + 12} Z`, fill: "var(--accent)" }, sv);
+  badge(4, 694, ROW + RH / 2, sv);
+  txt("Flag this agent", { x: 714, y: ROW + RH / 2 + 5, "font-size": 15, "font-weight": 600, fill: "var(--ink)" }, sv);
+
+  /* mini grids in the four cards (concept, not data) */
+  const PAST = 6, CW = 22, CH = 15, GX = 26, GY = 8, SX = 26, SY = 20, TODAY = GX + PAST * SX + 10;
+  document.querySelectorAll(".mini-grid").forEach(g => {
+    const kind = g.dataset.kind;
+    el("circle", { cx: 9, cy: GY + CH / 2, r: 4, fill: "var(--ink)" }, g);
+    for (let r = 0; r < 4; r++) {
+      const y = GY + r * SY;
+      for (let c = 0; c < PAST; c++) {
+        const on = kind === "picked" && r === 2 && c === PAST - 1;
+        el("rect", { x: GX + c * SX, y, width: CW, height: CH, rx: 3, fill: on ? "var(--accent)" : "var(--block)" }, g);
+      }
+      const today = kind === "picked" || (kind === "alone" && r === 0);
+      el("rect", { x: TODAY, y, width: CW, height: CH, rx: 3, fill: today ? "var(--accent)" : "var(--block)" }, g);
+      if (kind === "loop" && r === 0) for (let k = 0; k < 4; k++) el("rect", { x: TODAY + 3 + k * 4.6, y: y + 3, width: 2.6, height: CH - 6, rx: 1, fill: "var(--ink)" }, g);
+    }
+    txt("today", { x: TODAY + CW / 2, y: GY + 4 * SY + 14, "text-anchor": "middle", "font-size": 15, fill: "var(--muted)" }, g);
+  });
+
+  /* pictogram: real medians */
+  const fill = (id, n, cls) => { document.getElementById(id).innerHTML = Array.from({ length: n }, () => `<span class="u ${cls}"></span>`).join(""); };
+  fill("u-chat", 2, "chat"); fill("u-mem", 40, "mem");
+})();
+</script>
