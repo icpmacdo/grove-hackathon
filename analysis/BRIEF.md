@@ -11,6 +11,11 @@ Our job right now: **analyze the AI Village data to find what's actually in it**
 
 ## Data access
 
+Export: AI Village dataset exported 2026-09-20 (`data/manifest.json`). Verified on 2026-10-08 with read-only
+DuckDB queries: `turns` has 2,510,487 rows from 46 agents, 2025-04-02 to 2026-09-19 (UTC); `agents` 46;
+`agent_memories` 246,151; `chat` 183,485. The dataset card that ships in `data/` (README.md, SCHEMA.md) gave
+older counts (~1.14M turns, 31 agents); use the numbers here.
+
 DuckDB file with views over Parquet: `/Users/ianmacdonald/code/grove-hackathon/data/village.duckdb`
 
 ```python
